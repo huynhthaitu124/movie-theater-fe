@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  
+  body {
+    @apply bg-secondary-50 text-secondary-900 dark:bg-secondary-900 dark:text-secondary-100;
+    @apply transition-colors duration-200 ease-in-out;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-semibold;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-200 text-secondary-900 hover:bg-secondary-300;
+    @apply dark:bg-secondary-700 dark:text-white dark:hover:bg-secondary-600;
+  }
+
+  .btn-accent {
+    @apply bg-accent-600 text-white hover:bg-accent-700;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-secondary-900 hover:bg-secondary-100;
+    @apply dark:text-white dark:hover:bg-secondary-800;
+  }
+
+  .btn-link {
+    @apply text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300;
+    @apply underline p-0;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-card overflow-hidden;
+    @apply dark:bg-secondary-800;
+    @apply transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply hover:shadow-card-hover;
+    @apply transform transition duration-200 hover:-translate-y-1;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 border border-secondary-300 rounded-md;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
+    @apply dark:bg-secondary-800 dark:border-secondary-700 dark:text-white;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1;
+  }
+
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
