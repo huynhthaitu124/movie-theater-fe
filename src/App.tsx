@@ -6,6 +6,8 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Home from './pages/home/Home';
 import Dashboard from './components/admin/Dashboard';
+import EmployeeList from './pages/admin/employees/EmployeeList';
+import AddEmployee from './pages/admin/employees/AddEmployee';
 
 const App: React.FC = () => {
   return (
@@ -20,6 +22,8 @@ const App: React.FC = () => {
             
             {/* Admin Routes */}
             <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/admin/employees" element={<EmployeeList />} />
+            <Route path="/admin/employees/add" element={<AddEmployee />} />
             
             {/* Fallback Route */}
             <Route path="*" element={<Navigate to="/" />} />
