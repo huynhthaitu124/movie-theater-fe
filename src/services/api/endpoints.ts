@@ -3,6 +3,13 @@
 export const API_ENDPOINTS = {
     LOGIN: '/api/auth/login',
     LOGOUT: '/api/auth/logout',
-    GET_USER: '/api/user',
-    UPDATE_USER: '/api/user/update',
+    GET_ACCOUNT: '/api/Account',
+    UPDATE_ACCOUNT: '/api/Account/',
 };
+
+export const USER_ENDPOINT = {
+    GET_USER_BY_ID: (userId: string) => `/api/Account/${userId}`,
+    GET_ALL_USERS: '/api/Account',
+    UPDATE_USER: (userId: string) => `/api/Account/${userId}`,
+    DELETE_USER: (userId: string) => `/api/Account/${userId}`,
+}
