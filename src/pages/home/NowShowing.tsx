@@ -1,14 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Clock, Star, Film } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import { Movie } from '../../types';
-import { movies } from '../../data/mockData';
+import api from '../../services/modules/user.service';
+
+const [nowShowingMovies, setNowShowingMovies] = useState<Movie[]>([]);
 
 const NowShowing: React.FC = () => {
   const [hoveredMovie, setHoveredMovie] = useState<string | null>(null);
   
-  const nowShowingMovies = movies.filter(movie => movie.status === 'now_showing');
+  // useEffect(() => {
+  //   const fetchNowShowingMovies = async () => {
+  //     try {
+  //       const response = await api.getNowShowingMovies();
+  //       setNowShowingMovies(response.data);
+  //     } catch (error) {
+  //       console.error('Error fetching now showing movies:', error);
+  //     }
+  //   };
+
+  //   fetchNowShowingMovies();
+  // }
+  // , []);
+  
 
   return (
     <section className="py-16 bg-secondary-50 dark:bg-secondary-900">
