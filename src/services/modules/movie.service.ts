@@ -4,7 +4,7 @@ import { ApiResponse } from '../types/response.types';
 import { MovieRequest } from '../types/request.types';
 import { Movie } from '../../types/movie';
 
-export class MovieService {
+class MovieService {
     async getAll(): Promise<ApiResponse<Movie[]>> {
         const response = await axiosClient.get<ApiResponse<Movie[]>>(API_ENDPOINTS.MOVIE.GET_ALL);
         return response.data;
@@ -20,3 +20,5 @@ export class MovieService {
         return response.data;
     }
 }
+
+export const movieService = new MovieService();

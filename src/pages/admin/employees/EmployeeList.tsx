@@ -15,7 +15,7 @@ const EmployeeList: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<keyof Employee>('fullName');
+  const [sortField, setSortField] = useState<keyof Employee>('displayName');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 3;
@@ -29,16 +29,36 @@ const EmployeeList: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const response = await staffService.getAll();
-      
-      if (!response || !response.success) {
-        throw new Error(response?.message || 'Failed to fetch employees');
+
+      // Kiểm tra response và response.data
+      if (!response?.data) {
+        throw new Error('Failed to fetch employees');
       }
 
-      setEmployees(response.data || []);
+      // Kiểm tra và chuyển đổi dữ liệu thành mảng
+      let employeeData: Employee[] = [];
+      
+      if (Array.isArray(response.data)) {
+        employeeData = response.data;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        employeeData = response.data.data;
+      } else {
+        throw new Error('Invalid employee data format');
+      }
+
+      // Set state với mảng employees đã được xử lý
+      setEmployees(employeeData);
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch employees';
       setError(errorMessage);
       toast.error(errorMessage);
+      
+      if (retryCount < maxRetries) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+        }, 1000);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +67,7 @@ const EmployeeList: React.FC = () => {
   const handleDeleteEmployee = async (id: string) => {
     try {
       const response = await staffService.delete(id);
-      if (response.success) {
+      if (response.data.status == '200') {
         toast.success('Employee deleted successfully');
         fetchEmployees();
       } else {
@@ -75,7 +95,7 @@ const EmployeeList: React.FC = () => {
     return [...employees]
       .filter(emp => 
         Object.entries(emp)
-          .filter(([key]) => ['fullName', 'position', 'department', 'status'].includes(key))
+          .filter(([key]) => ['displayName', 'position', 'department', 'status'].includes(key))
           .some(([_, value]) => 
             value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
           )
@@ -199,7 +219,7 @@ const EmployeeList: React.FC = () => {
             <table className="min-w-full divide-y divide-secondary-700">
               <thead>
                 <tr>
-                  <TableHeader field="fullName" label="Name" />
+                  <TableHeader field="displayName" label="Name" />
                   <TableHeader field="position" label="Position" />
                   <TableHeader field="department" label="Department" />
                   <TableHeader field="joinDate" label="Join Date" />
@@ -212,20 +232,20 @@ const EmployeeList: React.FC = () => {
               <tbody className="divide-y divide-secondary-700">
                 {filteredAndSortedEmployees.map((employee) => (
                   <tr 
-                    key={employee.id}
+                    key={employee.staffId}
                     className="hover:bg-secondary-700 transition-colors"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                       <div className="flex items-center">
-                        {employee.avatar && (
+                        {/* {employee.avatar && (
                           <img
                             src={employee.avatar}
-                            alt={employee.fullName}
+                            alt={employee.displayName}
                             className="h-8 w-8 rounded-full mr-3"
                           />
-                        )}
+                        )} */}
                         <div>
-                          <div className="font-medium">{employee.fullName}</div>
+                          <div className="font-medium">{employee.displayName}</div>
                           <div className="text-secondary-400 text-xs">{employee.email}</div>
                         </div>
                       </div>

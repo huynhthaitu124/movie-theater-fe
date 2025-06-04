@@ -1,13 +1,9 @@
 import { axiosClient } from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiResponse } from '../types/response.types';
+import { MovieCategory } from '../../types/movie';
 
-interface MovieCategory {
-    movieId: string;
-    categoryId: string;
-}
-
-export class MovieCategoryService {
+class MovieCategoryService {
     async getByMovie(movieId: string): Promise<ApiResponse<MovieCategory[]>> {
         const response = await axiosClient.get<ApiResponse<MovieCategory[]>>(API_ENDPOINTS.MOVIE_CATEGORY.GET_BY_MOVIE(movieId));
         return response.data;
@@ -23,3 +19,5 @@ export class MovieCategoryService {
         return response.data;
     }
 }
+
+export const movieCategoryService = new MovieCategoryService();

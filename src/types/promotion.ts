@@ -6,18 +6,27 @@ export type PromotionStatus = 'active' | 'inactive' | 'expired';
 export interface Promotion {
     id: string;
     code: string;
-    title: string;
+    name: string;
     description: string;
-    discountType: DiscountType;
-    discountValue: number;
+    promotionTypeId: string;
     startDate: string;
     endDate: string;
-    minPurchase?: number;
-    maxDiscount?: number;
+    discountValue: number;
+    discountType: DiscountType;
+    minimumPurchase?: number;
+    maximumDiscount?: number;
     usageLimit?: number;
     usageCount: number;
-    terms: string[];
     status: PromotionStatus;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface PromotionType {
+    id: string;
+    name: string;
+    description: string;
+    isActive: boolean;
     createdAt: string;
     updatedAt: string;
 }

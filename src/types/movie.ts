@@ -3,7 +3,8 @@ export interface Movie {
   title: string;
   description: string;
   duration: number; // in minutes
-  genre: string[];
+  subtitleId: string;
+  categories: string[]; // Liên kết với MovieCategories
   releaseDate: string;
   director: string;
   cast: string[];
@@ -12,6 +13,19 @@ export interface Movie {
   rating: number;
   status: 'coming-soon' | 'now-showing' | 'ended';
   language: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MovieCategory {
+  movieId: string;
+  categoryId: string;
+}
+
+export interface Subtitle {
+  id: string;
+  language: string;
+  url: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -2,14 +2,9 @@ import { axiosClient } from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiResponse } from '../types/response.types';
 import { CategoryRequest } from '../types/request.types';
+import { Category } from '../../types/category';
 
-interface Category {
-    id: string;
-    name: string;
-    description: string;
-}
-
-export class CategoryService {
+class CategoryService {
     async getAll(): Promise<ApiResponse<Category[]>> {
         const response = await axiosClient.get<ApiResponse<Category[]>>(API_ENDPOINTS.CATEGORY.GET_ALL);
         return response.data;
@@ -35,3 +30,5 @@ export class CategoryService {
         return response.data;
     }
 }
+
+export const categoryService = new CategoryService();

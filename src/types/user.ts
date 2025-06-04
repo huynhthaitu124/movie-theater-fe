@@ -1,19 +1,39 @@
-export type UserRole = 'admin' | 'staff' | 'user';
+export type UserRole = 'admin' | 'staff' | 'member';
 export type UserStatus = 'active' | 'inactive' | 'banned';
 
 export interface User {
-    id: string;
-    account: string;
-    fullName: string;
+    id: string; // AccountID
     email: string;
-    phoneNumber: string;
-    dateOfBirth: string;
-    sex: 'male' | 'female' | 'other';
-    identityCard: string;
+    username: string;
+    password?: string;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    phone: string;
     address: string;
+    dateOfBirth: string;
     role: UserRole;
     status: UserStatus;
-    avatar?: string;
+    profileImage?: string;
+    membershipId?: string;
+    membership?: {
+        id: string;
+        name: string;
+        points: number;
+        level: string;
+        benefits: string[];
+    };
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Member {
+    id: string; // MemberID
+    accountId: string;
+    membershipId?: string;
+    points: number;
+    tier: string;
+    validUntil: string;
     createdAt: string;
     updatedAt: string;
 }

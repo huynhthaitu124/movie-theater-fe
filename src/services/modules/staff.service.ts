@@ -7,7 +7,6 @@ import { Employee } from '../../types/employee';
 class StaffService {
     async getAll(): Promise<ApiResponse<Employee[]>> {
         const response = await axiosClient.get<ApiResponse<Employee[]>>(API_ENDPOINTS.STAFF.GET_ALL);
-        console.log('StaffService getAll response:', response);
         return response.data;
     }
 

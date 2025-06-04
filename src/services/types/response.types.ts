@@ -3,9 +3,11 @@
 import { User } from '../../types/user';
 
 export interface ApiResponse<T> {
-    success: boolean;
     message: string;
-    data: T;
+    data: {
+        data: T;
+        status: string;
+    };
 }
 
 export interface UserResponse {

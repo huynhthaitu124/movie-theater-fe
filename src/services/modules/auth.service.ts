@@ -3,7 +3,7 @@ import { ApiResponse, AuthResponse } from '../types/response.types';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { LoginRequest, RegisterRequest } from '../types/request.types';
 
-export class AuthService {
+class AuthService {
     async login(loginData: LoginRequest): Promise<ApiResponse<AuthResponse>> {
         const response = await axiosClient.post<ApiResponse<AuthResponse>>(API_ENDPOINTS.ACCOUNT.CREATE, loginData);
         return response.data;
@@ -19,3 +19,5 @@ export class AuthService {
         return response.data;
     }
 }
+
+export const authService = new AuthService();

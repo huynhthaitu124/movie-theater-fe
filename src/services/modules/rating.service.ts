@@ -2,18 +2,9 @@ import { axiosClient } from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiResponse } from '../types/response.types';
 import { RatingRequest } from '../types/request.types';
+import { Rating } from '../../types/rating';
 
-interface Rating {
-    id: string;
-    movieId: string;
-    accountId: string;
-    score: number;
-    comment: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export class RatingService {
+class RatingService {
     async getAll(): Promise<ApiResponse<Rating[]>> {
         const response = await axiosClient.get<ApiResponse<Rating[]>>(API_ENDPOINTS.RATING.GET_ALL);
         return response.data;
@@ -44,3 +35,5 @@ export class RatingService {
         return response.data;
     }
 }
+
+export const ratingService = new RatingService();

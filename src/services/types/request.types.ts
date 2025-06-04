@@ -1,16 +1,34 @@
 // services/types/request.types.ts
 import type { Movie } from '../../types/movie';
-import type { User } from '../../types/user';
 
 type OmitAutoFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
+
+export interface AccountRequest {
+    roleid: string;
+    displayname: string;
+    username: string;
+    email: string;
+    phonenumber: string;
+    password: string;
+    address: string;
+    dateofbirth: string;
+    preferredlanguage?: string;
+    avatar?: string;
+    gender?: string;
+    identityCard: string;
+}
+
+export interface RegisterRequest extends AccountRequest {}
 
 export interface LoginRequest {
     email: string;
     password: string;
 }
 
-export interface RegisterRequest extends Omit<OmitAutoFields<User>, 'role' | 'status' | 'avatar'> {
-    password: string;
+export interface StaffRequest {
+    position: string;
+    hiredate: string;
+    salary: number;
 }
 
 export interface CategoryRequest extends OmitAutoFields<{
@@ -27,12 +45,15 @@ export interface RatingRequest extends OmitAutoFields<{
     comment: string;
 }> {}
 
-export interface StaffRequest extends Omit<OmitAutoFields<User>, 'role'> {
-    role: Extract<User['role'], 'admin' | 'staff'>;
-}
-
 export interface SubtitleRequest extends OmitAutoFields<{
     movieId: string;
     language: string;
     filePath: string;
 }> {}
+
+export interface RoleRequest {
+    name: string;
+    description?: string;
+    permissions?: string[];
+    isActive?: boolean;
+}

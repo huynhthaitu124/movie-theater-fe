@@ -97,7 +97,7 @@ const NowShowing: React.FC = () => {
                   <span>{new Date(movie.releaseDate).toLocaleDateString()}</span>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {movie.genre.slice(0, 3).map((genre, index) => (
+                  {movie.categories.slice(0, 3).map((genre, index) => (
                     <span
                       key={index}
                       className="px-2 py-1 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"

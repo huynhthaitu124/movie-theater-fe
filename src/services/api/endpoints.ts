@@ -62,4 +62,13 @@ export const API_ENDPOINTS = {
         GET_BY_MOVIE: (movieId: string) => `/api/Subtitle/movie/${movieId}`,
         DELETE: (subtitleId: string) => `/api/Subtitle/${subtitleId}`,
     },
+
+    // Role endpoints
+    ROLE: {
+        GET_ALL: '/api/Role/All',
+        CREATE: '/api/Role/Create',
+        UPDATE: '/api/Role/Update',
+        GET_BY_ID: (id: string) => `/api/Role/${id}`,
+        DELETE: (id: string) => `/api/Role/${id}`,
+    },
 };

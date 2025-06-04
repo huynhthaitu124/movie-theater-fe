@@ -1,25 +1,43 @@
 export interface Room {
   id: string;
+  cinemaId: string;
   name: string;
   capacity: number;
-  type: 'standard' | 'vip' | 'imax';
   status: 'active' | 'maintenance' | 'inactive';
-  features: string[];
-  screenSize: string;
-  soundSystem: string;
-  seatMap: SeatMap;
+  seats: Seat[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface SeatMap {
-  rows: number;
-  columns: number;
-  seats: Seat[][];
+export interface Seat {
+  id: string;
+  roomId: string;
+  seatTypeId: string;
+  row: string;
+  number: string;
+  status: 'available' | 'booked' | 'maintenance';
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface Seat {
-  type: 'regular' | 'vip' | 'couple' | 'unavailable';
-  number: string;
-  price: number;
+export interface SeatType {
+  id: string;
+  name: string;
+  basePrice: number;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Cinema {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  phone: string;
+  email: string;
+  status: 'active' | 'inactive';
+  rooms: Room[];
+  createdAt: string;
+  updatedAt: string;
 }
