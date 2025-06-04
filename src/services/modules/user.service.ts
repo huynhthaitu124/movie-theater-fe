@@ -1,15 +1,21 @@
-import axios from '../api/axiosClient';
-import { UserResponse, UpdateUserResponse } from '../types/response.types';
-import { USER_ENDPOINT } from '../api/endpoints';
+import { axiosClient } from '../api/axiosClient';
+import { API_ENDPOINTS } from '../api/endpoints';
+import { ApiResponse } from '../types/response.types';
+import { User } from '../../types/user';
 
 export class UserService {
-    async getUser(userId: string): Promise<UserResponse> {
-        const response = await axios.get(`${USER_ENDPOINT}/${userId}`);
+    async getAllUsers(): Promise<ApiResponse<User[]>> {
+        const response = await axiosClient.get<ApiResponse<User[]>>(API_ENDPOINTS.ACCOUNT.GET_ALL);
         return response.data;
     }
 
-    async updateUser(userId: string, userData: any): Promise<UpdateUserResponse> {
-        const response = await axios.put(`${USER_ENDPOINT}/${userId}`, userData);
+    async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<User>> {
+        const response = await axiosClient.post<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.CREATE, userData);
+        return response.data;
+    }
+
+    async updateUser(userData: Partial<User>): Promise<ApiResponse<User>> {
+        const response = await axiosClient.put<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.UPDATE, userData);
         return response.data;
     }
 }

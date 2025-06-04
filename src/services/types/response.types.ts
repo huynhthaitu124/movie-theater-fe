@@ -1,5 +1,7 @@
 // services/types/response.types.ts
 
+import { User } from '../../types/user';
+
 export interface ApiResponse<T> {
     success: boolean;
     message: string;
@@ -14,5 +16,5 @@ export interface UserResponse {
 
 export interface AuthResponse {
     token: string;
-    user: UserResponse;
+    user: User;
 }

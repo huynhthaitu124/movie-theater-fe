@@ -1,79 +1,68 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, Plus, Edit2, Trash2, AlertCircle 
-} from 'lucide-react';
-import AdminLayout from '../../../components/layout/AdminLayout';
-import Button from '../../../components/common/Button';
-
-// Add mock employees data
-const mockEmployees = [
-  {
-    id: 'EMP001',
-    name: 'John Doe',
-    identityCard: '123456789',
-    email: 'john.doe@example.com',
-    phoneNumber: '(555) 123-4567',
-    address: '123 Main St, City',
-    role: 'Staff',
-    status: 'active'
-  },
-  {
-    id: 'EMP002',
-    name: 'Jane Smith',
-    identityCard: '987654321',
-    email: 'jane.smith@example.com',
-    phoneNumber: '(555) 234-5678',
-    address: '456 Oak Ave, Town',
-    role: 'Manager',
-    status: 'active'
-  },
-  {
-    id: 'EMP003',
-    name: 'Mike Johnson',
-    identityCard: '456789123',
-    email: 'mike.j@example.com',
-    phoneNumber: '(555) 345-6789',
-    address: '789 Pine St, Village',
-    role: 'Staff',
-    status: 'active'
-  },
-  {
-    id: 'EMP004',
-    name: 'Sarah Williams',
-    identityCard: '789123456',
-    email: 'sarah.w@example.com',
-    phoneNumber: '(555) 456-7890',
-    address: '321 Elm St, County',
-    role: 'Staff',
-    status: 'active'
-  },
-  {
-    id: 'EMP005',
-    name: 'David Brown',
-    identityCard: '321654987',
-    email: 'david.b@example.com',
-    phoneNumber: '(555) 567-8901',
-    address: '654 Maple Dr, District',
-    role: 'Manager',
-    status: 'active'
-  }
-];
+import { toast } from 'react-hot-toast';
+import { AlertCircle, Plus, Search, Edit, Trash } from 'lucide-react';
+import type { Employee } from '@/types/employee';
+import { staffService } from '@/services/modules/staff.service';
+import Button from '@/components/common/Button';
+import AdminLayout from '@/components/layout/AdminLayout';
 
 const EmployeeList: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-
-  // Replace the employees constant with mockEmployees
-  const employees = mockEmployees;
-
-  // Add sorting functionality
-  const [sortField, setSortField] = useState<keyof typeof employees[0]>('id');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<keyof Employee>('fullName');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
-  const handleSort = (field: keyof typeof employees[0]) => {
+  useEffect(() => {
+    fetchEmployees();
+  }, [retryCount]);
+
+  const fetchEmployees = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await staffService.getAll();
+      
+      if (!response || !response.success) {
+        throw new Error(response?.message || 'Failed to fetch employees');
+      }
+
+      setEmployees(response.data || []);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch employees';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteEmployee = async (id: string) => {
+    try {
+      const response = await staffService.delete(id);
+      if (response.success) {
+        toast.success('Employee deleted successfully');
+        fetchEmployees();
+      } else {
+        toast.error(response.message);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete employee';
+      toast.error(errorMessage);
+    } finally {
+      setShowDeleteModal(false);
+      setSelectedEmployee(null);
+    }
+  };
+
+  const handleSort = (field: keyof Employee) => {
     if (field === sortField) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -82,32 +71,29 @@ const EmployeeList: React.FC = () => {
     }
   };
 
-  const filteredEmployees = employees.filter(emp => 
-    Object.values(emp).some(value => 
-      value.toString().toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  const filteredAndSortedEmployees = useMemo(() => {
+    return [...employees]
+      .filter(emp => 
+        Object.entries(emp)
+          .filter(([key]) => ['fullName', 'position', 'department', 'status'].includes(key))
+          .some(([_, value]) => 
+            value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      )
+      .sort((a, b) => {
+        const aValue = a[sortField];
+        const bValue = b[sortField];
+        
+        if (!aValue || !bValue) return 0;
+        
+        const compareResult = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        return sortDirection === 'asc' ? compareResult : -compareResult;
+      });
+  }, [employees, searchQuery, sortField, sortDirection]);
 
-  const sortedEmployees = [...filteredEmployees].sort((a, b) => {
-    if (a[sortField] < b[sortField]) return sortDirection === 'asc' ? -1 : 1;
-    if (a[sortField] > b[sortField]) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  const handleDelete = async (id: string) => {
-    try {
-      // TODO: Implement delete API call
-      setShowDeleteModal(false);
-      setSelectedEmployee(null);
-    } catch (error) {
-      console.error('Failed to delete employee:', error);
-    }
-  };
-
-  // Update table header to include sort indicators
-  const TableHeader: React.FC<{ field: keyof typeof employees[0], label: string }> = ({ field, label }) => (
+  const TableHeader: React.FC<{ field: keyof Employee; label: string }> = ({ field, label }) => (
     <th 
-      className="px-6 py-3 text-left text-xs font-medium text-secondary-400 uppercase tracking-wider cursor-pointer"
+      className="px-6 py-3 text-left text-xs font-medium text-secondary-400 uppercase tracking-wider cursor-pointer hover:text-secondary-300 transition-colors"
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center">
@@ -121,14 +107,76 @@ const EmployeeList: React.FC = () => {
     </th>
   );
 
-  return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
+  const renderStatusBadge = (status: string) => {
+    const statusConfig = {
+      active: 'bg-green-100 text-green-800',
+      inactive: 'bg-yellow-100 text-yellow-800',
+      banned: 'bg-red-100 text-red-800'
+    };
+
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs ${statusConfig[status as keyof typeof statusConfig]}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const renderError = () => (
+    <div className="flex flex-col items-center justify-center p-8 bg-secondary-800 rounded-lg">
+      <AlertCircle size={48} className="text-accent-500 mb-4" />
+      <h2 className="text-xl font-bold text-white mb-2">Error Loading Employees</h2>
+      <p className="text-secondary-400 text-center mb-6">{error}</p>
+      {retryCount < maxRetries ? (
+        <Button
+          onClick={() => setRetryCount(prev => prev + 1)}
+          className="flex items-center"
+        >
+          Try Again
+        </Button>
+      ) : (
+        <div className="text-center space-y-4">
+          <p className="text-secondary-400">Maximum retry attempts reached.</p>
+          <div className="flex gap-4 justify-center">
+            <Button
+              variant="secondary"
+              onClick={() => navigate('/admin/dashboard')}
+            >
+              Go to Dashboard
+            </Button>
+            <Button
+              onClick={() => {
+                setRetryCount(0);
+                fetchEmployees();
+              }}
+            >
+              Reset & Try Again
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
+        </div>
+      );
+    }
+
+    if (error) {
+      return renderError();
+    }
+
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-2xl font-bold text-white">Employee Management</h1>
           <Button
             onClick={() => navigate('/admin/employees/add')}
-            className="flex items-center"
+            className="flex items-center whitespace-nowrap"
           >
             <Plus size={20} className="mr-2" />
             Add Employee
@@ -136,103 +184,137 @@ const EmployeeList: React.FC = () => {
         </div>
 
         <div className="flex items-center bg-secondary-800 rounded-lg px-4 py-2 w-full md:w-96">
-          <Search size={20} className="text-secondary-400" />
+          <Search size={20} className="text-secondary-400 flex-shrink-0" />
           <input
             type="text"
             placeholder="Search employees..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            maxLength={28}
-            className="bg-transparent border-none focus:outline-none text-white ml-2 w-full"
+            className="bg-transparent border-none focus:outline-none text-white ml-2 w-full placeholder-secondary-400"
           />
         </div>
 
-        <div className="bg-secondary-800 rounded-lg shadow-md">
+        <div className="bg-secondary-800 rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="min-w-full divide-y divide-secondary-700">
               <thead>
-                <tr className="border-b border-secondary-700">
-                  <TableHeader field="id" label="Employee ID" />
-                  <TableHeader field="name" label="Name" />
-                  <TableHeader field="identityCard" label="Identity Card" />
-                  <TableHeader field="email" label="Email" />
-                  <TableHeader field="phoneNumber" label="Phone" />
-                  <TableHeader field="address" label="Address" />
-                  <th className="px-6 py-3 text-right text-xs font-medium text-secondary-400 uppercase tracking-wider">
+                <tr>
+                  <TableHeader field="fullName" label="Name" />
+                  <TableHeader field="position" label="Position" />
+                  <TableHeader field="department" label="Department" />
+                  <TableHeader field="joinDate" label="Join Date" />
+                  <TableHeader field="status" label="Status" />
+                  <th className="px-6 py-3 text-left text-xs font-medium text-secondary-400 uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-secondary-700">
-                {sortedEmployees.map((employee) => (
+                {filteredAndSortedEmployees.map((employee) => (
                   <tr 
                     key={employee.id}
                     className="hover:bg-secondary-700 transition-colors"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {employee.id}
+                      <div className="flex items-center">
+                        {employee.avatar && (
+                          <img
+                            src={employee.avatar}
+                            alt={employee.fullName}
+                            className="h-8 w-8 rounded-full mr-3"
+                          />
+                        )}
+                        <div>
+                          <div className="font-medium">{employee.fullName}</div>
+                          <div className="text-secondary-400 text-xs">{employee.email}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {employee.name}
+                      {employee.position}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {employee.identityCard}
+                      {employee.department}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {employee.email}
+                      {new Date(employee.joinDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {renderStatusBadge(employee.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {employee.phoneNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {employee.address}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => navigate(`/admin/employees/edit/${employee.id}`)}
-                        className="text-primary-500 hover:text-primary-400 mr-4"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedEmployee(employee.id);
-                          setShowDeleteModal(true);
-                        }}
-                        className="text-accent-500 hover:text-accent-400"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center space-x-3">
+                        <Button
+                          variant="ghost"
+                          onClick={() => navigate(`/admin/employees/edit/${employee.id}`)}
+                          className="hover:text-primary-500"
+                        >
+                          <Edit size={16} className="mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="hover:text-red-500"
+                          onClick={() => {
+                            setSelectedEmployee(employee.id);
+                            setShowDeleteModal(true);
+                          }}
+                        >
+                          <Trash size={16} className="mr-1" />
+                          Delete
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-secondary-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center text-accent-500 mb-4">
-              <AlertCircle size={24} className="mr-2" />
-              <h3 className="text-lg font-medium">Confirm Delete</h3>
+          {filteredAndSortedEmployees.length === 0 && (
+            <div className="text-center py-8 text-secondary-400">
+              No employees found matching your search criteria
             </div>
+          )}
+        </div>
+
+        {/* Cập nhật phần hiển thị khi không có nhân viên */}
+        {employees.length === 0 && !isLoading && !error && (
+          <div className="bg-secondary-800 rounded-lg p-8 text-center">
+            <p className="text-secondary-400 mb-4">No employees found</p>
+            <Button
+              onClick={() => navigate('/admin/employees/add')}
+              className="flex items-center mx-auto"
+            >
+              <Plus size={20} className="mr-2" />
+              Add First Employee
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <AdminLayout>
+      {renderContent()}
+      {showDeleteModal && selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-secondary-800 rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-white mb-4">Confirm Delete</h3>
             <p className="text-secondary-300 mb-6">
               Are you sure you want to delete this employee? This action cannot be undone.
             </p>
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end space-x-3">
               <Button
-                variant="secondary"
+                variant="ghost"
                 onClick={() => setShowDeleteModal(false)}
               >
                 Cancel
               </Button>
               <Button
                 variant="accent"
-                onClick={() => selectedEmployee && handleDelete(selectedEmployee)}
+                onClick={() => handleDeleteEmployee(selectedEmployee)}
+                className="bg-red-500 hover:bg-red-600"
               >
                 Delete
               </Button>

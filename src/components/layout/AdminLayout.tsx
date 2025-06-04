@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Film, Users, Calendar, TicketIcon, Tag, Layout as LayoutIcon, 
@@ -84,9 +84,22 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    // Kiểm tra authentication và role
+    if (!isAuthenticated) {
+      navigate('/auth/login');
+      return;
+    }
+
+    if (user?.role !== 'admin' && user?.role !== 'staff') {
+      navigate('/');
+      return;
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogout = () => {
     logout();

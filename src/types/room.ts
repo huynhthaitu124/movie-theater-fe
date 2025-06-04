@@ -7,4 +7,19 @@ export interface Room {
   features: string[];
   screenSize: string;
   soundSystem: string;
+  seatMap: SeatMap;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeatMap {
+  rows: number;
+  columns: number;
+  seats: Seat[][];
+}
+
+export interface Seat {
+  type: 'regular' | 'vip' | 'couple' | 'unavailable';
+  number: string;
+  price: number;
 }

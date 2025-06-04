@@ -60,7 +60,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check for saved user in localStorage
     const savedUser = localStorage.getItem('cinema_user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        // Validate user data before setting
+        if (parsedUser && parsedUser.id && parsedUser.role && 
+            ['admin', 'staff', 'user'].includes(parsedUser.role)) {
+          setUser(parsedUser);
+        } else {
+          // Invalid user data, clear it
+          localStorage.removeItem('cinema_user');
+        }
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
+        localStorage.removeItem('cinema_user');
+      }
     }
     setIsLoading(false);
   }, []);
@@ -133,12 +146,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Normalize role to lowercase for consistent comparison
+  const normalizedUser = user ? {
+    ...user,
+    role: user.role.toLowerCase()
+  } : null;
+
   return (
     <AuthContext.Provider
       value={{
-        currentUser: user ? { name: user.fullName, role: user.role } : null,
+        currentUser: normalizedUser ? { 
+          name: normalizedUser.fullName, 
+          role: normalizedUser.role 
+        } : null,
         isAuthenticated: !!user,
-        user,
+        user: normalizedUser,
         isLoading,
         login,
         logout,

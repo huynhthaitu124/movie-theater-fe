@@ -1,14 +1,21 @@
 import axios from 'axios';
+import { ApiResponse } from '../types/response.types';
 
 const axiosClient = axios.create({
-    baseURL: 'https://your-api-base-url.com', // Replace with your API base URL
-    timeout: 10000, // Set a timeout for requests
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5250',
+    timeout: 10000,
+    headers: {
+        'Content-Type': 'application/json',
+    }
 });
 
 // Request interceptor
 axiosClient.interceptors.request.use(
     (config) => {
-        // You can add custom headers or modify the request config here
+        const token = localStorage.getItem('token');
+        if (token && config.headers) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
     },
     (error) => {
@@ -19,13 +26,22 @@ axiosClient.interceptors.request.use(
 // Response interceptor
 axiosClient.interceptors.response.use(
     (response) => {
-        // You can handle the response data here
-        return response.data;
+        return response;
     },
     (error) => {
-        // You can handle errors here
+        if (error.response?.status === 401) {
+            // Handle unauthorized access
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        } else if (error.response?.status === 403) {
+            // Handle forbidden access
+            window.location.href = '/403';
+        } else if (error.response?.status === 404) {
+            // Handle not found
+            window.location.href = '/404';
+        }
         return Promise.reject(error);
     }
 );
 
-export default axiosClient;
+export { axiosClient };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './pages/auth/Login';
@@ -19,6 +19,18 @@ import AddEditMovie from './pages/admin/movies/AddEditMovie';
 import RoomList from './pages/admin/rooms/RoomList';
 import AddEditRoom from './pages/admin/rooms/AddEditRoom';
 
+const NotFound = () => {
+  const location = useLocation();
+  
+  // If the current path starts with /admin, redirect to admin dashboard
+  if (location.pathname.startsWith('/admin')) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  
+  // Otherwise, redirect to home
+  return <Navigate to="/" replace />;
+};
+
 const App: React.FC = () => {
   return (
     <ThemeProvider>
@@ -34,32 +46,43 @@ const App: React.FC = () => {
             <Route
               path="/admin/dashboard"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <Dashboard />
                 </ProtectedRoute>
               }
             />
+
+            {/* Employee Management Routes */}
             <Route
               path="/admin/employees"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <EmployeeList />
                 </ProtectedRoute>
               }
             />
-            <Route path="/admin/employees/add" element={<AddEmployee />} />
             <Route
-              path="/admin/employees/edit/:id"
+              path="/admin/employees/add"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
-                  <EditEmployee />
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AddEmployee />
                 </ProtectedRoute>
               }
             />
             <Route
+              path="/admin/employees/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <EditEmployee />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Movie Management Routes */}
+            <Route
               path="/admin/movies"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <MovieList />
                 </ProtectedRoute>
               }
@@ -67,7 +90,7 @@ const App: React.FC = () => {
             <Route
               path="/admin/movies/add"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <AddEditMovie />
                 </ProtectedRoute>
               }
@@ -75,7 +98,7 @@ const App: React.FC = () => {
             <Route
               path="/admin/movies/edit/:id"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <AddEditMovie />
                 </ProtectedRoute>
               }
@@ -85,7 +108,7 @@ const App: React.FC = () => {
             <Route
               path="/admin/rooms"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <RoomList />
                 </ProtectedRoute>
               }
@@ -93,7 +116,7 @@ const App: React.FC = () => {
             <Route
               path="/admin/rooms/add"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <AddEditRoom />
                 </ProtectedRoute>
               }
@@ -101,22 +124,24 @@ const App: React.FC = () => {
             <Route
               path="/admin/rooms/edit/:id"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <AddEditRoom />
                 </ProtectedRoute>
               }
             />
             
-            {/* Booking Route */}
-            <Route path="/book/:movieId" element={<BookTicket />} />
+            {/* Public Routes that require authentication */}
+            <Route path="/book/:movieId" element={
+              <ProtectedRoute>
+                <BookTicket />
+              </ProtectedRoute>
+            } />
             
-            {/* Movies Route */}
+            {/* Public Routes */}
             <Route path="/movies" element={<Movies />} />
-            
-            {/* Promotions Route */}
             <Route path="/promotions" element={<Promotions />} />
             
-            {/* Profile Route */}
+            {/* Protected Profile Route */}
             <Route 
               path="/profile/edit" 
               element={
@@ -126,8 +151,8 @@ const App: React.FC = () => {
               } 
             />
             
-            {/* Fallback Route */}
-            <Route path="*" element={<Navigate to="/" />} />
+            {/* Not Found Route - must be last */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
       </AuthProvider>

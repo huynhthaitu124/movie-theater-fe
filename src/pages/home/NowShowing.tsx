@@ -9,7 +9,7 @@ const NowShowing: React.FC = () => {
   const [hoveredMovie, setHoveredMovie] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  const nowShowingMovies = movies.filter(movie => movie.status === 'now_showing');
+  const nowShowingMovies = movies.filter(movie => movie.status === 'now-showing');
 
   const handleBookTicket = (movieId: string) => {
     navigate(`/book/${movieId}`);

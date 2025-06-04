@@ -2,9 +2,16 @@ export interface Movie {
   id: string;
   title: string;
   description: string;
-  posterUrl: string;
-  duration: number;
-  rating: number;
+  duration: number; // in minutes
+  genre: string[];
   releaseDate: string;
-  status: 'now-showing' | 'coming-soon';
+  director: string;
+  cast: string[];
+  posterUrl: string;
+  trailerUrl?: string;
+  rating: number;
+  status: 'coming-soon' | 'now-showing' | 'ended';
+  language: string;
+  createdAt: string;
+  updatedAt: string;
 }

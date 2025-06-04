@@ -1,10 +1,10 @@
-export interface Employee {
-  id: string;
-  name: string;
-  identityCard: string;
-  email: string;
-  phoneNumber: string;
-  address: string;
-  role: string;
-  status: 'active' | 'inactive';
+// types/employee.ts
+import { User, UserRole } from './user';
+
+export interface Employee extends Omit<User, 'role'> {
+    role: Extract<UserRole, 'admin' | 'staff'>;
+    department: string;
+    position: string;
+    salary: number;
+    joinDate: string;
 }
