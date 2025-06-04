@@ -4,6 +4,7 @@ import {
   TrendingUp, Clock, Activity
 } from 'lucide-react';
 import AdminLayout from '../layout/AdminLayout';
+import { Link } from 'react-router-dom';
 
 interface StatCardProps {
   title: string;
@@ -217,6 +218,12 @@ const Dashboard: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="mt-8">
+          <Link to="/admin/rooms" className="text-primary-500 hover:underline">
+            Room List
+          </Link>
         </div>
       </div>
     </AdminLayout>

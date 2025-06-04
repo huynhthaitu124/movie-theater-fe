@@ -1,187 +1,245 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
-  Search, Filter, Edit, Trash2, UserPlus, 
-  Download, Upload, MoreVertical 
+  Search, Plus, Edit2, Trash2, AlertCircle 
 } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
-import { Employee } from '../../../types/employee';
+
+// Add mock employees data
+const mockEmployees = [
+  {
+    id: 'EMP001',
+    name: 'John Doe',
+    identityCard: '123456789',
+    email: 'john.doe@example.com',
+    phoneNumber: '(555) 123-4567',
+    address: '123 Main St, City',
+    role: 'Staff',
+    status: 'active'
+  },
+  {
+    id: 'EMP002',
+    name: 'Jane Smith',
+    identityCard: '987654321',
+    email: 'jane.smith@example.com',
+    phoneNumber: '(555) 234-5678',
+    address: '456 Oak Ave, Town',
+    role: 'Manager',
+    status: 'active'
+  },
+  {
+    id: 'EMP003',
+    name: 'Mike Johnson',
+    identityCard: '456789123',
+    email: 'mike.j@example.com',
+    phoneNumber: '(555) 345-6789',
+    address: '789 Pine St, Village',
+    role: 'Staff',
+    status: 'active'
+  },
+  {
+    id: 'EMP004',
+    name: 'Sarah Williams',
+    identityCard: '789123456',
+    email: 'sarah.w@example.com',
+    phoneNumber: '(555) 456-7890',
+    address: '321 Elm St, County',
+    role: 'Staff',
+    status: 'active'
+  },
+  {
+    id: 'EMP005',
+    name: 'David Brown',
+    identityCard: '321654987',
+    email: 'david.b@example.com',
+    phoneNumber: '(555) 567-8901',
+    address: '654 Maple Dr, District',
+    role: 'Manager',
+    status: 'active'
+  }
+];
 
 const EmployeeList: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
 
-  // Mock data - replace with API call
-  const employees: Employee[] = [
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john@cinema.com',
-      role: 'staff',
-      department: 'Box Office',
-      phoneNumber: '(123) 456-7890',
-      joinDate: '2024-01-15',
-      status: 'active',
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      email: 'jane@cinema.com',
-      role: 'admin',
-      department: 'Management',
-      phoneNumber: '(123) 456-7891',
-      joinDate: '2023-08-20',
-      status: 'active',
-    },
-  ];
+  // Replace the employees constant with mockEmployees
+  const employees = mockEmployees;
+
+  // Add sorting functionality
+  const [sortField, setSortField] = useState<keyof typeof employees[0]>('id');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: keyof typeof employees[0]) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const filteredEmployees = employees.filter(emp => 
+    Object.values(emp).some(value => 
+      value.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
+  const sortedEmployees = [...filteredEmployees].sort((a, b) => {
+    if (a[sortField] < b[sortField]) return sortDirection === 'asc' ? -1 : 1;
+    if (a[sortField] > b[sortField]) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const handleDelete = async (id: string) => {
+    try {
+      // TODO: Implement delete API call
+      setShowDeleteModal(false);
+      setSelectedEmployee(null);
+    } catch (error) {
+      console.error('Failed to delete employee:', error);
+    }
+  };
+
+  // Update table header to include sort indicators
+  const TableHeader: React.FC<{ field: keyof typeof employees[0], label: string }> = ({ field, label }) => (
+    <th 
+      className="px-6 py-3 text-left text-xs font-medium text-secondary-400 uppercase tracking-wider cursor-pointer"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center">
+        {label}
+        {sortField === field && (
+          <span className="ml-2">
+            {sortDirection === 'asc' ? '↑' : '↓'}
+          </span>
+        )}
+      </div>
+    </th>
+  );
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-white">Employee Management</h1>
-          <div className="flex items-center gap-4">
-            <Button variant="secondary" leftIcon={<Download size={20} />}>
-              Export
-            </Button>
-            <Link to="/admin/employees/add">
-              <Button leftIcon={<UserPlus size={20} />}>
-                Add Employee
-              </Button>
-            </Link>
-          </div>
+          <Button
+            onClick={() => navigate('/admin/employees/add')}
+            className="flex items-center"
+          >
+            <Plus size={20} className="mr-2" />
+            Add Employee
+          </Button>
         </div>
 
-        {/* Filters */}
-        <div className="bg-secondary-800 rounded-lg p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search by name, email, or phone..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                />
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <select
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-                className="px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-              >
-                <option value="all">All Departments</option>
-                <option value="box-office">Box Office</option>
-                <option value="management">Management</option>
-                <option value="operations">Operations</option>
-              </select>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
+        <div className="flex items-center bg-secondary-800 rounded-lg px-4 py-2 w-full md:w-96">
+          <Search size={20} className="text-secondary-400" />
+          <input
+            type="text"
+            placeholder="Search employees..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            maxLength={28}
+            className="bg-transparent border-none focus:outline-none text-white ml-2 w-full"
+          />
         </div>
 
-        {/* Employee Table */}
-        <div className="bg-secondary-800 rounded-lg shadow-md overflow-hidden">
+        <div className="bg-secondary-800 rounded-lg shadow-md">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left border-b border-secondary-700">
-                  <th className="px-6 py-4 text-secondary-300 font-medium">Employee</th>
-                  <th className="px-6 py-4 text-secondary-300 font-medium">Department</th>
-                  <th className="px-6 py-4 text-secondary-300 font-medium">Contact</th>
-                  <th className="px-6 py-4 text-secondary-300 font-medium">Status</th>
-                  <th className="px-6 py-4 text-secondary-300 font-medium">Actions</th>
+                <tr className="border-b border-secondary-700">
+                  <TableHeader field="id" label="Employee ID" />
+                  <TableHeader field="name" label="Name" />
+                  <TableHeader field="identityCard" label="Identity Card" />
+                  <TableHeader field="email" label="Email" />
+                  <TableHeader field="phoneNumber" label="Phone" />
+                  <TableHeader field="address" label="Address" />
+                  <th className="px-6 py-3 text-right text-xs font-medium text-secondary-400 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-secondary-700">
-                {employees.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-secondary-700/50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium">
-                          {employee.name.charAt(0)}
-                        </div>
-                        <div className="ml-4">
-                          <div className="font-medium text-white">{employee.name}</div>
-                          <div className="text-sm text-secondary-400">{employee.role}</div>
-                        </div>
-                      </div>
+                {sortedEmployees.map((employee) => (
+                  <tr 
+                    key={employee.id}
+                    className="hover:bg-secondary-700 transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                      {employee.id}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-secondary-300">{employee.department}</div>
-                      <div className="text-sm text-secondary-400">Joined {new Date(employee.joinDate).toLocaleDateString()}</div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                      {employee.name}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-secondary-300">{employee.email}</div>
-                      <div className="text-sm text-secondary-400">{employee.phoneNumber}</div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                      {employee.identityCard}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        employee.status === 'active' 
-                          ? 'bg-success-900 text-success-300' 
-                          : 'bg-secondary-700 text-secondary-300'
-                      }`}>
-                        {employee.status}
-                      </span>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                      {employee.email}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <button 
-                          className="p-1 hover:bg-secondary-600 rounded-full"
-                          onClick={() => {/* Handle edit */}}
-                        >
-                          <Edit size={18} className="text-secondary-400 hover:text-white" />
-                        </button>
-                        <button 
-                          className="p-1 hover:bg-secondary-600 rounded-full"
-                          onClick={() => {/* Handle delete */}}
-                        >
-                          <Trash2 size={18} className="text-secondary-400 hover:text-accent-500" />
-                        </button>
-                        <button className="p-1 hover:bg-secondary-600 rounded-full">
-                          <MoreVertical size={18} className="text-secondary-400 hover:text-white" />
-                        </button>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                      {employee.phoneNumber}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                      {employee.address}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => navigate(`/admin/employees/edit/${employee.id}`)}
+                        className="text-primary-500 hover:text-primary-400 mr-4"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedEmployee(employee.id);
+                          setShowDeleteModal(true);
+                        }}
+                        className="text-accent-500 hover:text-accent-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
 
-          {/* Pagination */}
-          <div className="px-6 py-4 border-t border-secondary-700">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-secondary-400">
-                Showing <span className="font-medium">1</span> to <span className="font-medium">10</span> of{' '}
-                <span className="font-medium">20</span> results
-              </div>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 text-sm bg-secondary-700 text-white rounded-lg hover:bg-secondary-600">
-                  Previous
-                </button>
-                <button className="px-4 py-2 text-sm bg-secondary-700 text-white rounded-lg hover:bg-secondary-600">
-                  Next
-                </button>
-              </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-secondary-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center text-accent-500 mb-4">
+              <AlertCircle size={24} className="mr-2" />
+              <h3 className="text-lg font-medium">Confirm Delete</h3>
+            </div>
+            <p className="text-secondary-300 mb-6">
+              Are you sure you want to delete this employee? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <Button
+                variant="secondary"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="accent"
+                onClick={() => selectedEmployee && handleDelete(selectedEmployee)}
+              >
+                Delete
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </AdminLayout>
   );
 };

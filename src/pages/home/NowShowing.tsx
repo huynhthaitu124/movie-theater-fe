@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, Star, Film } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import { Movie } from '../../types';
 import { movies } from '../../data/mockData';
 
 const NowShowing: React.FC = () => {
   const [hoveredMovie, setHoveredMovie] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   const nowShowingMovies = movies.filter(movie => movie.status === 'now_showing');
+
+  const handleBookTicket = (movieId: string) => {
+    navigate(`/book/${movieId}`);
+  };
 
   return (
     <section className="py-16 bg-secondary-50 dark:bg-secondary-900">
@@ -67,9 +72,12 @@ const NowShowing: React.FC = () => {
                     </div>
                   </div>
                   
-                  <Link to={`/movies/${movie.id}`}>
-                    <Button fullWidth>Book Now</Button>
-                  </Link>
+                  <Button 
+                    onClick={() => handleBookTicket(movie.id)}
+                    fullWidth
+                  >
+                    Book Now
+                  </Button>
                 </div>
               </div>
               

@@ -1,11 +1,10 @@
 export interface Employee {
   id: string;
   name: string;
+  identityCard: string;
   email: string;
-  role: 'admin' | 'staff';
-  department: string;
   phoneNumber: string;
-  joinDate: string;
+  address: string;
+  role: string;
   status: 'active' | 'inactive';
-  avatarUrl?: string;
 }

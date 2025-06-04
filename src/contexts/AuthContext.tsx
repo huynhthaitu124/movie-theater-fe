@@ -1,13 +1,25 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
 
-interface AuthContextType {
-  currentUser: User | null;
+export interface User {
+  id: string;
+  role: string;
+  fullName: string;
+  email: string;
+  dateOfBirth?: string;
+  sex?: string;
+  identityCard?: string;
+  phoneNumber?: string;
+  address?: string;
+}
+
+export interface AuthContextType {
+  currentUser: { name: string; role: string } | null;
   isAuthenticated: boolean;
+  user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,7 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const MOCK_USERS = [
   {
     id: '1',
-    name: 'Admin User',
+    fullName: 'Admin User',
     email: 'admin@cinema.com',
     password: 'admin123',
     role: 'admin' as const,
@@ -24,7 +36,7 @@ const MOCK_USERS = [
   },
   {
     id: '2',
-    name: 'Staff User',
+    fullName: 'Staff User',
     email: 'staff@cinema.com',
     password: 'staff123',
     role: 'staff' as const,
@@ -32,7 +44,7 @@ const MOCK_USERS = [
   },
   {
     id: '3',
-    name: 'Regular User',
+    fullName: 'Regular User',
     email: 'user@cinema.com',
     password: 'user123',
     role: 'user' as const,
@@ -41,14 +53,14 @@ const MOCK_USERS = [
 ];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for saved user in localStorage
     const savedUser = localStorage.getItem('cinema_user');
     if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
+      setUser(JSON.parse(savedUser));
     }
     setIsLoading(false);
   }, []);
@@ -59,18 +71,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const user = MOCK_USERS.find(user => 
+      const foundUser = MOCK_USERS.find(user => 
         user.email === email && user.password === password
       );
       
-      if (!user) {
+      if (!foundUser) {
         throw new Error('Invalid email or password');
       }
       
       // Remove password before saving user
-      const { password: _, ...userWithoutPassword } = user;
-      setCurrentUser(userWithoutPassword);
+      const { password: _, ...userWithoutPassword } = foundUser;
+      setUser(userWithoutPassword);
       localStorage.setItem('cinema_user', JSON.stringify(userWithoutPassword));
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      setUser(null);
+      localStorage.removeItem('cinema_user');
     } catch (error) {
       throw error;
     } finally {
@@ -84,22 +108,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if user already exists
-      if (MOCK_USERS.some(user => user.email === email)) {
-        throw new Error('User with this email already exists');
+      const existingUser = MOCK_USERS.find(user => user.email === email);
+      if (existingUser) {
+        throw new Error('User already exists');
       }
       
-      // In a real app, we would make an API call to register the user
-      const newUser: User = {
-        id: `${MOCK_USERS.length + 1}`,
-        name,
+      const newUser = {
+        id: String(MOCK_USERS.length + 1),
+        fullName: name,
         email,
-        role: 'user',
+        password,
+        role: 'user' as const,
         createdAt: new Date().toISOString(),
       };
       
-      setCurrentUser(newUser);
-      localStorage.setItem('cinema_user', JSON.stringify(newUser));
+      // Remove password before saving user
+      const { password: _, ...userWithoutPassword } = newUser;
+      setUser(userWithoutPassword);
+      localStorage.setItem('cinema_user', JSON.stringify(userWithoutPassword));
     } catch (error) {
       throw error;
     } finally {
@@ -107,20 +133,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('cinema_user');
-  };
-
   return (
     <AuthContext.Provider
       value={{
-        currentUser,
-        isAuthenticated: !!currentUser,
+        currentUser: user ? { name: user.fullName, role: user.role } : null,
+        isAuthenticated: !!user,
+        user,
         isLoading,
         login,
-        register,
         logout,
+        register,
       }}
     >
       {children}
