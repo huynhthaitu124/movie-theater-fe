@@ -95,7 +95,7 @@ const EmployeeList: React.FC = () => {
     return [...employees]
       .filter(emp => 
         Object.entries(emp)
-          .filter(([key]) => ['displayName', 'position', 'department', 'status'].includes(key))
+          .filter(([key]) => ['staffid', 'displayName', 'position', 'department', 'status'].includes(key))
           .some(([_, value]) => 
             value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
           )
@@ -232,7 +232,7 @@ const EmployeeList: React.FC = () => {
               <tbody className="divide-y divide-secondary-700">
                 {filteredAndSortedEmployees.map((employee) => (
                   <tr 
-                    key={employee.staffId}
+                    key={employee.staffid}
                     className="hover:bg-secondary-700 transition-colors"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
@@ -266,7 +266,7 @@ const EmployeeList: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <Button
                           variant="ghost"
-                          onClick={() => navigate(`/admin/employees/edit/${employee.id}`)}
+                          onClick={() => navigate(`/admin/employees/edit/${employee.staffid}`)}
                           className="hover:text-primary-500"
                         >
                           <Edit size={16} className="mr-1" />
@@ -276,7 +276,8 @@ const EmployeeList: React.FC = () => {
                           variant="ghost"
                           className="hover:text-red-500"
                           onClick={() => {
-                            setSelectedEmployee(employee.id);
+                            setSelectedEmployee(employee.staffid);
+                            console.log('Selected Employee:', selectedEmployee);
                             setShowDeleteModal(true);
                           }}
                         >

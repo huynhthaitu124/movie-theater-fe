@@ -84,7 +84,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { currentUser, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -95,11 +95,11 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       return;
     }
 
-    if (user?.role !== 'admin' && user?.role !== 'staff') {
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'staff') {
       navigate('/');
       return;
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, currentUser, navigate]);
 
   const handleLogout = () => {
     logout();
