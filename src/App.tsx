@@ -33,9 +33,9 @@ const NotFound = () => {
 
 const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router>
+    <Router>
+      <ThemeProvider>
+        <AuthProvider>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
@@ -154,9 +154,9 @@ const App: React.FC = () => {
             {/* Not Found Route - must be last */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Router>
-      </AuthProvider>
-    </ThemeProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </Router>
   );
 };
 

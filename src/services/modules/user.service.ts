@@ -15,8 +15,13 @@ class UserService {
         return response.data;
     }
 
-    async update(userData: Partial<User>): Promise<ApiResponse<User>> {
-        const response = await axiosClient.put<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.UPDATE, userData);
+    async update(id: string, userData: Partial<User>): Promise<ApiResponse<User>> {
+        const response = await axiosClient.put<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.UPDATE(id), userData);
+        return response.data;
+    }
+
+    async getById(id: string): Promise<ApiResponse<User>> {
+        const response = await axiosClient.get<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.GET_BY_ID(id));
         return response.data;
     }
 }

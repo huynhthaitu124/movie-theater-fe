@@ -1,38 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
-
-const mockEmployees = [
-  {
-    id: '1',
-    imageUrl: '',
-    account: 'emp1',
-    fullName: 'John Doe',
-    dateOfBirth: '1990-01-01',
-    sex: 'male' as const,
-    email: 'john@example.com',
-    identityCard: '123456789',
-    phoneNumber: '1234567890',
-    address: '123 Street'
-  }
-];
+import { userService } from '../../../services/modules/user.service';
+import { staffService } from '../../../services/modules/staff.service';
+import { toast } from 'react-hot-toast';
+import { UserRole } from '../../../types/user';
+import { Employee } from '../../../types/employee';
+import { StaffRequest } from '../../../services/types/request.types';
 
 interface EmployeeFormData {
-  image: File | null;
-  imageUrl: string;
-  account: string;
+  // Account fields
+  username: string;
+  email: string;
   password: string;
   confirmPassword: string;
-  fullName: string;
-  dateOfBirth: string;
-  sex: 'male' | 'female' | 'other';
-  email: string;
-  identityCard: string;
-  phoneNumber: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  phone: string;
   address: string;
+  dateOfBirth: string;
+  profileImage?: string;
+  role: Extract<UserRole, 'admin' | 'staff'>;
+  status: 'active' | 'inactive';
+  
+  // Staff specific fields
+  position: string;
+  department: string;
+  salary: number;
+  joinDate: string;
 }
 
 const EditEmployee: React.FC = () => {
@@ -43,46 +42,81 @@ const EditEmployee: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<EmployeeFormData>({
-    image: null,
-    imageUrl: '',
-    account: '',
+    username: '',
+    email: '',
     password: '',
     confirmPassword: '',
-    fullName: '',
+    firstName: '',
+    lastName: '',
+    displayName: '',
+    phone: '',
+    address: '',
     dateOfBirth: '',
-    sex: 'male',
-    email: '',
-    identityCard: '',
-    phoneNumber: '',
-    address: ''
+    profileImage: '',
+    role: 'staff',
+    status: 'active',
+    position: '',
+    department: '',
+    salary: 0,
+    joinDate: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
-        // TODO: Replace with actual API call
-        const employee = mockEmployees.find(emp => emp.id === id);
-        if (employee) {
-          setFormData({
-            ...formData,
-            ...employee,
-            password: '',
-            confirmPassword: '',
-          });
-          setImagePreview(employee.imageUrl);
+        setIsLoading(true);
+        const accountResponse = await userService.getById(id!);
+        console.log('Account data:', accountResponse);
+        
+        if (accountResponse.data?.data) {
+          const account = accountResponse.data.data;
+          setFormData(prev => ({
+            ...prev,
+            username: account.username,
+            email: account.email,
+            firstName: account.firstName,
+            lastName: account.lastName,
+            displayName: account.displayName,
+            phone: account.phone,
+            address: account.address,
+            dateOfBirth: account.dateOfBirth,
+            profileImage: account.profileImage || '',
+            role: account.role as Extract<UserRole, 'admin' | 'staff'>,
+            status: account.status as 'active' | 'inactive'
+          }));
+
+          // Fetch staff info
+          const staffResponse = await staffService.getByAccountId(id!);
+          console.log('Staff data:', staffResponse);
+          
+          if (staffResponse.data?.data) {
+            const staff = staffResponse.data.data;
+            setFormData(prev => ({
+              ...prev,
+              position: staff.position,
+              department: staff.department,
+              salary: staff.salary,
+              joinDate: staff.joinDate
+            }));
+          }
         }
       } catch (error) {
-        setError('Failed to fetch employee data');
+        console.error('Error fetching employee data:', error);
+        toast.error('Failed to fetch employee data');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchEmployee();
+    if (id) {
+      fetchEmployee();
+    }
   }, [id]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData({ ...formData, image: file });
+      setFormData({ ...formData, profileImage: file.name });
       const reader = new FileReader();
       reader.onload = () => {
         setImagePreview(reader.result as string);
@@ -101,8 +135,10 @@ const EditEmployee: React.FC = () => {
   };
 
   const validateForm = () => {
-    if (!formData.fullName || !formData.email || !formData.identityCard || 
-        !formData.phoneNumber || !formData.address) {
+    if (!formData.email || !formData.firstName || 
+        !formData.lastName || !formData.phone || 
+        !formData.address || !formData.position || 
+        !formData.joinDate) {
       setError('Please fill in all required fields');
       return false;
     }
@@ -127,13 +163,41 @@ const EditEmployee: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      navigate('/admin/employees', { 
-        state: { message: 'Employee updated successfully' } 
-      });
-    } catch (error) {
-      setError('Failed to update employee');
+      // Update account information
+      const accountData = {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        displayName: formData.displayName,
+        phone: formData.phone,
+        address: formData.address,
+        dateOfBirth: formData.dateOfBirth,
+        role: formData.role,
+        status: formData.status
+      };
+
+      if (formData.password) {
+        Object.assign(accountData, { password: formData.password });
+      }
+
+      const accountResponse = await userService.update(id!, accountData);
+      console.log('Account update response:', accountResponse);
+
+      // Update staff information
+      const staffData: Partial<StaffRequest> = {
+        position: formData.position,
+        salary: formData.salary
+      };
+
+      const staffResponse = await staffService.update(id!, staffData);
+      console.log('Staff update response:', staffResponse);
+
+      toast.success('Employee updated successfully');
+      navigate('/admin/employees');
+    } catch (error: any) {
+      console.error('Error updating employee:', error);
+      setError(error.response?.data?.message || 'Failed to update employee');
+      toast.error(error.response?.data?.message || 'Failed to update employee');
     } finally {
       setIsLoading(false);
     }
@@ -161,77 +225,98 @@ const EditEmployee: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-secondary-800 rounded-lg p-6">
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-secondary-300 mb-2">
-                Profile Image
-              </label>
-              <div className="flex items-center space-x-6">
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-secondary-700">
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Profile preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-secondary-400">
-                      <Upload size={24} />
-                    </div>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  id="image-upload"
+            {/* Account Information */}
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-white border-b border-secondary-700 pb-2">
+                Account Information
+              </h2>
+
+              <Input
+                label="Username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                disabled
+              />
+
+              <Input
+                label="Email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Password"
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Leave blank to keep current password"
                 />
-                <label
-                  htmlFor="image-upload"
-                  className="cursor-pointer px-4 py-2 border border-secondary-600 rounded-lg text-secondary-300 hover:border-primary-500 hover:text-primary-500"
-                >
-                  Change Image
-                </label>
+
+                <Input
+                  label="Confirm Password"
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Leave blank to keep current password"
+                />
               </div>
             </div>
 
-            <Input
-              label="Account"
-              name="account"
-              value={formData.account}
-              disabled
-              className="opacity-50"
-            />
+            {/* Personal Information */}
+            <div className="space-y-6 mt-8">
+              <h2 className="text-lg font-semibold text-white border-b border-secondary-700 pb-2">
+                Personal Information
+              </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="First Name"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                />
+
+                <Input
+                  label="Last Name"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
               <Input
-                label="Password"
-                type="password"
-                name="password"
-                value={formData.password}
+                label="Display Name"
+                name="displayName"
+                value={formData.displayName}
                 onChange={handleChange}
-                placeholder="Leave blank to keep current password"
+                required
               />
 
               <Input
-                label="Confirm Password"
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
+                label="Phone Number"
+                name="phone"
+                value={formData.phone}
                 onChange={handleChange}
-                placeholder="Leave blank to keep current password"
+                required
               />
-            </div>
 
-            <Input
-              label="Full Name"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-            />
+              <Input
+                label="Address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                required
+              />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 label="Date of Birth"
                 type="date"
@@ -241,56 +326,85 @@ const EditEmployee: React.FC = () => {
                 required
               />
 
-              <div>
-                <label className="block text-sm font-medium text-secondary-300 mb-2">
-                  Sex
-                </label>
-                <select
-                  name="sex"
-                  value={formData.sex}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                  required
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-secondary-300 mb-2">
+                    Role
+                  </label>
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    required
+                  >
+                    <option value="staff">Staff</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-secondary-300 mb-2">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    required
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <Input
-              label="Email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
+            {/* Employment Information */}
+            <div className="space-y-6 mt-8">
+              <h2 className="text-lg font-semibold text-white border-b border-secondary-700 pb-2">
+                Employment Information
+              </h2>
 
-            <Input
-              label="Identity Card"
-              name="identityCard"
-              value={formData.identityCard}
-              onChange={handleChange}
-              required
-            />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Position"
+                  name="position"
+                  value={formData.position}
+                  onChange={handleChange}
+                  required
+                />
 
-            <Input
-              label="Phone Number"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-              required
-            />
+                <Input
+                  label="Department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  required
+                />
 
-            <Input
-              label="Address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-            />
+                <Input
+                  label="Join Date"
+                  type="date"
+                  name="joinDate"
+                  value={formData.joinDate}
+                  onChange={handleChange}
+                  required
+                />
+
+                <Input
+                  label="Salary"
+                  name="salary"
+                  type="number"
+                  min="0"
+                  step="100000"
+                  value={formData.salary}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-4">

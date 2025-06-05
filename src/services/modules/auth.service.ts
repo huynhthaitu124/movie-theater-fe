@@ -2,22 +2,45 @@ import { axiosClient } from '../api/axiosClient';
 import { ApiResponse, AuthResponse } from '../types/response.types';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { LoginRequest, RegisterRequest } from '../types/request.types';
+import { User } from '../../types/user';
+
+interface AuthResponseWithRefresh extends AuthResponse {
+    refreshToken: string;
+}
 
 class AuthService {
-    async login(loginData: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-        const response = await axiosClient.post<ApiResponse<AuthResponse>>(API_ENDPOINTS.ACCOUNT.CREATE, loginData);
-        return response.data;
+    async login(loginData: LoginRequest): Promise<AuthResponseWithRefresh> {
+        const response = await axiosClient.post<ApiResponse<AuthResponseWithRefresh>>(
+            API_ENDPOINTS.ACCOUNT.LOGIN,
+            loginData
+        );
+        return response.data.data.data;
     }
 
-    async register(registerData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
-        const response = await axiosClient.post<ApiResponse<AuthResponse>>(API_ENDPOINTS.ACCOUNT.CREATE, registerData);
-        return response.data;
+    async register(registerData: RegisterRequest): Promise<AuthResponseWithRefresh> {
+        const response = await axiosClient.post<ApiResponse<AuthResponseWithRefresh>>(
+            API_ENDPOINTS.ACCOUNT.REGISTER,
+            registerData
+        );
+        return response.data.data.data;
     }
 
-    async logout(): Promise<ApiResponse<void>> {
-        const response = await axiosClient.post<ApiResponse<void>>(API_ENDPOINTS.ACCOUNT.UPDATE);
-        return response.data;
+    async getCurrentUser(): Promise<User> {
+        const response = await axiosClient.get<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.ME);
+        return response.data.data.data;
+    }
+
+    async logout(): Promise<void> {
+        await axiosClient.post(API_ENDPOINTS.ACCOUNT.LOGOUT);
+    }
+
+    async refreshToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
+        const response = await axiosClient.post<ApiResponse<{ token: string; refreshToken: string }>>(
+            API_ENDPOINTS.ACCOUNT.REFRESH_TOKEN,
+            { refreshToken }
+        );
+        return response.data.data.data;
     }
 }
 
-export const authService = new AuthService();
+export default new AuthService();

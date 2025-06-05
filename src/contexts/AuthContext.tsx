@@ -1,181 +1,145 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-export interface User {
-  id: string;
-  role: string;
-  fullName: string;
-  email: string;
-  dateOfBirth?: string;
-  sex?: string;
-  identityCard?: string;
-  phoneNumber?: string;
-  address?: string;
-}
+import { useNavigate } from 'react-router-dom';
+import TokenService from '../services/modules/token.service';
+import AuthService from '../services/modules/auth.service';
+import { User } from '../types/user';
 
 export interface AuthContextType {
-  currentUser: { name: string; role: string } | null;
-  isAuthenticated: boolean;
-  user: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+    currentUser: User | null;
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    login: (email: string, password: string) => Promise<void>;
+    logout: () => Promise<void>;
+    register: (name: string, email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demonstration
-const MOCK_USERS = [
-  {
-    id: '1',
-    fullName: 'Admin User',
-    email: 'admin@cinema.com',
-    password: 'admin123',
-    role: 'admin' as const,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    fullName: 'Staff User',
-    email: 'staff@cinema.com',
-    password: 'staff123',
-    role: 'staff' as const,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    fullName: 'Regular User',
-    email: 'user@cinema.com',
-    password: 'user123',
-    role: 'user' as const,
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    // Check for saved user in localStorage
-    const savedUser = localStorage.getItem('cinema_user');
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        // Validate user data before setting
-        if (parsedUser && parsedUser.id && parsedUser.role && 
-            ['admin', 'staff', 'user'].includes(parsedUser.role)) {
-          setUser(parsedUser);
-        } else {
-          // Invalid user data, clear it
-          localStorage.removeItem('cinema_user');
+    useEffect(() => {
+        const initializeAuth = async () => {
+            if (TokenService.isLoggedIn()) {
+                try {
+                    // Get current user info
+                    const user = await AuthService.getCurrentUser();
+                    setCurrentUser(user);
+                    setIsAuthenticated(true);
+                } catch (error) {
+                    console.error('Error fetching user:', error);
+                    // If there's an error, clear tokens and force re-login
+                    TokenService.clearTokens();
+                    setIsAuthenticated(false);
+                    navigate('/login');
+                }
+            }
+            setIsLoading(false);
+        };
+
+        initializeAuth();
+    }, [navigate]);
+
+    const login = async (email: string, password: string) => {
+        setIsLoading(true);
+        try {
+            // Login with credentials
+            const authResponse = await AuthService.login({ email, password });
+            
+            // Save tokens
+            TokenService.setToken(authResponse.token);
+            if ('refreshToken' in authResponse) {
+                TokenService.setRefreshToken((authResponse as any).refreshToken);
+            }
+
+            // Update state
+            setCurrentUser(authResponse.user);
+            setIsAuthenticated(true);
+            
+            // Navigate to home or previous page
+            navigate('/');
+        } catch (error: any) {
+            console.error('Login error:', error);
+            // Clear any existing tokens on error
+            TokenService.clearTokens();
+            throw new Error(error.response?.data?.message || 'Login failed');
+        } finally {
+            setIsLoading(false);
         }
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('cinema_user');
-      }
-    }
-    setIsLoading(false);
-  }, []);
+    };
 
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const foundUser = MOCK_USERS.find(user => 
-        user.email === email && user.password === password
-      );
-      
-      if (!foundUser) {
-        throw new Error('Invalid email or password');
-      }
-      
-      // Remove password before saving user
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('cinema_user', JSON.stringify(userWithoutPassword));
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const logout = async () => {
+        setIsLoading(true);
+        try {
+            // Call logout API
+            await AuthService.logout();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            // Clear local state regardless of API call result
+            TokenService.clearTokens();
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            navigate('/login');
+        }
+    };
 
-  const logout = async () => {
-    setIsLoading(true);
-    try {
-      setUser(null);
-      localStorage.removeItem('cinema_user');
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const register = async (name: string, email: string, password: string) => {
+        setIsLoading(true);
+        try {
+            // Register new user
+            const authResponse = await AuthService.register({
+                displayname: name,
+                username: email, // Using email as username
+                email,
+                password,
+                roleid: '2', // Default role for regular users
+                phonenumber: '',
+                address: '',
+                dateofbirth: new Date().toISOString(),
+                identityCard: ''
+            });
+            
+            // Save tokens
+            TokenService.setToken(authResponse.token);
+            if ('refreshToken' in authResponse) {
+                TokenService.setRefreshToken((authResponse as any).refreshToken);
+            }
 
-  const register = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const existingUser = MOCK_USERS.find(user => user.email === email);
-      if (existingUser) {
-        throw new Error('User already exists');
-      }
-      
-      const newUser = {
-        id: String(MOCK_USERS.length + 1),
-        fullName: name,
-        email,
-        password,
-        role: 'user' as const,
-        createdAt: new Date().toISOString(),
-      };
-      
-      // Remove password before saving user
-      const { password: _, ...userWithoutPassword } = newUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('cinema_user', JSON.stringify(userWithoutPassword));
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            // Update state
+            setCurrentUser(authResponse.user);
+            setIsAuthenticated(true);
+            
+            // Navigate to home page after successful registration
+            navigate('/');
+        } catch (error: any) {
+            console.error('Registration error:', error);
+            throw new Error(error.response?.data?.message || 'Registration failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  // Normalize role to lowercase for consistent comparison
-  const normalizedUser = user ? {
-    ...user,
-    role: user.role.toLowerCase()
-  } : null;
-
-  return (
-    <AuthContext.Provider
-      value={{
-        currentUser: normalizedUser ? { 
-          name: normalizedUser.fullName, 
-          role: normalizedUser.role 
-        } : null,
-        isAuthenticated: !!user,
-        user: normalizedUser,
+    const value = {
+        currentUser,
+        isAuthenticated,
         isLoading,
         login,
         logout,
-        register,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+        register
+    };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };

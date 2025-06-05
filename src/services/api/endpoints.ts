@@ -3,9 +3,16 @@
 export const API_ENDPOINTS = {
     // Account endpoints
     ACCOUNT: {
+        LOGIN: '/api/auth/login',
+        REGISTER: '/api/auth/register',
+        ME: '/api/auth/me',
+        LOGOUT: '/api/auth/logout',
+        REFRESH_TOKEN: '/api/auth/refresh-token',
         GET_ALL: '/api/Account',
         CREATE: '/api/Account',
-        UPDATE: '/api/Account',
+        UPDATE: (id: string) => `/api/Account/${id}`,
+        GET_BY_ID: (id: string) => `/api/Account/${id}`,
+        DELETE: (id: string) => `/api/Account/${id}`,
     },
 
     // Category endpoints
@@ -49,9 +56,11 @@ export const API_ENDPOINTS = {
     // Staff endpoints
     STAFF: {
         GET_ALL: '/api/Staff/GetAllStaff',
-        UPDATE: '/api/Staff/UpdateStaffAdmin',
-        DELETE: (staffId: string) => `/api/Staff/DeleteStaff/${staffId}`,
-        CREATE: '/api/Staff/CreateStaffAdmin',
+        CREATE: '/api/Staff',
+        UPDATE: (id: string) => `/api/Staff/${id}`,
+        GET_BY_ID: (id: string) => `/api/Staff/${id}`,
+        GET_BY_ACCOUNT_ID: (id: string) => `/api/Staff/Account/${id}`,
+        DELETE: (id: string) => `/api/Staff/${id}`,
     },
 
     // Subtitle endpoints

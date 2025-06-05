@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { ApiResponse } from '../types/response.types';
+type AxiosError = any; // Using any for now, can be typed properly later
+// Comment out AuthResponse interface for now
+// interface AuthResponse {
+//     token: string;
+//     refreshToken: string;
+// }
+import TokenService from '../modules/token.service';
 
 const axiosClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5250',
@@ -12,7 +18,7 @@ const axiosClient = axios.create({
 // Request interceptor
 axiosClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = TokenService.getToken();
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -23,24 +29,40 @@ axiosClient.interceptors.request.use(
     }
 );
 
+// Comment out refresh token functionality for now
+// let isRefreshing = false;
+// let failedQueue: any[] = [];
+
+// const processQueue = (error: any, token: string | null = null) => {
+//     failedQueue.forEach(prom => {
+//         if (error) {
+//             prom.reject(error);
+//         } else {
+//             prom.resolve(token);
+//         }
+//     });
+//     failedQueue = [];
+// };
+
 // Response interceptor
 axiosClient.interceptors.response.use(
     (response) => {
-        console.log('Response:', response);
         return response;
     },
-    (error) => {
+    async (error: AxiosError) => {
+        // Simple 401 handling - just clear tokens and redirect to login
         if (error.response?.status === 401) {
-            // Handle unauthorized access
-            localStorage.removeItem('token');
+            TokenService.clearTokens();
             window.location.href = '/login';
-        } else if (error.response?.status === 403) {
-            // Handle forbidden access
-            window.location.href = '/403';
-        } else if (error.response?.status === 404) {
-            // Handle not found
-            window.location.href = '/404';
+            return Promise.reject(error);
         }
+
+        if (error.response?.status === 403) {
+            console.error('Access forbidden:', error.response.data);
+        } else if (error.response?.status === 404) {
+            console.error('Resource not found:', error.response.data);
+        }
+
         return Promise.reject(error);
     }
 );
