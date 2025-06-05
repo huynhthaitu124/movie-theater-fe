@@ -24,6 +24,11 @@ class StaffService {
         const response = await axiosClient.delete<ApiResponse<void>>(API_ENDPOINTS.STAFF.DELETE(id));
         return response.data;
     }
+
+    async deleteSoft(id: string): Promise<ApiResponse<StaffRequest>> {
+        const response = await axiosClient.put<ApiResponse<StaffRequest>>(API_ENDPOINTS.STAFF.UPDATE, { isActive: false, id });
+        return response.data;
+    }
 }
 
 export const staffService = new StaffService();

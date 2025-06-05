@@ -2,7 +2,7 @@
 import { User, UserRole } from './user';
 
 export interface Employee extends Omit<User, 'role'> {
-    staffId: string;
+    staffid: string;
     accountId: string;
     firstName: string;
     lastName: string;
