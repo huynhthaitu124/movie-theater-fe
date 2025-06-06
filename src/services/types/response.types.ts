@@ -4,9 +4,7 @@ import { User } from '../../types/user';
 
 export interface ApiResponse<T> {
     message: string;
-    data: {
-        data: T;
-    };
+    data: T;
 }
 
 export interface UserResponse {

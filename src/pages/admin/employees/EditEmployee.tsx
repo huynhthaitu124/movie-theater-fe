@@ -67,8 +67,8 @@ const EditEmployee: React.FC = () => {
         const accountResponse = await userService.getById(id!);
         console.log('Account data:', accountResponse);
         
-        if (accountResponse.data?.data) {
-          const account = accountResponse.data.data;
+        if (accountResponse.data) {
+          const account = accountResponse.data;
           setFormData(prev => ({
             ...prev,
             username: account.username || '',
@@ -88,8 +88,8 @@ const EditEmployee: React.FC = () => {
           const staffResponse = await staffService.getByAccountId(id!);
           console.log('Staff data:', staffResponse);
           
-          if (staffResponse.data?.data) {
-            const staff = staffResponse.data.data;
+          if (staffResponse.data) {
+            const staff = staffResponse.data;
             setFormData(prev => ({
               ...prev,
               position: staff.position || '',

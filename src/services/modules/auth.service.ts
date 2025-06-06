@@ -17,17 +17,17 @@ class AuthService {
         return response.data;
     }
 
-    async register(registerData: RegisterRequest): Promise<AuthResponseWithRefresh> {
-        const response = await axiosClient.post<ApiResponse<AuthResponseWithRefresh>>(
+    async register(registerData: RegisterRequest): Promise<AuthResponse> {
+        const response = await axiosClient.post<AuthResponse>(
             API_ENDPOINTS.ACCOUNT.REGISTER,
             registerData
         );
-        return response.data.data.data;
+        return response.data;
     }
 
-    async getCurrentUser(): Promise<User> {
+    async getCurrentUser(): Promise<ApiResponse<User>> {
         const response = await axiosClient.get<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.ME);
-        return response.data.data.data;
+        return response.data;
     }
 
     async logout(): Promise<void> {
