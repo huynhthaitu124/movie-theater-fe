@@ -26,6 +26,7 @@ export interface LoginRequest {
 }
 
 export interface StaffRequest {
+    accountId?: string;  // Optional khi update, required khi create
     position: string;
     hiredate: string;
     salary: number;

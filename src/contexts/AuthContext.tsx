@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Map token payload to User object
             const user: User = {
-                id: tokenPayload.sub,
+                accountid: tokenPayload.sub,
                 email: tokenPayload.email,
                 displayName: tokenPayload.name,
                 role: normalizeRole(tokenPayload.role || ''),

@@ -84,7 +84,7 @@ const AddEmployee: React.FC = () => {
         }
 
         // Tìm role staff
-        const staffRole = roles.find(role => role?.rolename?.toLowerCase() === 'staff');
+        const staffRole = roles.find(role => role.rolename === 'Staff');
         console.log('Staff role:', staffRole);
 
         if (staffRole?.roleid) {
@@ -105,24 +105,40 @@ const AddEmployee: React.FC = () => {
     fetchStaffRole();
   }, [navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Form submission started', formData);
+  const validateForm = () => {
+    if (!formData.email || !formData.username || !formData.password || !formData.confirmPassword) {
+      toast.error('Please fill in all required fields');
+      return false;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
-      return;
+      return false;
     }
 
     if (!formData.roleid) {
       toast.error('Staff role not configured');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isSubmitting) {
+      return;
+    }
+
+    if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // First, create the account with staff role
+      // Create account data
       const accountData: AccountRequest = {
         username: formData.username,
         email: formData.email,
@@ -138,48 +154,42 @@ const AddEmployee: React.FC = () => {
         roleid: formData.roleid
       };
 
-      console.log('Sending account creation request:', accountData);
+      // Create account first
       const accountResponse = await userService.create(accountData);
-      console.log('Account creation response:', accountResponse);
 
-      if (!accountResponse.data) {
-        throw new Error('No data received from account creation');
+      // if (!accountResponse.data?.data) {
+      //   throw new Error('Failed to create account');
+      // }
+
+      console.log('Account created successfully:', accountResponse);
+
+      const newAccount = accountResponse.data;
+
+      console.log('New account data:', newAccount.accountid);
+
+      // Create staff record with the account ID
+      const staffData: StaffRequest = {
+        accountId: newAccount.accountid, // Use the account ID from the created account
+        position: formData.position,
+        hiredate: formData.hiredate,
+        salary: formData.salary
+      };
+
+      // Create staff record
+      const staffResponse = await staffService.create(staffData);
+
+      if (!staffResponse) {
+        throw new Error('Failed to create staff record');
       }
 
-      if (accountResponse.data?.data) {
-        // Then create the staff record
-        const staffData: StaffRequest = {
-          position: formData.position,
-          hiredate: formData.hiredate,
-          salary: formData.salary
-        };
+      // All operations successful
+      toast.success('Employee created successfully');
+      navigate('/admin/employees');
 
-        console.log('Sending staff creation request:', staffData);
-        const staffResponse = await staffService.create(staffData);
-        console.log('Staff creation response:', staffResponse);
-
-        if (!staffResponse.data) {
-          throw new Error('No data received from staff creation');
-        }
-
-        if (staffResponse.data?.data) {
-          toast.success('Employee created successfully');
-          navigate('/admin/employees');
-        } else {
-          throw new Error('Failed to create staff record');
-        }
-      } else {
-        throw new Error('Failed to create account');
-      }
     } catch (error: any) {
-      console.error('Detailed error:', {
-        error,
-        response: error.response,
-        message: error.message,
-        stack: error.stack
-      });
-      
+      console.error('Error creating employee:', error);
       let errorMessage = 'Failed to create employee';
+      
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {

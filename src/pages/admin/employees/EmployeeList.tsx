@@ -40,8 +40,8 @@ const EmployeeList: React.FC = () => {
       
       if (Array.isArray(response.data)) {
         employeeData = response.data;
-      } else if (response.data.data && Array.isArray(response.data.data)) {
-        employeeData = response.data.data;
+      } else if (response.data && Array.isArray(response.data)) {
+        employeeData = response.data;
       } else {
         throw new Error('Invalid employee data format');
       }
