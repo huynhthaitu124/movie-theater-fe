@@ -3,11 +3,10 @@
 export const API_ENDPOINTS = {
     // Account endpoints
     ACCOUNT: {
-        LOGIN: '/api/auth/login',
-        REGISTER: '/api/auth/register',
-        ME: '/api/auth/me',
-        LOGOUT: '/api/auth/logout',
-        REFRESH_TOKEN: '/api/auth/refresh-token',
+        LOGIN: '/api/Authentication/login',
+        REGISTER: '/api/Authentication/register',
+        ME: '/api/Authentication/me',
+        LOGOUT: '/api/Authentication/logout',
         GET_ALL: '/api/Account',
         CREATE: '/api/Account',
         UPDATE: (id: string) => `/api/Account/${id}`,

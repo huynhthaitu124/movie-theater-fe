@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Film, User, LogOut, UserCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
 import Button from '../common/Button';
+import { UserRole } from '../../types/role';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { currentUser, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleDashboardClick = () => {
+    console.log('Current user role:', currentUser?.role);
+    if (currentUser?.role === 'Admin') {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/account');
+    }
+    setIsProfileOpen(false);
+  };
 
   const handleLogout = () => {
     logout();
@@ -20,6 +31,11 @@ const Navbar: React.FC = () => {
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
+  // Debug log whenever currentUser changes
+  useEffect(() => {
+    console.log('Navbar - Current user:', currentUser);
+  }, [currentUser]);
 
   return (
     <nav className="bg-secondary-900 border-b border-secondary-800">
@@ -54,7 +70,7 @@ const Navbar: React.FC = () => {
                   className="flex items-center space-x-2 text-secondary-200 hover:text-white"
                 >
                   <UserCircle size={24} />
-                  <span>{currentUser?.name}</span>
+                  <span>{currentUser?.displayName}</span>
                 </button>
 
                 {isProfileOpen && (
@@ -66,13 +82,12 @@ const Navbar: React.FC = () => {
                     >
                       Edit Profile
                     </Link>
-                    <Link
-                      to={currentUser?.role === 'admin' ? '/admin/dashboard' : '/account'}
-                      className="block px-4 py-2 text-sm text-secondary-200 hover:bg-secondary-700"
-                      onClick={() => setIsProfileOpen(false)}
+                    <button
+                      onClick={handleDashboardClick}
+                      className="block w-full text-left px-4 py-2 text-sm text-secondary-200 hover:bg-secondary-700"
                     >
                       Dashboard
-                    </Link>
+                    </button>
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-secondary-200 hover:bg-secondary-700"
@@ -151,7 +166,7 @@ const Navbar: React.FC = () => {
                   Edit Profile
                 </Link>
                 <Link
-                  to={currentUser?.role === 'admin' ? '/admin/dashboard' : '/account'}
+                  to={currentUser?.role === 'Admin' ? '/admin/dashboard' : '/account'}
                   className="block px-3 py-2 rounded-md text-base font-medium text-secondary-200 hover:bg-secondary-700"
                   onClick={() => setIsMenuOpen(false)}
                 >

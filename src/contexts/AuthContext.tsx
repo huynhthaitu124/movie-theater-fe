@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import TokenService from '../services/modules/token.service';
 import AuthService from '../services/modules/auth.service';
 import { User } from '../types/user';
+import { UserRole } from '../types/role';
+import { jwtDecode } from "jwt-decode";
 
 export interface AuthContextType {
     currentUser: User | null;
@@ -26,8 +28,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (TokenService.isLoggedIn()) {
                 try {
                     // Get current user info
-                    const user = await AuthService.getCurrentUser();
-                    setCurrentUser(user);
+                    // const user = await AuthService.getCurrentUser();
+                    // setCurrentUser(user);
                     setIsAuthenticated(true);
                 } catch (error) {
                     console.error('Error fetching user:', error);
@@ -46,20 +48,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            // Login with credentials
-            const authResponse = await AuthService.login({ email, password });
-            
-            // Save tokens
-            TokenService.setToken(authResponse.token);
-            if ('refreshToken' in authResponse) {
-                TokenService.setRefreshToken((authResponse as any).refreshToken);
-            }
+            const authResponse = await AuthService.login({ 
+                keyword: email,
+                password 
+            });
+            console.log('Login response:', authResponse);
+            console.log('User data:', authResponse.data);
+            TokenService.setToken(authResponse.data);
+            const tokenPayload: any = jwtDecode(authResponse.data);
 
-            // Update state
-            setCurrentUser(authResponse.user);
-            setIsAuthenticated(true);
+            console.log('Decoded token payload:', tokenPayload);
             
-            // Navigate to home or previous page
+            // Ensure role is in correct format (Title Case)
+            const normalizeRole = (role: string): UserRole => {
+                const normalizedRole = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+                if (normalizedRole === 'Admin' || normalizedRole === 'Staff' || normalizedRole === 'Member') {
+                    return normalizedRole as UserRole;
+                }
+                return 'Member';
+            };
+
+            // Map token payload to User object
+            const user: User = {
+                id: tokenPayload.sub,
+                email: tokenPayload.email,
+                displayName: tokenPayload.name,
+                role: normalizeRole(tokenPayload.role || ''),
+                emailVerified: tokenPayload.EmailVerified || false,
+            };
+
+            console.log('Mapped user object:', user);
+            
+            setCurrentUser(user);
+            setIsAuthenticated(true);
             navigate('/');
         } catch (error: any) {
             console.error('Login error:', error);
@@ -105,13 +126,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             
             // Save tokens
-            TokenService.setToken(authResponse.token);
+            TokenService.setToken(authResponse.data);
             if ('refreshToken' in authResponse) {
                 TokenService.setRefreshToken((authResponse as any).refreshToken);
             }
 
             // Update state
-            setCurrentUser(authResponse.user);
+            // setCurrentUser(authResponse.data);
             setIsAuthenticated(true);
             
             // Navigate to home page after successful registration

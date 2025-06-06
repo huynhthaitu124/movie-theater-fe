@@ -95,7 +95,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       return;
     }
 
-    if (currentUser?.role !== 'admin' && currentUser?.role !== 'staff') {
+    if (currentUser?.role !== 'Admin' && currentUser?.role !== 'Staff') {
       navigate('/');
       return;
     }

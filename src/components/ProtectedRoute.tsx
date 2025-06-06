@@ -26,11 +26,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   // Check role authorization
-  console.log('Current user:', currentUser);
-  console.log('Allowed roles:', allowedRoles);
-  console.log('Role check:', currentUser?.role, allowedRoles.includes(currentUser?.role || ''));
-  if (allowedRoles.length > 0 && (!currentUser?.role || !allowedRoles.includes(currentUser.role))) {
-    console.log('Access denied for role:', currentUser?.role);
+  const userRole = currentUser?.role || '';
+  
+  // Debug logging
+  console.log('Protected Route - Authorization check:', {
+    currentUser,
+    userRole,
+    allowedRoles
+  });
+
+  // Direct role check (no case conversion needed since both are in Title Case)
+  const hasRequiredRole = allowedRoles.length === 0 || 
+    (userRole && allowedRoles.includes(userRole));
+
+  if (!hasRequiredRole) {
+    console.log('Protected Route - Access denied:', {
+      userRole,
+      requiredRoles: allowedRoles,
+      reason: !userRole ? 'No user role' : 'Role not allowed'
+    });
     return <Navigate to="/" replace />;
   }
 

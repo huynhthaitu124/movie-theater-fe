@@ -67,12 +67,12 @@ const EmployeeList: React.FC = () => {
   const handleDeleteEmployee = async (id: string) => {
     try {
       const response = await staffService.delete(id);
-      if (response.data.status == '200') {
-        toast.success('Employee deleted successfully');
-        fetchEmployees();
-      } else {
-        toast.error(response.message);
-      }
+      // if (response.data.data == '200') {
+      //   toast.success('Employee deleted successfully');
+      //   fetchEmployees();
+      // } else {
+      //   toast.error(response.message);
+      // }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete employee';
       toast.error(errorMessage);

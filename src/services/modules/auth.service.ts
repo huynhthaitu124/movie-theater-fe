@@ -9,12 +9,12 @@ interface AuthResponseWithRefresh extends AuthResponse {
 }
 
 class AuthService {
-    async login(loginData: LoginRequest): Promise<AuthResponseWithRefresh> {
-        const response = await axiosClient.post<ApiResponse<AuthResponseWithRefresh>>(
+    async login(loginData: LoginRequest): Promise<AuthResponse> {
+        const response = await axiosClient.post<AuthResponse>(
             API_ENDPOINTS.ACCOUNT.LOGIN,
             loginData
         );
-        return response.data.data.data;
+        return response.data;
     }
 
     async register(registerData: RegisterRequest): Promise<AuthResponseWithRefresh> {
@@ -34,13 +34,13 @@ class AuthService {
         await axiosClient.post(API_ENDPOINTS.ACCOUNT.LOGOUT);
     }
 
-    async refreshToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
-        const response = await axiosClient.post<ApiResponse<{ token: string; refreshToken: string }>>(
-            API_ENDPOINTS.ACCOUNT.REFRESH_TOKEN,
-            { refreshToken }
-        );
-        return response.data.data.data;
-    }
+    // async refreshToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
+    //     const response = await axiosClient.post<ApiResponse<{ token: string; refreshToken: string }>>(
+    //         API_ENDPOINTS.ACCOUNT.REFRESH_TOKEN,
+    //         { refreshToken }
+    //     );
+    //     return response.data.data.data;
+    // }
 }
 
 export default new AuthService();

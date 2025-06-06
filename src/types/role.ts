@@ -1,3 +1,7 @@
+// Define role types
+export type UserRole = 'Admin' | 'Staff' | 'Member';
+
+// Role entity from API
 export interface Role {
     id: string;
     name: string;
@@ -8,4 +12,5 @@ export interface Role {
     updatedAt: string;
 }
 
-export type RoleType = 'admin' | 'staff' | 'member';
+// For backwards compatibility
+export type RoleType = UserRole;

@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
 import { userService } from '../../../services/modules/user.service';
 import { staffService } from '../../../services/modules/staff.service';
-import { toast } from 'react-hot-toast';
-import { UserRole } from '../../../types/user';
-import { Employee } from '../../../types/employee';
-import { StaffRequest } from '../../../services/types/request.types';
+import { UserRole } from '../../../types/role';
+import type { StaffRequest } from '../../../services/types/request.types';
 
 interface EmployeeFormData {
   // Account fields
@@ -24,7 +23,7 @@ interface EmployeeFormData {
   address: string;
   dateOfBirth: string;
   profileImage?: string;
-  role: Extract<UserRole, 'admin' | 'staff'>;
+  role: Extract<UserRole, 'Admin' | 'Staff'>;
   status: 'active' | 'inactive';
   
   // Staff specific fields
@@ -53,7 +52,7 @@ const EditEmployee: React.FC = () => {
     address: '',
     dateOfBirth: '',
     profileImage: '',
-    role: 'staff',
+    role: 'Staff',
     status: 'active',
     position: '',
     department: '',
@@ -72,17 +71,17 @@ const EditEmployee: React.FC = () => {
           const account = accountResponse.data.data;
           setFormData(prev => ({
             ...prev,
-            username: account.username,
-            email: account.email,
-            firstName: account.firstName,
-            lastName: account.lastName,
-            displayName: account.displayName,
-            phone: account.phone,
-            address: account.address,
-            dateOfBirth: account.dateOfBirth,
+            username: account.username || '',
+            email: account.email || '',
+            firstName: account.firstName || '',
+            lastName: account.lastName || '',
+            displayName: account.displayName || '',
+            phone: account.phone || '',
+            address: account.address || '',
+            dateOfBirth: account.dateOfBirth || '',
             profileImage: account.profileImage || '',
-            role: account.role as Extract<UserRole, 'admin' | 'staff'>,
-            status: account.status as 'active' | 'inactive'
+            role: (account.role || 'Staff') as Extract<UserRole, 'Admin' | 'Staff'>,
+            status: (account.status || 'active') as 'active' | 'inactive'
           }));
 
           // Fetch staff info
@@ -93,10 +92,10 @@ const EditEmployee: React.FC = () => {
             const staff = staffResponse.data.data;
             setFormData(prev => ({
               ...prev,
-              position: staff.position,
-              department: staff.department,
-              salary: staff.salary,
-              joinDate: staff.joinDate
+              position: staff.position || '',
+              department: staff.department || '',
+              salary: staff.salary || 0,
+              joinDate: staff.joinDate || new Date().toISOString().split('T')[0]
             }));
           }
         }

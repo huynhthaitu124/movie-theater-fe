@@ -21,7 +21,7 @@ export interface AccountRequest {
 export interface RegisterRequest extends AccountRequest {}
 
 export interface LoginRequest {
-    email: string;
+    keyword: string;
     password: string;
 }
 

@@ -1,5 +1,6 @@
 // types/employee.ts
-import { User, UserRole } from './user';
+import { User } from './user';
+import { UserRole } from './role';
 
 export interface Employee extends Omit<User, 'role'> {
     staffid: string;
@@ -7,7 +8,7 @@ export interface Employee extends Omit<User, 'role'> {
     firstName: string;
     lastName: string;
     displayName: string;
-    role: Extract<UserRole, 'admin' | 'staff'>;
+    role: Extract<UserRole, 'Admin' | 'Staff'>;
     department: string;
     position: string;
     salary: number;

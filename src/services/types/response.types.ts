@@ -6,7 +6,6 @@ export interface ApiResponse<T> {
     message: string;
     data: {
         data: T;
-        status: string;
     };
 }
 
@@ -17,6 +16,5 @@ export interface UserResponse {
 }
 
 export interface AuthResponse {
-    token: string;
-    user: User;
+    data: string;
 }
