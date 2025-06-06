@@ -4,9 +4,9 @@ import { API_ENDPOINTS } from '../api/endpoints';
 import { LoginRequest, RegisterRequest } from '../types/request.types';
 import { User } from '../../types/user';
 
-interface AuthResponseWithRefresh extends AuthResponse {
-    refreshToken: string;
-}
+// interface AuthResponseWithRefresh extends AuthResponse {
+//     refreshToken: string;
+// }
 
 class AuthService {
     async login(loginData: LoginRequest): Promise<AuthResponse> {
