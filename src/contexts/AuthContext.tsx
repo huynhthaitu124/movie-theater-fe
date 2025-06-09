@@ -1,137 +1,191 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
+import { useNavigate } from 'react-router-dom';
+import TokenService from '../services/modules/token.service';
+import AuthService from '../services/modules/auth.service';
+import { User } from '../types/user';
+import { UserRole } from '../types/role';
+import { jwtDecode } from "jwt-decode";
 
-interface AuthContextType {
-  currentUser: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+// Hàm helper để lưu user vào localStorage
+const saveUserToLocalStorage = (user: User) => {
+    localStorage.setItem('user', JSON.stringify(user));
+};
+
+// Hàm helper để lấy user từ localStorage
+const getUserFromLocalStorage = (): User | null => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    try {
+        return JSON.parse(userStr);
+    } catch {
+        return null;
+    }
+};
+
+export interface AuthContextType {
+    currentUser: User | null;
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    login: (email: string, password: string) => Promise<void>;
+    logout: () => Promise<void>;
+    register: (name: string, email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demonstration
-const MOCK_USERS = [
-  {
-    id: '1',
-    name: 'Admin User',
-    email: 'admin@cinema.com',
-    password: 'admin123',
-    role: 'admin' as const,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Staff User',
-    email: 'staff@cinema.com',
-    password: 'staff123',
-    role: 'staff' as const,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Regular User',
-    email: 'user@cinema.com',
-    password: 'user123',
-    role: 'user' as const,
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState<User | null>(() => getUserFromLocalStorage());
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => !!getUserFromLocalStorage());
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    // Check for saved user in localStorage
-    const savedUser = localStorage.getItem('cinema_user');
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
-  }, []);
+    useEffect(() => {
+        const initializeAuth = async () => {
+            const savedUser = getUserFromLocalStorage();
+            if (TokenService.isLoggedIn() && savedUser) {
+                try {
+                    setCurrentUser(savedUser);
+                    setIsAuthenticated(true);
+                } catch (error) {
+                    console.error('Error fetching user:', error);
+                    TokenService.clearTokens();
+                    localStorage.removeItem('user');
+                    setCurrentUser(null);
+                    setIsAuthenticated(false);
+                    navigate('/login');
+                }
+            } else {
+                TokenService.clearTokens();
+                localStorage.removeItem('user');
+                setCurrentUser(null);
+                setIsAuthenticated(false);
+            }
+            setIsLoading(false);
+        };
 
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const user = MOCK_USERS.find(user => 
-        user.email === email && user.password === password
-      );
-      
-      if (!user) {
-        throw new Error('Invalid email or password');
-      }
-      
-      // Remove password before saving user
-      const { password: _, ...userWithoutPassword } = user;
-      setCurrentUser(userWithoutPassword);
-      localStorage.setItem('cinema_user', JSON.stringify(userWithoutPassword));
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        initializeAuth();
+    }, [navigate]);
 
-  const register = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if user already exists
-      if (MOCK_USERS.some(user => user.email === email)) {
-        throw new Error('User with this email already exists');
-      }
-      
-      // In a real app, we would make an API call to register the user
-      const newUser: User = {
-        id: `${MOCK_USERS.length + 1}`,
-        name,
-        email,
-        role: 'user',
-        createdAt: new Date().toISOString(),
-      };
-      
-      setCurrentUser(newUser);
-      localStorage.setItem('cinema_user', JSON.stringify(newUser));
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const login = async (email: string, password: string) => {
+        setIsLoading(true);
+        try {
+            const authResponse = await AuthService.login({ 
+                keyword: email,
+                password 
+            });
+            console.log('Login response:', authResponse);
+            console.log('User data:', authResponse.data);
+            TokenService.setToken(authResponse.data);
+            const tokenPayload: any = jwtDecode(authResponse.data);
 
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('cinema_user');
-  };
+            console.log('Decoded token payload:', tokenPayload);
+            
+            // Ensure role is in correct format (Title Case)
+            const normalizeRole = (role: string): UserRole => {
+                const normalizedRole = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+                if (normalizedRole === 'Admin' || normalizedRole === 'Staff' || normalizedRole === 'Member') {
+                    return normalizedRole as UserRole;
+                }
+                return 'Member';
+            };
 
-  return (
-    <AuthContext.Provider
-      value={{
+            // Map token payload to User object
+            const user: User = {
+                accountid: tokenPayload.sub,
+                email: tokenPayload.email,
+                displayname: tokenPayload.name,
+                role: normalizeRole(tokenPayload.role || ''),
+                isactive: tokenPayload.EmailVerified || false,
+            };
+
+            console.log('Mapped user object:', user);
+            
+            // Lưu user vào localStorage
+            saveUserToLocalStorage(user);
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+            navigate('/');
+        } catch (error: any) {
+            console.error('Login error:', error);
+            // Clear any existing tokens on error
+            TokenService.clearTokens();
+            localStorage.removeItem('user');
+            throw new Error(error.response?.data?.message || 'Login failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const logout = async () => {
+        setIsLoading(true);
+        try {
+            // Call logout API
+            await AuthService.logout();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            // Clear tokens and user data
+            TokenService.clearTokens();
+            localStorage.removeItem('user');
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            navigate('/login');
+        }
+    };
+
+    const register = async (name: string, email: string, password: string) => {
+        setIsLoading(true);
+        try {
+            // Register new user
+            const authResponse = await AuthService.register({
+                displayname: name,
+                username: email, // Using email as username
+                email,
+                password,
+                roleid: '2', // Default role for regular users
+                phonenumber: '',
+                address: '',
+                dateofbirth: new Date().toISOString(),
+                identityCard: ''
+            });
+            
+            // Save tokens
+            TokenService.setToken(authResponse.data);
+            if ('refreshToken' in authResponse) {
+                TokenService.setRefreshToken((authResponse as any).refreshToken);
+            }
+
+            // Update state
+            // setCurrentUser(authResponse.data);
+            setIsAuthenticated(true);
+            
+            // Navigate to home page after successful registration
+            navigate('/');
+        } catch (error: any) {
+            console.error('Registration error:', error);
+            throw new Error(error.response?.data?.message || 'Registration failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const value = {
         currentUser,
-        isAuthenticated: !!currentUser,
+        isAuthenticated,
         isLoading,
         login,
-        register,
         logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+        register
+    };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };

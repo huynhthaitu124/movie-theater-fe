@@ -1,7 +1,14 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { 
-  Users, TicketIcon, Calendar, Film, DollarSign, 
-  TrendingUp, Clock, Activity
+  TrendingUp, 
+  Film, 
+  Users, 
+  UserCircle, 
+  Activity,
+  Calendar,
+  Ticket as TicketIcon,
+  DollarSign
 } from 'lucide-react';
 import AdminLayout from '../layout/AdminLayout';
 
@@ -47,16 +54,57 @@ const StatCard: React.FC<StatCardProps> = ({
   );
 };
 
+interface DashboardCardProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  link: string;
+}
+
+const DashboardCard: React.FC<DashboardCardProps> = ({ title, description, icon, link }) => (
+  <Link 
+    to={link}
+    className="bg-secondary-800 rounded-lg p-6 shadow-md hover:bg-secondary-700 transition-colors"
+  >
+    <div className="flex items-start">
+      <div className="p-3 bg-secondary-700 rounded-full mr-4">
+        {icon}
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
+        <p className="text-secondary-400">{description}</p>
+      </div>
+    </div>
+  </Link>
+);
+
 const Dashboard: React.FC = () => {
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <div className="flex items-center space-x-2 text-secondary-400">
-            <Clock size={16} />
-            <span>Last updated: {new Date().toLocaleString()}</span>
-          </div>
+      <div className="p-6 space-y-6">
+        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <DashboardCard
+            title="Employee Management"
+            description="Manage staff and their roles"
+            icon={<Users size={24} className="text-primary-500" />}
+            link="/admin/employees"
+          />
+          
+          <DashboardCard
+            title="Member Management"
+            description="Manage cinema members"
+            icon={<UserCircle size={24} className="text-primary-500" />}
+            link="/admin/members"
+          />
+
+          <DashboardCard
+            title="Movie Management"
+            description="Manage movies and showtimes"
+            icon={<Film size={24} className="text-primary-500" />}
+            link="/admin/movies"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -217,6 +265,12 @@ const Dashboard: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="mt-8">
+          <Link to="/admin/rooms" className="text-primary-500 hover:underline">
+            Room List
+          </Link>
         </div>
       </div>
     </AdminLayout>

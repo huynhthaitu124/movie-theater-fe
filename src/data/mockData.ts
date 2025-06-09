@@ -1,5 +1,7 @@
 import { Movie, CinemaRoom, Showtime, Promotion, Employee } from '../types';
 
+type SeatType = 'regular' | 'vip' | 'couple';
+
 // Mock movies data
 export const movies: Movie[] = [
   {

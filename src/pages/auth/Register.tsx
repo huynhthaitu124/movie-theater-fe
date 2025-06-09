@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, Mail, Lock, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,7 +14,7 @@ const Register: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);

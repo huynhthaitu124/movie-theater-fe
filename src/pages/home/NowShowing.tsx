@@ -1,29 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Clock, Star, Film } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import { Movie } from '../../types';
-import api from '../../services/modules/user.service';
-
-const [nowShowingMovies, setNowShowingMovies] = useState<Movie[]>([]);
+import { movies } from '../../data/mockData';
 
 const NowShowing: React.FC = () => {
   const [hoveredMovie, setHoveredMovie] = useState<string | null>(null);
+  const navigate = useNavigate();
   
-  // useEffect(() => {
-  //   const fetchNowShowingMovies = async () => {
-  //     try {
-  //       const response = await api.getNowShowingMovies();
-  //       setNowShowingMovies(response.data);
-  //     } catch (error) {
-  //       console.error('Error fetching now showing movies:', error);
-  //     }
-  //   };
+  const nowShowingMovies = movies.filter(movie => movie.status === 'now-showing');
 
-  //   fetchNowShowingMovies();
-  // }
-  // , []);
-  
+  const handleBookTicket = (movieId: string) => {
+    navigate(`/book/${movieId}`);
+  };
 
   return (
     <section className="py-16 bg-secondary-50 dark:bg-secondary-900">
@@ -82,9 +72,12 @@ const NowShowing: React.FC = () => {
                     </div>
                   </div>
                   
-                  <Link to={`/movies/${movie.id}`}>
-                    <Button fullWidth>Book Now</Button>
-                  </Link>
+                  <Button 
+                    onClick={() => handleBookTicket(movie.id)}
+                    fullWidth
+                  >
+                    Book Now
+                  </Button>
                 </div>
               </div>
               
@@ -104,7 +97,7 @@ const NowShowing: React.FC = () => {
                   <span>{new Date(movie.releaseDate).toLocaleDateString()}</span>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {movie.genre.slice(0, 3).map((genre, index) => (
+                  {movie.categories.slice(0, 3).map((genre, index) => (
                     <span
                       key={index}
                       className="px-2 py-1 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"

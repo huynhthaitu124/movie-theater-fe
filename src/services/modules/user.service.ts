@@ -1,19 +1,29 @@
-import axios from '../api/axiosClient';
-import { USER_ENDPOINT } from '../api/endpoints';
+import { axiosClient } from '../api/axiosClient';
+import { API_ENDPOINTS } from '../api/endpoints';
+import { ApiResponse } from '../types/response.types';
+import { User } from '../../types/user';
+import { AccountRequest } from '../types/request.types';
 
-export default class UserService {
-    async getUserById(userId: string) {
-        const response = await axios.get(`${USER_ENDPOINT}/${userId}`);
+class UserService {
+    async getAll(): Promise<ApiResponse<User[]>> {
+        const response = await axiosClient.get<ApiResponse<User[]>>(API_ENDPOINTS.ACCOUNT.GET_ALL);
         return response.data;
     }
 
-    async getAllUsers() {
-        const response = await axios.get(USER_ENDPOINT.GET_ALL_USERS);
+    async create(accountData: AccountRequest): Promise<ApiResponse<User>> {
+        const response = await axiosClient.post<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.CREATE, accountData);
         return response.data;
     }
 
-    async updateUser(userId: string, userData: any) {
-        const response = await axios.put(`${USER_ENDPOINT.UPDATE_USER(userId)}`, userData);
+    async update(id: string, userData: Partial<User>): Promise<ApiResponse<User>> {
+        const response = await axiosClient.put<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.UPDATE(id), userData);
+        return response.data;
+    }
+
+    async getById(id: string): Promise<ApiResponse<User>> {
+        const response = await axiosClient.get<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.GET_BY_ID(id));
         return response.data;
     }
 }
+
+export const userService = new UserService();
