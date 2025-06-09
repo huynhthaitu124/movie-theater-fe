@@ -1,9 +1,9 @@
 import { UserRole } from './role';
 
-export type UserStatus = 'active' | 'inactive' | 'banned';
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
 export interface User {
-    accountid?: string; // AccountID
+    id?: string; // AccountID
     email?: string;
     username?: string;
     password?: string;

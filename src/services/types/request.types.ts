@@ -26,10 +26,15 @@ export interface LoginRequest {
 }
 
 export interface StaffRequest {
-    accountId?: string;  // Optional khi update, required khi create
     position: string;
     hiredate: string;
     salary: number;
+}
+
+export interface StaffResponse {
+    data: string;
+    message: string;
+    status: string;
 }
 
 export interface CategoryRequest extends OmitAutoFields<{
