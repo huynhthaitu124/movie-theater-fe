@@ -70,7 +70,7 @@ const Navbar: React.FC = () => {
                   className="flex items-center space-x-2 text-secondary-200 hover:text-white"
                 >
                   <UserCircle size={24} />
-                  <span>{currentUser?.displayName}</span>
+                  <span>{currentUser?.displayname}</span>
                 </button>
 
                 {isProfileOpen && (

@@ -93,9 +93,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const user: User = {
                 accountid: tokenPayload.sub,
                 email: tokenPayload.email,
-                displayName: tokenPayload.name,
+                displayname: tokenPayload.name,
                 role: normalizeRole(tokenPayload.role || ''),
-                emailVerified: tokenPayload.EmailVerified || false,
+                isactive: tokenPayload.EmailVerified || false,
             };
 
             console.log('Mapped user object:', user);

@@ -1,32 +1,23 @@
-import { UserRole } from './role';
-
-export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-
 export interface User {
-    accountid?: string; // AccountID
-    email?: string;
+    accountid: string;
+    roleid?: string;
+    role?: string;
+    displayname?: string;
     username?: string;
+    email?: string;
+    phonenumber?: string;
+    registrationdate?: Date;
     password?: string;
-    firstName?: string;
-    lastName?: string;
-    displayName?: string;
-    phone?: string;
     address?: string;
-    dateOfBirth?: string;
-    role?: UserRole;
-    status?: UserStatus;
-    profileImage?: string;
-    membershipId?: string;
-    membership?: {
-        id: string;
-        name: string;
-        points: number;
-        level: string;
-        benefits: string[];
-    };
-    createdAt?: string;
-    updatedAt?: string;
-    emailVerified?: boolean;
+    dateofbirth?: string;
+    preferredlanguage?: string;
+    avatar?: string;
+    status?: string;
+    gender?: string;
+    identitycard?: string;
+    isactive?: boolean;
+    createdat?: Date;
+    updatedat?: Date;
 }
 
 export interface Member {
