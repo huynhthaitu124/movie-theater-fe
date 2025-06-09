@@ -19,6 +19,9 @@ import MovieList from './pages/admin/movies/MovieList';
 import AddEditMovie from './pages/admin/movies/AddEditMovie';
 import RoomList from './pages/admin/rooms/RoomList';
 import AddEditRoom from './pages/admin/rooms/AddEditRoom';
+import MemberList from './pages/admin/members/MemberList';
+import AddMember from './pages/admin/members/AddMember';
+import InactiveMembers from './pages/admin/members/InactiveMembers';
 
 const NotFound = () => {
   const location = useLocation();
@@ -133,6 +136,32 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['Admin']}>
                   <AddEditRoom />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Member Management Routes */}
+            <Route
+              path="/admin/members"
+              element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <MemberList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/members/add"
+              element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <AddMember />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/members/inactive"
+              element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <InactiveMembers />
                 </ProtectedRoute>
               }
             />
