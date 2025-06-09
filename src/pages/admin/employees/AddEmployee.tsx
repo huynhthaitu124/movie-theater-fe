@@ -149,6 +149,7 @@ const AddEmployee: React.FC = () => {
       if (accountResponse.data) {
         // Then create the staff record
         const staffData: StaffRequest = {
+          accountid: accountResponse.data.accountid as string,
           position: formData.position,
           hiredate: formData.hiredate,
           salary: formData.salary

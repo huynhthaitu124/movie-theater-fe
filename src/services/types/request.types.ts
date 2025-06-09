@@ -26,6 +26,7 @@ export interface LoginRequest {
 }
 
 export interface StaffRequest {
+    accountid: string;
     position: string;
     hiredate: string;
     salary: number;
