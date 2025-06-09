@@ -7,24 +7,23 @@ import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
 import { userService } from '../../../services/modules/user.service';
 import { staffService } from '../../../services/modules/staff.service';
-import { UserRole } from '../../../types/role';
+// Removed UserRole import as it's no longer needed
 import type { StaffRequest } from '../../../services/types/request.types';
 
 interface EmployeeFormData {
   // Account fields
+  accountId: string;
   username: string;
   email: string;
   password: string;
   confirmPassword: string;
-  firstName: string;
-  lastName: string;
-  displayName: string;
-  phone: string;
+  fullName: string;
+  phoneNumber: string;
   address: string;
   dateOfBirth: string;
-  profileImage?: string;
-  role: Extract<UserRole, 'Admin' | 'Staff'>;
-  status: 'ACTIVE' | 'INACTIVE';
+  image?: string;
+  sex: string;
+  identityCard: string;
   
   // Staff specific fields
   position: string;
@@ -41,19 +40,18 @@ const EditEmployee: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<EmployeeFormData>({
+    accountId: '',
     username: '',
     email: '',
     password: '',
     confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    displayName: '',
-    phone: '',
+    fullName: '',
+    phoneNumber: '',
     address: '',
     dateOfBirth: '',
-    profileImage: '',
-    role: 'Staff',
-    status: 'ACTIVE',
+    image: '',
+    sex: '',
+    identityCard: '',
     position: '',
     department: '',
     salary: 0,
@@ -64,38 +62,37 @@ const EditEmployee: React.FC = () => {
     const fetchEmployee = async () => {
       try {
         setIsLoading(true);
-        const accountResponse = await userService.getById(id!);
-        console.log('Account data:', accountResponse);
+        // First fetch staff info using the ID from URL
+        const staffResponse = await staffService.getById(id!);
+        console.log('Staff data:', staffResponse);
         
-        if (accountResponse.data) {
-          const account = accountResponse.data;
+        if (staffResponse.data) {
+          const staff = staffResponse.data;
           setFormData(prev => ({
             ...prev,
-            username: account.username || '',
-            email: account.email || '',
-            firstName: account.firstName || '',
-            lastName: account.lastName || '',
-            displayName: account.displayName || '',
-            phone: account.phone || '',
-            address: account.address || '',
-            dateOfBirth: account.dateOfBirth || '',
-            profileImage: account.profileImage || '',
-            role: (account.role || 'Staff') as Extract<UserRole, 'Admin' | 'Staff'>,
-            status: (account.status || 'ACTIVE') as 'ACTIVE' | 'INACTIVE'
+            position: staff.position || '',
+            department: staff.department || '',
+            salary: staff.salary || 0,
+            joinDate: staff.joinDate || new Date().toISOString().split('T')[0]
           }));
 
-          // Fetch staff info
-          const staffResponse = await staffService.getByAccountId(id!);
-          console.log('Staff data:', staffResponse);
+          // Then fetch account info using accountId from staff data
+          const accountResponse = await userService.getById(staff.accountId);
+          console.log('Account data:', accountResponse);
           
-          if (staffResponse.data) {
-            const staff = staffResponse.data;
+          if (accountResponse.data) {
+            const account = accountResponse.data;
             setFormData(prev => ({
               ...prev,
-              position: staff.position || '',
-              department: staff.department || '',
-              salary: staff.salary || 0,
-              joinDate: staff.joinDate || new Date().toISOString().split('T')[0]
+              username: account.username || '',
+              email: account.email || '',
+              fullName: account.displayname || '',
+              phoneNumber: account.phonenumber || '',
+              address: account.address || '',
+              dateOfBirth: account.dateofbirth || '',
+              image: account.avatar || '',
+              sex: account.gender || '',
+              identityCard: account.identitycard || ''
             }));
           }
         }
@@ -115,7 +112,7 @@ const EditEmployee: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData({ ...formData, profileImage: file.name });
+      setFormData({ ...formData});
       const reader = new FileReader();
       reader.onload = () => {
         setImagePreview(reader.result as string);
@@ -134,8 +131,7 @@ const EditEmployee: React.FC = () => {
   };
 
   const validateForm = () => {
-    if (!formData.email || !formData.firstName || 
-        !formData.lastName || !formData.phone || 
+    if (!formData.fullName || !formData.phoneNumber || 
         !formData.address || !formData.position || 
         !formData.joinDate) {
       setError('Please fill in all required fields');
@@ -164,15 +160,13 @@ const EditEmployee: React.FC = () => {
     try {
       // Update account information
       const accountData = {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        displayName: formData.displayName,
-        phone: formData.phone,
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
         address: formData.address,
         dateOfBirth: formData.dateOfBirth,
-        role: formData.role,
-        status: formData.status as 'ACTIVE' | 'INACTIVE'
+        sex: formData.sex,
+        identityCard: formData.identityCard,
+        image: formData.image
       };
 
       if (formData.password) {
@@ -223,150 +217,127 @@ const EditEmployee: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-secondary-800 rounded-lg p-6">
-            {/* Account Information */}
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-white border-b border-secondary-700 pb-2">
-                Account Information
-              </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column - Profile Information */}
+            <div className="bg-secondary-800 rounded-lg p-6 space-y-6">
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold text-white border-b border-secondary-700 pb-2">
+                  Account Information
+                </h2>
 
-              <Input
-                label="Username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                disabled
-              />
+                <div className="opacity-75">
+                  <Input
+                    label="Username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    disabled
+                  />
 
-              <Input
-                label="Email"
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
+                  <Input
+                    label="Email"
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    disabled
+                  />
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
-                  label="Password"
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Leave blank to keep current password"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Password"
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Leave blank to keep current password"
+                  />
 
-                <Input
-                  label="Confirm Password"
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Leave blank to keep current password"
-                />
+                  <Input
+                    label="Confirm Password"
+                    type="password"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Leave blank to keep current password"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Personal Information */}
-            <div className="space-y-6 mt-8">
-              <h2 className="text-lg font-semibold text-white border-b border-secondary-700 pb-2">
-                Personal Information
-              </h2>
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold text-white border-b border-secondary-700 pb-2">
+                  Personal Information
+                </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  label="First Name"
-                  name="firstName"
-                  value={formData.firstName}
+                  label="Full Name"
+                  name="fullName"
+                  value={formData.fullName}
                   onChange={handleChange}
                   required
                 />
 
                 <Input
-                  label="Last Name"
-                  name="lastName"
-                  value={formData.lastName}
+                  label="Phone Number"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
                   onChange={handleChange}
                   required
                 />
-              </div>
 
-              <Input
-                label="Display Name"
-                name="displayName"
-                value={formData.displayName}
-                onChange={handleChange}
-                required
-              />
+                <Input
+                  label="Identity Card"
+                  name="identityCard"
+                  value={formData.identityCard}
+                  onChange={handleChange}
+                  required
+                />
 
-              <Input
-                label="Phone Number"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-              />
+                <Input
+                  label="Address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  required
+                />
 
-              <Input
-                label="Address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                required
-              />
+                <Input
+                  label="Date of Birth"
+                  type="date"
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                  required
+                />
 
-              <Input
-                label="Date of Birth"
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                required
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-secondary-300 mb-2">
-                    Role
+                    Gender
                   </label>
                   <select
-                    name="role"
-                    value={formData.role}
+                    name="sex"
+                    value={formData.sex}
                     onChange={handleChange}
                     className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                     required
                   >
-                    <option value="staff">Staff</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-secondary-300 mb-2">
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                    required
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="">Select gender</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
                   </select>
                 </div>
               </div>
             </div>
 
-            {/* Employment Information */}
-            <div className="space-y-6 mt-8">
+            {/* Right Column - Staff Information */}
+            <div className="bg-secondary-800 rounded-lg p-6 space-y-6">
               <h2 className="text-lg font-semibold text-white border-b border-secondary-700 pb-2">
                 Employment Information
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6">
                 <Input
                   label="Position"
                   name="position"
