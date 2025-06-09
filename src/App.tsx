@@ -9,6 +9,7 @@ import Dashboard from './components/admin/Dashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
 import AddEmployee from './pages/admin/employees/AddEmployee';
 import EditEmployee from './pages/admin/employees/EditEmployee';
+import InactiveEmployees from './pages/admin/employees/InactiveEmployees';
 import BookTicket from './pages/booking/BookTicket';
 import Movies from './pages/movies/Movies';
 import Promotions from './pages/promotions/Promotions';
@@ -51,13 +52,19 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-
-            {/* Employee Management Routes */}
             <Route
               path="/admin/employees"
               element={
                 <ProtectedRoute allowedRoles={['Admin']}>
                   <EmployeeList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/employees/inactive"
+              element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <InactiveEmployees />
                 </ProtectedRoute>
               }
             />

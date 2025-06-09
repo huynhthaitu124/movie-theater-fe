@@ -6,6 +6,22 @@ import { User } from '../types/user';
 import { UserRole } from '../types/role';
 import { jwtDecode } from "jwt-decode";
 
+// Hàm helper để lưu user vào localStorage
+const saveUserToLocalStorage = (user: User) => {
+    localStorage.setItem('user', JSON.stringify(user));
+};
+
+// Hàm helper để lấy user từ localStorage
+const getUserFromLocalStorage = (): User | null => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    try {
+        return JSON.parse(userStr);
+    } catch {
+        return null;
+    }
+};
+
 export interface AuthContextType {
     currentUser: User | null;
     isAuthenticated: boolean;
@@ -18,26 +34,31 @@ export interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(() => getUserFromLocalStorage());
     const [isLoading, setIsLoading] = useState(true);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => !!getUserFromLocalStorage());
     const navigate = useNavigate();
 
     useEffect(() => {
         const initializeAuth = async () => {
-            if (TokenService.isLoggedIn()) {
+            const savedUser = getUserFromLocalStorage();
+            if (TokenService.isLoggedIn() && savedUser) {
                 try {
-                    // Get current user info
-                    // const user = await AuthService.getCurrentUser();
-                    // setCurrentUser(user);
+                    setCurrentUser(savedUser);
                     setIsAuthenticated(true);
                 } catch (error) {
                     console.error('Error fetching user:', error);
-                    // If there's an error, clear tokens and force re-login
                     TokenService.clearTokens();
+                    localStorage.removeItem('user');
+                    setCurrentUser(null);
                     setIsAuthenticated(false);
                     navigate('/login');
                 }
+            } else {
+                TokenService.clearTokens();
+                localStorage.removeItem('user');
+                setCurrentUser(null);
+                setIsAuthenticated(false);
             }
             setIsLoading(false);
         };
@@ -70,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Map token payload to User object
             const user: User = {
-                accountid: tokenPayload.sub,
+                id: tokenPayload.sub,
                 email: tokenPayload.email,
                 displayName: tokenPayload.name,
                 role: normalizeRole(tokenPayload.role || ''),
@@ -79,6 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             console.log('Mapped user object:', user);
             
+            // Lưu user vào localStorage
+            saveUserToLocalStorage(user);
             setCurrentUser(user);
             setIsAuthenticated(true);
             navigate('/');
@@ -86,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Login error:', error);
             // Clear any existing tokens on error
             TokenService.clearTokens();
+            localStorage.removeItem('user');
             throw new Error(error.response?.data?.message || 'Login failed');
         } finally {
             setIsLoading(false);
@@ -100,8 +124,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
-            // Clear local state regardless of API call result
+            // Clear tokens and user data
             TokenService.clearTokens();
+            localStorage.removeItem('user');
             setCurrentUser(null);
             setIsAuthenticated(false);
             setIsLoading(false);

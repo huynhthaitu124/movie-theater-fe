@@ -14,6 +14,7 @@ const EmployeeList: React.FC = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<keyof Employee>('displayName');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -65,20 +66,24 @@ const EmployeeList: React.FC = () => {
   };
 
   const handleDeleteEmployee = async (id: string) => {
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
     try {
-      const response = await staffService.delete(id);
-      // if (response.data.data == '200') {
-      //   toast.success('Employee deleted successfully');
-      //   fetchEmployees();
-      // } else {
-      //   toast.error(response.message);
-      // }
+      const response = await staffService.deleteSoft(id);
+      if (response.data.status == 'INACTIVE') {
+        toast.success('Employee deleted successfully');
+        await fetchEmployees();
+      } else {
+        toast.error(response.message);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete employee';
       toast.error(errorMessage);
     } finally {
       setShowDeleteModal(false);
       setSelectedEmployee(null);
+      setIsProcessing(false);
     }
   };
 
@@ -94,6 +99,7 @@ const EmployeeList: React.FC = () => {
   const filteredAndSortedEmployees = useMemo(() => {
     return [...employees]
       .filter(emp => 
+        emp.status === "ACTIVE" &&
         Object.entries(emp)
           .filter(([key]) => ['staffid', 'displayName', 'position', 'department', 'status'].includes(key))
           .some(([_, value]) => 
@@ -194,13 +200,22 @@ const EmployeeList: React.FC = () => {
       <div className="space-y-6 p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-2xl font-bold text-white">Employee Management</h1>
-          <Button
-            onClick={() => navigate('/admin/employees/add')}
-            className="flex items-center whitespace-nowrap"
-          >
-            <Plus size={20} className="mr-2" />
-            Add Employee
-          </Button>
+          <div className="flex gap-4">
+            <Button
+              variant="secondary"
+              onClick={() => navigate('/admin/employees/inactive')}
+              className="flex items-center whitespace-nowrap"
+            >
+              View Inactive Employees
+            </Button>
+            <Button
+              onClick={() => navigate('/admin/employees/add')}
+              className="flex items-center whitespace-nowrap"
+            >
+              <Plus size={20} className="mr-2" />
+              Add Employee
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center bg-secondary-800 rounded-lg px-4 py-2 w-full md:w-96">
@@ -329,6 +344,7 @@ const EmployeeList: React.FC = () => {
               <Button
                 variant="ghost"
                 onClick={() => setShowDeleteModal(false)}
+                disabled={isProcessing}
               >
                 Cancel
               </Button>
@@ -336,8 +352,9 @@ const EmployeeList: React.FC = () => {
                 variant="accent"
                 onClick={() => handleDeleteEmployee(selectedEmployee)}
                 className="bg-red-500 hover:bg-red-600"
+                disabled={isProcessing}
               >
-                Delete
+                {isProcessing ? 'Processing...' : 'Delete'}
               </Button>
             </div>
           </div>

@@ -60,6 +60,8 @@ export const API_ENDPOINTS = {
         GET_BY_ID: (id: string) => `/api/Staff/${id}`,
         GET_BY_ACCOUNT_ID: (id: string) => `/api/Staff/Account/${id}`,
         DELETE: (id: string) => `/api/Staff/${id}`,
+        DELETE_SOFT: (id: string) => `/api/Staff/SoftDeleteStaff/${id}`,
+        REACTIVATE: (id: string) => `/api/Staff/ReactiveStaff/${id}`,
     },
 
     // Subtitle endpoints

@@ -24,7 +24,7 @@ interface EmployeeFormData {
   dateOfBirth: string;
   profileImage?: string;
   role: Extract<UserRole, 'Admin' | 'Staff'>;
-  status: 'active' | 'inactive';
+  status: 'ACTIVE' | 'INACTIVE';
   
   // Staff specific fields
   position: string;
@@ -53,7 +53,7 @@ const EditEmployee: React.FC = () => {
     dateOfBirth: '',
     profileImage: '',
     role: 'Staff',
-    status: 'active',
+    status: 'ACTIVE',
     position: '',
     department: '',
     salary: 0,
@@ -81,7 +81,7 @@ const EditEmployee: React.FC = () => {
             dateOfBirth: account.dateOfBirth || '',
             profileImage: account.profileImage || '',
             role: (account.role || 'Staff') as Extract<UserRole, 'Admin' | 'Staff'>,
-            status: (account.status || 'active') as 'active' | 'inactive'
+            status: (account.status || 'ACTIVE') as 'ACTIVE' | 'INACTIVE'
           }));
 
           // Fetch staff info
@@ -172,7 +172,7 @@ const EditEmployee: React.FC = () => {
         address: formData.address,
         dateOfBirth: formData.dateOfBirth,
         role: formData.role,
-        status: formData.status
+        status: formData.status as 'ACTIVE' | 'INACTIVE'
       };
 
       if (formData.password) {

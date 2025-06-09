@@ -16,7 +16,7 @@ export interface Employee extends Omit<User, 'role'> {
     phone: string;
     address: string;
     dateOfBirth: string;
-    status: 'active' | 'inactive';
+    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
     workSchedules?: string[]; // Liên kết với StaffWorkSchedules
     createdAt: string;
     updatedAt: string;

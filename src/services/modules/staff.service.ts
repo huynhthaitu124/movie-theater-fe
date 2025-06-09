@@ -1,7 +1,7 @@
 import { axiosClient } from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiResponse } from '../types/response.types';
-import { StaffRequest } from '../types/request.types';
+import { StaffRequest, StaffResponse } from '../types/request.types';
 import { Employee } from '../../types/employee';
 
 class StaffService {
@@ -35,8 +35,13 @@ class StaffService {
         return response.data;
     }
 
-    async deleteSoft(id: string): Promise<ApiResponse<StaffRequest>> {
-        const response = await axiosClient.put<ApiResponse<StaffRequest>>(API_ENDPOINTS.STAFF.UPDATE(id), { isActive: false });
+    async deleteSoft(staffId: string): Promise<ApiResponse<StaffResponse>> {
+        const response = await axiosClient.put<ApiResponse<StaffResponse>>(API_ENDPOINTS.STAFF.DELETE_SOFT(staffId));
+        return response.data;
+    }
+
+    async reactivate(staffId: string): Promise<ApiResponse<StaffResponse>> {
+        const response = await axiosClient.put<ApiResponse<StaffResponse>>(API_ENDPOINTS.STAFF.REACTIVATE(staffId));
         return response.data;
     }
 }
