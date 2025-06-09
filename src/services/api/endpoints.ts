@@ -25,8 +25,13 @@ export const API_ENDPOINTS = {
 
     // Member endpoints
     MEMBER: {
-        GET_ALL: '/api/Member',
+        GET_ALL: '/api/Member/GetAllMembers',
         CREATE: '/api/Member/CreateMember',
+        UPDATE: (id: string) => `/api/Member/${id}`,
+        GET_BY_ID: (id: string) => `/api/Member/${id}`,
+        DELETE: (id: string) => `/api/Member/${id}`,
+        DELETE_SOFT: (id: string) => `/api/Member/SoftDeleteMember/${id}`,
+        REACTIVATE: (id: string) => `/api/Member/ReactivateMember/${id}`,
     },
 
     // Movie endpoints

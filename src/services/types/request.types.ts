@@ -64,3 +64,10 @@ export interface RoleRequest {
     permissions?: string[];
     isActive?: boolean;
 }
+
+export interface MemberRequest {
+    displayName: string;
+    email: string;
+    password: string;
+    phoneNumber?: string;
+}

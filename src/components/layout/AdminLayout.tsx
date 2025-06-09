@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Film, Users, Calendar, TicketIcon, Tag, Layout as LayoutIcon, 
-  LogOut, Menu, X, ChevronDown, ChevronRight, Home
+  LogOut, Menu, X, ChevronDown, ChevronRight, Home,
+  UsbIcon,
+  User2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
@@ -132,6 +134,15 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       subItems: [
         { to: '/admin/employees', label: 'Employee List' },
         { to: '/admin/employees/add', label: 'Add Employee' },
+      ],
+    },
+    {
+      to: '/admin/members',
+      icon: <User2 size={20} />,
+      label: 'Members',
+      subItems: [
+        { to: '/admin/members', label: 'Member List' },
+        { to: '/admin/members/add', label: 'Add Members' },
       ],
     },
     {
