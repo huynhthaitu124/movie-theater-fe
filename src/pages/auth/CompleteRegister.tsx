@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { UserPlus, Mail, Phone, Home, Calendar, Language, User, CreditCard, Lock } from 'lucide-react';
+import { UserPlus, Mail, Phone, Home, Calendar, Languages, User, CreditCard, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthService from '../../services/modules/auth.service';
 import { roleService } from '../../services/modules/role.service';
@@ -8,6 +8,7 @@ import Layout from '../../components/layout/Layout';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { RegisterRequest } from '@/services/types/request.types';
+import { userService } from '@/services/modules/user.service';
 
 const CompleteRegister: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -39,27 +40,28 @@ const CompleteRegister: React.FC = () => {
         setFormData(prev => ({ ...prev, email }));
 
         // Fetch member role
-        // const fetchMemberRole = async () => {
-        //     try {
-        //         // const roles = await roleService.getAll();
-        //         // const memberRole = roles.find(role => 
-        //         //     role.rolename?.toLowerCase() === 'member' ||
-        //         //     role.name?.toLowerCase() === 'member'
-        //         // );
+        const fetchMemberRole = async () => {
+            try {
+                const response = await roleService.getAll();
+                const roles = response.data;
+                const memberRole = roles.find((role: { rolename?: string; name?: string; roleid?: string }) => 
+                    role.rolename?.toLowerCase() === 'member' ||
+                    role.name?.toLowerCase() === 'member'
+                );
                 
-        //         if (memberRole?.roleid) {
-        //             setFormData(prev => ({ ...prev, roleid: memberRole.roleid }));
-        //         } else {
-        //             setError('Member role not found');
-        //         }
-        //     } catch (err) {
-        //         console.error('Error fetching roles:', err);
-        //         setError('Failed to fetch roles');
-        //     }
-        // };
+                if (memberRole?.roleid) {
+                    setFormData(prev => ({ ...prev, roleid: memberRole.roleid }));
+                } else {
+                    setError('Member role not found');
+                }
+            } catch (err) {
+                console.error('Error fetching roles:', err);
+                setError('Failed to fetch roles');
+            }
+        };
 
-    //     fetchMemberRole();
-    // }, [email, navigate]);
+        fetchMemberRole();
+    }, [email, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,11 +72,16 @@ const CompleteRegister: React.FC = () => {
             return;
         }
 
+        if (!formData.roleid) {
+            setError('Role ID is missing. Please try again.');
+            return;
+        }
+
         try {
             setLoading(true);
 
             const registerData: RegisterRequest = {
-                roleid: '484fa2a1-0362-4a07-a723-f971b6c0dd94',
+                roleid: formData.roleid,
                 displayname: formData.displayname,
                 username: formData.username || formData.email, // Use email as username if not provided
                 email: formData.email,
@@ -88,7 +95,7 @@ const CompleteRegister: React.FC = () => {
                 identityCard: formData.identityCard
             };
 
-            await AuthService.register(registerData);
+            await userService.create(registerData);
             navigate('/login', {
                 state: { message: 'Registration successful! You can now log in.' }
             });
@@ -235,7 +242,7 @@ const CompleteRegister: React.FC = () => {
                                     label="Preferred Language"
                                     value={formData.preferredlanguage}
                                     onChange={(e) => setFormData({ ...formData, preferredlanguage: e.target.value })}
-                                    leftIcon={<Language size={20} className="text-secondary-400" />}
+                                    leftIcon={<Languages size={20} className="text-secondary-400" />}
                                 />
 
                                 <Button
