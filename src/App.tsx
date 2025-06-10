@@ -4,6 +4,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import VerifyOtp from './pages/auth/VerifyOtp';
+import CompleteRegister from './pages/auth/CompleteRegister';
 import Home from './pages/home/Home';
 import Dashboard from './components/admin/Dashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
@@ -45,6 +47,8 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-otp" element={<VerifyOtp />} />
+            <Route path="/complete-register" element={<CompleteRegister />} />
             
             {/* Admin Routes */}
             <Route
