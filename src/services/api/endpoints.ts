@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
     ACCOUNT: {
         LOGIN: '/api/Authentication/login',
         REGISTER: '/api/Authentication/register',
+        LOGIN_GOOGLE: '/api/Authentication/login-google',
         SEND_OTP_REGISTER: '/api/Authentication/SendOtpRegister',
         VERIFY_OTP: '/api/Authentication/verify-otp',
         VERIFY_OTP_REGISTER: '/api/Authentication/VerifyOtpRegister',
@@ -88,5 +89,13 @@ export const API_ENDPOINTS = {
         UPDATE: '/api/Role/Update',
         GET_BY_ID: (id: string) => `/api/Role/${id}`,
         DELETE: (id: string) => `/api/Role/${id}`,
+    },
+
+    // Auth endpoints
+    AUTH: {
+        LOGIN: '/auth/login',
+        REGISTER: '/auth/register',
+        GOOGLE: '/auth/google',  // Google authentication endpoint
+        LOGOUT: '/auth/logout',
     },
 };

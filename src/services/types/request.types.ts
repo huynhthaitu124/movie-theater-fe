@@ -12,6 +12,15 @@ export interface VerifyOtpRequest {
     verifyOtp: string;
 }
 
+export interface LoginGoogle {
+    email: string;
+    email_verified: boolean;
+    name?: string;
+    picture?: string;
+    famaily_name?: string;
+    given_name?: string;
+}
+
 export interface AccountRequest {
     roleid: string;
     displayname: string;

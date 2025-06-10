@@ -16,3 +16,10 @@ export interface UserResponse {
 export interface AuthResponse {
     data: string;
 }
+
+export interface GoogleResponse {
+  email: string;
+  name?: string;
+  picture?: string;
+  dob?: string;
+}
