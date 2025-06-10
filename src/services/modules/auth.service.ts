@@ -1,7 +1,7 @@
 import { axiosClient } from '../api/axiosClient';
 import { ApiResponse, AuthResponse } from '../types/response.types';
 import { API_ENDPOINTS } from '../api/endpoints';
-import { LoginRequest, RegisterRequest, SendOtpRequest, VerifyOtpRequest } from '../types/request.types';
+import { LoginRequest, RegisterRequest, SendOtpRequest, VerifyOtpRequest, LoginGoogle } from '../types/request.types';
 import { User } from '../../types/user';
 
 // interface AuthResponseWithRefresh extends AuthResponse {
@@ -57,6 +57,33 @@ class AuthService {
         );
         return response.data;
     }
+
+    async loginWithGoogle(data: string): Promise<ApiResponse<LoginGoogle>> {
+    // First get user info using the access token
+    const userInfoResponse = await fetch(
+        'https://www.googleapis.com/oauth2/v3/userinfo',
+        {
+            headers: {
+                Authorization: `Bearer ${data}`,
+                'Content-Type': 'application/json'
+            }
+        }
+    );
+    
+    const userInfo = await userInfoResponse.json();
+
+    
+    // Then send both token and user info to your backend
+    // const response = await axiosClient.post<ApiResponse<LoginGoogle>>(
+    //     API_ENDPOINTS.ACCOUNT.LOGIN_GOOGLE,
+    //     {
+    //         token: data.token,
+    //         userInfo: userInfo
+    //     }
+    // );
+    
+    return userInfo;
+}
 
     // async refreshToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
     //     const response = await axiosClient.post<ApiResponse<{ token: string; refreshToken: string }>>(

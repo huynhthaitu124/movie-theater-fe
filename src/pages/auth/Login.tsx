@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, Mail, Lock } from 'lucide-react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/common/Button';
@@ -11,7 +12,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const { login, isLoading } = useAuth();
+  const { login, loginWithGoogle, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -37,6 +38,22 @@ const Login: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to login');
     }
   };
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+        try {
+
+          await loginWithGoogle(tokenResponse.access_token);
+          navigate(from, { replace: true });
+        } catch (err) {
+            setError('Failed to login with Google');
+        }
+    },
+    onError: () => {
+        setError('Google login failed');
+    },
+    scope: import.meta.env.VITE_GOOGLE_SCOPES
+});
 
   // Demo credentials
   const demoCredentials = [
@@ -134,6 +151,33 @@ const Login: React.FC = () => {
                   Sign in
                 </Button>
               </form>
+
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-secondary-300 dark:border-secondary-700" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white dark:bg-secondary-800 text-secondary-500 dark:text-secondary-400">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    fullWidth
+                    onClick={() => handleGoogleLogin()}
+                  >
+                    <img src="https://developers.google.com/identity/images/g-logo.png" 
+                         alt="Google" 
+                         className="w-6 h-6 mr-2" />
+                    Sign in with Google
+                  </Button>
+                </div>
+              </div>
 
               <div className="mt-6">
                 <div className="relative">

@@ -5,6 +5,8 @@ import AuthService from '../services/modules/auth.service';
 import { User } from '../types/user';
 import { UserRole } from '../types/role';
 import { jwtDecode } from "jwt-decode";
+import { LoginGoogle } from '@/services/types/request.types';
+import Login from '@/pages/auth/Login';
 
 // Hàm helper để lưu user vào localStorage
 const saveUserToLocalStorage = (user: User) => {
@@ -29,6 +31,7 @@ export interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     register: (name: string, email: string, password: string) => Promise<void>;
+    loginWithGoogle: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,7 +45,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const initializeAuth = async () => {
             const savedUser = getUserFromLocalStorage();
-            if (TokenService.isLoggedIn() && savedUser) {
+            // if (TokenService.isLoggedIn() && savedUser) {
+            if (savedUser) {
                 try {
                     setCurrentUser(savedUser);
                     setIsAuthenticated(true);
@@ -170,13 +174,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const loginWithGoogle = async (credential: string) => {
+        setIsLoading(true);
+        try {
+            // TODO: Replace with your actual API endpoint for Google authentication
+            const userInfo = await AuthService.loginWithGoogle(credential);
+            
+            console.log('Google login response:', userInfo);
+
+            const user: User = {
+                email: userInfo.email,
+                displayname: userInfo.name,
+                role: 'Member', // Default role for Google users
+            };
+
+            saveUserToLocalStorage(user);
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+            navigate('/');
+        } catch (error: any) {
+            console.error('Google login error:', error);
+            TokenService.clearTokens();
+            localStorage.removeItem('user');
+            throw new Error(error.response?.data?.message || 'Google login failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const value = {
         currentUser,
         isAuthenticated,
         isLoading,
         login,
         logout,
-        register
+        register,
+        loginWithGoogle
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

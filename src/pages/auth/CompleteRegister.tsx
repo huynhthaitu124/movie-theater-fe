@@ -9,6 +9,7 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { RegisterRequest } from '@/services/types/request.types';
 import { userService } from '@/services/modules/user.service';
+import { GoogleResponse } from '@/services/types/response.types';
 
 const CompleteRegister: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -31,6 +32,7 @@ const CompleteRegister: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const email = location.state?.email;
+    const googleData = location.state?.googleData as GoogleResponse;
 
     useEffect(() => {
         if (!email) {
@@ -38,6 +40,21 @@ const CompleteRegister: React.FC = () => {
             return;
         }
         setFormData(prev => ({ ...prev, email }));
+
+        console.log('Google Data:', googleData);
+
+        if (googleData) {
+            setFormData(prev => ({
+                ...prev,
+                email: googleData.email,
+                displayname: googleData.name || '',
+                preferredlanguage: 'vi',
+                avatar: googleData.picture || '',
+                dateofbirth: googleData.dob || '',
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, email }));
+        }
 
         // Fetch member role
         const fetchMemberRole = async () => {
