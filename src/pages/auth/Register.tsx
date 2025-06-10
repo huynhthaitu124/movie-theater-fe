@@ -1,34 +1,39 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Mail, Lock, User as UserIcon } from 'lucide-react';
+import { UserPlus, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import AuthService from './../../services/modules/auth.service';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import { SendOtpRequest } from '@/services/types/request.types';
 
 const Register: React.FC = () => {
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { register, isLoading } = useAuth();
+  const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    
+    const otpRequest : SendOtpRequest = {
+      email : email,
+    };
+
     try {
-      await register(name, email, password);
-      navigate('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to register');
+      console.log('Sending OTP to:', otpRequest);
+      const response = await AuthService.sendOtpRegister(otpRequest);
+      console.log('Response:', response);
+      setSuccess('Please check your email for OTP verification code');
+      // Chuyển đến trang verify OTP với email đã đăng ký
+      navigate('/verify-otp', { state: { email } });
+    } catch (err: any) {
+      console.error('Error sending OTP:', err);
+      console.error('Response data:', err.response?.data);
+      setError(err.response?.data?.message || err.message || 'Failed to register');
     }
   };
 
@@ -56,19 +61,13 @@ const Register: React.FC = () => {
                 </div>
               )}
 
+              {success && (
+                <div className="mb-4 bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-md">
+                  <p>{success}</p>
+                </div>
+              )}
+
               <form className="space-y-6" onSubmit={handleSubmit}>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  label="Full name"
-                  autoComplete="name"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  leftIcon={<UserIcon size={20} className="text-secondary-400" />}
-                />
-                
                 <Input
                   id="email"
                   name="email"
@@ -79,30 +78,7 @@ const Register: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   leftIcon={<Mail size={20} className="text-secondary-400" />}
-                />
-
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  label="Password"
-                  autoComplete="new-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  leftIcon={<Lock size={20} className="text-secondary-400" />}
-                />
-
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  label="Confirm password"
-                  autoComplete="new-password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  leftIcon={<Lock size={20} className="text-secondary-400" />}
+                  placeholder="Enter your email to register"
                 />
 
                 <div className="flex items-center">
@@ -128,7 +104,6 @@ const Register: React.FC = () => {
                 <Button
                   type="submit"
                   fullWidth
-                  isLoading={isLoading}
                   leftIcon={<UserPlus size={20} />}
                 >
                   Create account

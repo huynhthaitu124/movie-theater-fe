@@ -3,6 +3,15 @@ import type { Movie } from '../../types/movie';
 
 type OmitAutoFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
 
+export interface SendOtpRequest {
+    email: string;
+}
+
+export interface VerifyOtpRequest {
+    email: string;
+    verifyOtp: string;
+}
+
 export interface AccountRequest {
     roleid: string;
     displayname: string;

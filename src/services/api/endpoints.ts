@@ -5,6 +5,9 @@ export const API_ENDPOINTS = {
     ACCOUNT: {
         LOGIN: '/api/Authentication/login',
         REGISTER: '/api/Authentication/register',
+        SEND_OTP_REGISTER: '/api/Authentication/SendOtpRegister',
+        VERIFY_OTP: '/api/Authentication/verify-otp',
+        VERIFY_OTP_REGISTER: '/api/Authentication/VerifyOtpRegister',
         ME: '/api/Authentication/me',
         LOGOUT: '/api/Authentication/logout',
         GET_ALL: '/api/Account',

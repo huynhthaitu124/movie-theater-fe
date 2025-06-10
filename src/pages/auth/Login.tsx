@@ -10,12 +10,21 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get the redirect path from location state or default to homepage
+  // Get the redirect path and success message from location state
   const from = (location.state as { from?: string })?.from || '/';
+  const message = (location.state as { message?: string })?.message;
+
+  // Set success message from location state
+  React.useEffect(() => {
+    if (message) {
+      setSuccess(message);
+    }
+  }, [message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +71,12 @@ const Login: React.FC = () => {
               {error && (
                 <div className="mb-4 bg-accent-100 dark:bg-accent-900 border border-accent-200 dark:border-accent-800 text-accent-800 dark:text-accent-200 px-4 py-3 rounded-md">
                   <p>{error}</p>
+                </div>
+              )}
+              
+              {success && (
+                <div className="mb-4 bg-success-100 dark:bg-success-900 border border-success-200 dark:border-success-800 text-success-800 dark:text-success-200 px-4 py-3 rounded-md">
+                  <p>{success}</p>
                 </div>
               )}
 

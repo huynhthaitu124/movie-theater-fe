@@ -1,7 +1,7 @@
 import { axiosClient } from '../api/axiosClient';
 import { ApiResponse, AuthResponse } from '../types/response.types';
 import { API_ENDPOINTS } from '../api/endpoints';
-import { LoginRequest, RegisterRequest } from '../types/request.types';
+import { LoginRequest, RegisterRequest, SendOtpRequest, VerifyOtpRequest } from '../types/request.types';
 import { User } from '../../types/user';
 
 // interface AuthResponseWithRefresh extends AuthResponse {
@@ -32,6 +32,30 @@ class AuthService {
 
     async logout(): Promise<void> {
         await axiosClient.post(API_ENDPOINTS.ACCOUNT.LOGOUT);
+    }
+
+    async sendOtpRegister(data: SendOtpRequest): Promise<ApiResponse<string>> {
+        const response = await axiosClient.post<ApiResponse<string>>(
+            API_ENDPOINTS.ACCOUNT.SEND_OTP_REGISTER,
+            {
+                email: data.email
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            }
+        );
+        return response.data;
+    }
+
+    async verifyOtp(data: VerifyOtpRequest): Promise<ApiResponse<void>> {
+        const response = await axiosClient.post<ApiResponse<void>>(
+            API_ENDPOINTS.ACCOUNT.VERIFY_OTP,
+            data
+        );
+        return response.data;
     }
 
     // async refreshToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
