@@ -64,6 +64,7 @@ export default {
       boxShadow: {
         card: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in-out',
@@ -78,6 +79,17 @@ export default {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+      },
+      backdropBlur: {
+        sm: '4px',
+      },
+      scale: {
+        '98': '.98',
+        '99': '0.99',
+        '101': '1.01',
+      },
+      transitionDuration: {
+        '300': '300ms',
       },
     },
   },
