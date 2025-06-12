@@ -20,12 +20,11 @@ import EditProfile from './pages/profile/EditProfile';
 import ProtectedRoute from './components/ProtectedRoute';
 import MovieList from './pages/admin/movies/MovieList';
 import AddEditMovie from './pages/admin/movies/AddEditMovie';
-import RoomList from './pages/admin/rooms/RoomList';
-import AddEditRoom from './pages/admin/rooms/AddEditRoom';
 import MemberList from './pages/admin/members/MemberList';
 import AddMember from './pages/admin/members/AddMember';
 import InactiveMembers from './pages/admin/members/InactiveMembers';
 import MovieDetails from './pages/movies/MovieDetails';
+import CinemaManagement from './pages/admin/cinemas/CinemaManagement';
 
 const NotFound = () => {
   const location = useLocation();
@@ -120,34 +119,7 @@ const App: React.FC = () => {
                     <AddEditMovie />
                   </ProtectedRoute>
                 }
-              />
-              
-              {/* Room Management Routes */}
-              <Route
-                path="/admin/rooms"
-                element={
-                  <ProtectedRoute allowedRoles={['Admin']}>
-                    <RoomList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/rooms/add"
-                element={
-                  <ProtectedRoute allowedRoles={['Admin']}>
-                    <AddEditRoom />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/rooms/edit/:id"
-                element={
-                  <ProtectedRoute allowedRoles={['Admin']}>
-                    <AddEditRoom />
-                  </ProtectedRoute>
-                }
-              />
-              
+              />            
               {/* Member Management Routes */}
               <Route
                 path="/admin/members"
@@ -170,6 +142,16 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <InactiveMembers />
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* Cinema Management Route */}
+              <Route
+                path="/admin/cinemas"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <CinemaManagement />
                   </ProtectedRoute>
                 }
               />

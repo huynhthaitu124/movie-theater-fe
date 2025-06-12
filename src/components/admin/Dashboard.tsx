@@ -105,6 +105,13 @@ const Dashboard: React.FC = () => {
             icon={<Film size={24} className="text-primary-500" />}
             link="/admin/movies"
           />
+          
+          <DashboardCard
+            title="Cinema Management"
+            description="Manage cinema rooms and seating"
+            icon={<Calendar size={24} className="text-primary-500" />}
+            link="/admin/rooms"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

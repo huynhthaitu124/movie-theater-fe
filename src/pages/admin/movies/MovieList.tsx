@@ -1,19 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Edit2, Trash2, AlertCircle, Film } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
-
-interface Movie {
-  id: string;
-  title: string;
-  genre: string[];
-  duration: number;
-  releaseDate: string;
-  status: 'now-showing' | 'coming-soon';
-  rating: number;
-  posterUrl: string;
-}
+import { mockMovies } from '../../../data/mockMovies';
 
 const MovieList: React.FC = () => {
   const navigate = useNavigate();
@@ -21,22 +11,7 @@ const MovieList: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
 
-  // Mock data
-  const movies: Movie[] = [
-    {
-      id: 'MOV001',
-      title: 'The Dark Universe',
-      genre: ['Action', 'Sci-Fi'],
-      duration: 142,
-      releaseDate: '2024-03-15',
-      status: 'now-showing',
-      rating: 4.5,
-      posterUrl: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg'
-    },
-    // Add more movies...
-  ];
-
-  const filteredMovies = movies.filter(movie =>
+  const filteredMovies = mockMovies.filter(movie =>
     movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     movie.genre.some(g => g.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -84,6 +59,9 @@ const MovieList: React.FC = () => {
                   src={movie.posterUrl}
                   alt={movie.title}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/images/placeholder.jpg';
+                  }}
                 />
                 <div className="absolute top-2 right-2">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
