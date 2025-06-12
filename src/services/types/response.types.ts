@@ -7,6 +7,10 @@ export interface ApiResponse<T> {
     data: T;
 }
 
+export interface CheckMailResponse {
+    email: string;
+}
+
 export interface UserResponse {
     id: string;
     name: string;

@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
         VERIFY_OTP: '/api/Authentication/verify-otp',
         VERIFY_OTP_REGISTER: '/api/Authentication/VerifyOtpRegister',
         ME: '/api/Authentication/me',
+        CHECK_EMAIL_EXIST: '/api/Account/check-email',
         LOGOUT: '/api/Authentication/logout',
         GET_ALL: '/api/Account',
         CREATE: '/api/Account',
