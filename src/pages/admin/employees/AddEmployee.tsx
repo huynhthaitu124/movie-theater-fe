@@ -193,12 +193,23 @@ const AddEmployee: React.FC = () => {
     }
   };
 
+  // Modify the existing handleChange function
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === 'salary' ? Number(value) : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'salary' 
+        ? parseInt(value.replace(/[^0-9]/g, '')) || 0
+        : value
     }));
+  };
+
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0
+    }).format(value);
   };
 
   return (
@@ -373,17 +384,30 @@ const AddEmployee: React.FC = () => {
                     required
                   />
 
-                  <Input
-                    label="Salary"
-                    id="salary"
-                    name="salary"
-                    type="number"
-                    min="0"
-                    step="100000"
-                    value={formData.salary}
-                    onChange={handleChange}
-                    required
-                  />
+                  {/* Salary input with currency formatting */}
+                  <div className="space-y-2">
+                    <label htmlFor="salary" className="block text-sm font-medium text-secondary-300">
+                      Salary
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="salary"
+                        name="salary"
+                        type="text"
+                        value={formatCurrency(formData.salary)}
+                        onChange={(e) => {
+                          // Extract only numbers from the input
+                          const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                          setFormData(prev => ({
+                            ...prev,
+                            salary: numericValue ? parseInt(numericValue) : 0
+                          }));
+                        }}
+                        className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,63 +1,128 @@
-import React from 'react';
-import { Calendar, Tag, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, Tag, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { promotions } from '../../data/mockData';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Autoplay } from 'swiper/modules';
+import { motion } from 'framer-motion';
+import { mockPromotions } from '../../data/mockPromotions';  // Fixed import
+import 'swiper/css';
+import 'swiper/css/navigation';
 
 const Promotions: React.FC = () => {
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
   return (
     <section className="py-16 bg-secondary-50 dark:bg-secondary-900">
       <div className="container-custom">
-        <div className="text-center mb-12">
+        <motion.div 
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
           <h2 className="text-3xl font-bold text-secondary-900 dark:text-white mb-2">
             Special Offers
           </h2>
           <p className="text-secondary-600 dark:text-secondary-400 max-w-2xl mx-auto">
             Take advantage of these limited-time promotions for your next cinema experience
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {promotions.map((promotion) => (
-            <div key={promotion.id} className="card p-6 hover:shadow-card-hover transition-all duration-300">
-              <div className="flex items-start justify-between mb-4">
-                <div className="bg-primary-100 dark:bg-primary-900 p-3 rounded-md">
-                  <Tag className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                </div>
-                <div className="px-3 py-1 rounded-full bg-success-500 text-white text-xs font-medium">
-                  Active
-                </div>
-              </div>
-              
-              <h3 className="text-xl font-bold text-secondary-900 dark:text-white mb-2">
-                {promotion.code}
-              </h3>
-              
-              <p className="text-secondary-600 dark:text-secondary-400 mb-4">
-                {promotion.description}
-              </p>
-              
-              <div className="flex items-center text-secondary-500 dark:text-secondary-400 mb-2">
-                <Calendar size={16} className="mr-1" />
-                <span>Valid until {new Date(promotion.endDate).toLocaleDateString()}</span>
-              </div>
-              
-              {promotion.minPurchase && (
-                <div className="text-sm text-secondary-500 dark:text-secondary-400 mb-4">
-                  Minimum purchase: ${promotion.minPurchase.toFixed(2)}
-                </div>
-              )}
-              
-              <div className="mt-4 pt-4 border-t border-secondary-200 dark:border-secondary-700">
-                <Link 
-                  to="/promotions" 
-                  className="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+        <div className="relative group">
+          <Swiper
+            modules={[Navigation, Autoplay]}
+            spaceBetween={32}
+            slidesPerView={1}
+            loop={true}
+            autoplay={{
+              delay: 5000,
+              disableOnInteraction: false,
+              pauseOnMouseEnter: true
+            }}
+            navigation={{
+              prevEl: '.swiper-button-prev',
+              nextEl: '.swiper-button-next',
+            }}
+            breakpoints={{
+              640: { slidesPerView: 2 },
+              1024: { slidesPerView: 3 },
+            }}
+            className="px-4 py-4"
+          >
+            {mockPromotions.map((promotion) => (  // Changed from Promotions to mockPromotions
+              <SwiperSlide key={promotion.id}>
+                <motion.div 
+                  className="bg-white dark:bg-secondary-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
                 >
-                  <span>View Details</span>
-                  <ChevronRight size={16} className="ml-1" />
-                </Link>
-              </div>
-            </div>
-          ))}
+                  <div className="relative h-48">
+                    <img 
+                      src={imageErrors[promotion.id] 
+                        ? "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=2070&auto=format&fit=crop"
+                        : promotion.imageUrl
+                      } 
+                      alt={promotion.title}
+                      className="w-full h-full object-cover"
+                      onError={() => {
+                        setImageErrors(prev => ({
+                          ...prev,
+                          [promotion.id]: true
+                        }));
+                      }}
+                    />
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-white text-xs font-medium
+                      ${promotion.status === 'active' ? 'bg-success-500' : 
+                        promotion.status === 'expired' ? 'bg-error-500' : 
+                        'bg-warning-500'}`}
+                    >
+                      {promotion.status.charAt(0).toUpperCase() + promotion.status.slice(1)}
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-secondary-900 dark:text-white mb-2">
+                      {promotion.title}
+                    </h3>
+                    
+                    <div className="text-lg font-semibold text-primary-600 dark:text-primary-400 mb-3">
+                      {promotion.discountType === 'percentage' 
+                        ? `${promotion.discountValue}% OFF`
+                        : `$${promotion.discountValue} OFF`
+                      }
+                    </div>
+                    
+                    <p className="text-secondary-600 dark:text-secondary-400 mb-4 line-clamp-2">
+                      {promotion.description}
+                    </p>
+                    
+                    <div className="flex items-center text-secondary-500 dark:text-secondary-400 mb-4">
+                      <Calendar size={16} className="mr-1" />
+                      <span>Valid until {new Date(promotion.endDate).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <div className="pt-4 border-t border-secondary-200 dark:border-secondary-700">
+                      <Link 
+                        to="/promotions"
+                        className="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+                      >
+                        <span>View Details</span>
+                        <ChevronRight size={16} className="ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                </motion.div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+
+          <button className="swiper-button-prev absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black/20 hover:bg-black/40 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-6 hover:scale-110">
+            <ChevronLeft size={28} />
+          </button>
+          <button className="swiper-button-next absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black/20 hover:bg-black/40 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-6 hover:scale-110">
+            <ChevronRight size={28} />
+          </button>
         </div>
       </div>
     </section>

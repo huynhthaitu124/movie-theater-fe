@@ -7,6 +7,7 @@ import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
 import { userService } from '../../../services/modules/user.service';
 import { staffService } from '../../../services/modules/staff.service';
+import { formatVNCurrency } from '../../../utils/formatCurrency';
 // Removed UserRole import as it's no longer needed
 import type { StaffRequest } from '../../../services/types/request.types';
 
@@ -363,16 +364,25 @@ const EditEmployee: React.FC = () => {
                   required
                 />
 
-                <Input
-                  label="Salary"
-                  name="salary"
-                  type="number"
-                  min="0"
-                  step="100000"
-                  value={formData.salary}
-                  onChange={handleChange}
-                  required
-                />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-secondary-300">
+                    Salary
+                  </label>
+                  <Input
+                    name="salary"
+                    type="number"
+                    min="0"
+                    step="100000"
+                    value={formData.salary}
+                    onChange={handleChange}
+                    required
+                  />
+                  {formData.salary > 0 && (
+                    <div className="text-sm text-secondary-400">
+                      {formatVNCurrency(formData.salary)}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

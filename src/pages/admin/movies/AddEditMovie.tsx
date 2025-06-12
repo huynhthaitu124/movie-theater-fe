@@ -4,6 +4,7 @@ import { ArrowLeft, Upload, AlertCircle } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
+import { mockMovies } from '../../../data/mockMovies';
 
 interface MovieFormData {
   title: string;
@@ -15,9 +16,12 @@ interface MovieFormData {
   rating: number;
   poster: File | null;
   posterUrl: string;
+  backdrop: File | null;  // New
+  backdropUrl: string;    // New
   director: string;
   cast: string[];
   language: string;
+  trailerUrl: string;    // New
 }
 
 const AddEditMovie: React.FC = () => {
@@ -26,6 +30,7 @@ const AddEditMovie: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [backdropPreview, setBackdropPreview] = useState<string | null>(null); // New
   const isEditMode = Boolean(id);
 
   const [formData, setFormData] = useState<MovieFormData>({
@@ -38,9 +43,12 @@ const AddEditMovie: React.FC = () => {
     rating: 0,
     poster: null,
     posterUrl: '',
+    backdrop: null,
+    backdropUrl: '',
     director: '',
     cast: [],
-    language: ''
+    language: '',
+    trailerUrl: ''    // New
   });
 
   const genres = [
@@ -48,46 +56,34 @@ const AddEditMovie: React.FC = () => {
       'Documentary', 'Drama', 'Family', 'Fantasy', 'Horror',
       'Mystery', 'Romance', 'Sci-Fi', 'Thriller'
     ];
-  
-    const mockMovies = [
-      {
-        id: '1',
-        title: 'Sample Movie',
-        description: 'Sample description',
-        duration: 120,
-        releaseDate: '2024-01-01',
-        genre: ['Action', 'Adventure'],
-        status: 'now-showing' as const,
-        rating: 4.5,
-        posterUrl: 'https://example.com/poster.jpg',
-        director: 'John Doe',
-        cast: ['Actor 1', 'Actor 2'],
-        language: 'English'
-      }
-    ];
 
   useEffect(() => {
     if (isEditMode) {
-      // Fetch movie data for editing
-      const fetchMovie = async () => {
-        try {
-          // TODO: Replace with actual API call
-          const movie = mockMovies.find(m => m.id === id);
-          if (movie) {
-            setFormData({
-              ...formData,
-              ...movie,
-              poster: null
-            });
-            setPosterPreview(movie.posterUrl);
-          }
-        } catch (error) {
-          setError('Failed to fetch movie data');
-        }
-      };
-      fetchMovie();
+      const movie = mockMovies.find(m => m.id === id);
+      if (movie) {
+        setFormData({
+          title: movie.title,
+          description: movie.description,
+          duration: movie.duration,
+          releaseDate: movie.releaseDate,
+          genre: movie.genre,
+          status: movie.status,
+          rating: movie.rating,
+          poster: null,
+          posterUrl: movie.posterUrl,
+          backdrop: null,
+          backdropUrl: movie.backdropUrl,
+          director: movie.director,
+          cast: movie.cast,
+          language: movie.language,
+          trailerUrl: movie.trailerUrl
+        });
+      } else {
+        setError('Movie not found');
+        navigate('/admin/movies');
+      }
     }
-  }, [id]);
+  }, [id, isEditMode, navigate]);
 
   const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,6 +92,21 @@ const AddEditMovie: React.FC = () => {
       const reader = new FileReader();
       reader.onload = () => {
         setPosterPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBackdropChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData({ ...formData, backdrop: file });
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFormData(prev => ({
+          ...prev,
+          backdropUrl: reader.result as string
+        }));
       };
       reader.readAsDataURL(file);
     }
@@ -124,12 +135,27 @@ const AddEditMovie: React.FC = () => {
     setError(null);
 
     try {
-      // Validate required fields
-      if (!formData.title || !formData.description || !formData.duration) {
+      if (!formData.title || !formData.description || !formData.duration || !formData.posterUrl) {
         throw new Error('Please fill in all required fields');
       }
 
-      // TODO: Replace with actual API call
+      // Validate YouTube URL format
+      if (formData.trailerUrl && !formData.trailerUrl.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/)) {
+        throw new Error('Please enter a valid YouTube URL');
+      }
+
+      // Validate rating range
+      if (formData.rating < 0 || formData.rating > 10) {
+        throw new Error('Rating must be between 0 and 10');
+      }
+
+      const movieData = {
+        ...formData,
+        id: isEditMode ? id : Date.now().toString(),
+        // Add any other necessary transformations
+      };
+
+      // Your API call would go here
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       navigate('/admin/movies', {
@@ -201,6 +227,46 @@ const AddEditMovie: React.FC = () => {
                   </label>
                   <p className="text-sm text-secondary-400">
                     Recommended size: 500x750px
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Backdrop Upload */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-secondary-300 mb-2">
+                Movie Backdrop
+              </label>
+              <div className="flex items-center space-x-6">
+                <div className="w-full h-40 rounded-lg overflow-hidden bg-secondary-700">
+                  {formData.backdropUrl ? (
+                    <img
+                      src={formData.backdropUrl}
+                      alt="Backdrop preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-secondary-400">
+                      <Upload size={24} />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBackdropChange}
+                    className="hidden"
+                    id="backdrop-upload"
+                  />
+                  <label
+                    htmlFor="backdrop-upload"
+                    className="cursor-pointer inline-block px-4 py-2 border border-secondary-600 rounded-lg text-secondary-300 hover:border-primary-500 hover:text-primary-500"
+                  >
+                    Choose Backdrop
+                  </label>
+                  <p className="text-sm text-secondary-400">
+                    Recommended size: 1920x1080px
                   </p>
                 </div>
               </div>
@@ -316,6 +382,30 @@ const AddEditMovie: React.FC = () => {
               value={formData.language}
               onChange={(e) => setFormData({ ...formData, language: e.target.value })}
             />
+
+            {/* Trailer URL */} {/* New */}
+            <Input
+              label="Trailer URL (YouTube)"
+              name="trailerUrl"
+              value={formData.trailerUrl}
+              onChange={(e) => setFormData({ ...formData, trailerUrl: e.target.value })}
+              placeholder="e.g., https://www.youtube.com/watch?v=..."
+            />
+
+            {/* Rating */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Rating"
+                type="number"
+                name="rating"
+                min="0"
+                max="10"
+                step="0.1"
+                value={formData.rating}
+                onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
+                placeholder="Enter rating (0-10)"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end space-x-4">

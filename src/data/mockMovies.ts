@@ -3,6 +3,7 @@ export interface Movie {
   title: string;
   description: string;
   posterUrl: string;
+  backdropUrl: string; // Add this line
   duration: number;
   rating: number;
   genre: string[];
@@ -11,6 +12,7 @@ export interface Movie {
   director: string;
   cast: string[];
   language: string;
+  trailerUrl: string;
 }
 
 export const mockMovies: Movie[] = [
@@ -19,6 +21,7 @@ export const mockMovies: Movie[] = [
     title: 'Inception',
     description: 'A thief who enters the dreams of others to steal their secrets gets a chance to regain his old life in exchange for a task considered impossible.',
     posterUrl: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/s3TBrRGB1iav7gFOCNx3H31MoES.jpg',
     duration: 148,
     rating: 4.8,
     genre: ['Action', 'Sci-Fi', 'Thriller'],
@@ -26,13 +29,15 @@ export const mockMovies: Movie[] = [
     releaseDate: '2024-03-15',
     director: 'Christopher Nolan',
     cast: ['Leonardo DiCaprio', 'Joseph Gordon-Levitt', 'Ellen Page'],
-    language: 'English'
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=YoHD9XEInc0',
   },
   {
     id: '2',
     title: 'The Dark Knight',
     description: 'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.',
     posterUrl: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/nMKdUUepR0i5zn0y1T4CsSB5chy.jpg',
     duration: 152,
     rating: 4.9,
     genre: ['Action', 'Crime', 'Drama'],
@@ -40,13 +45,15 @@ export const mockMovies: Movie[] = [
     releaseDate: '2024-03-10',
     director: 'Christopher Nolan',
     cast: ['Christian Bale', 'Heath Ledger', 'Aaron Eckhart'],
-    language: 'English'
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=EXeTwQWrcwY',
   },
   {
     id: '3',
     title: 'Pulp Fiction',
     description: 'The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine in four tales of violence and redemption.',
     posterUrl: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg',
     duration: 154,
     rating: 4.7,
     genre: ['Crime', 'Drama'],
@@ -54,13 +61,15 @@ export const mockMovies: Movie[] = [
     releaseDate: '2024-03-20',
     director: 'Quentin Tarantino',
     cast: ['John Travolta', 'Uma Thurman', 'Samuel L. Jackson'],
-    language: 'English'
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=s7EdQ4FqbhY',
   },
   {
     id: '4',
     title: 'Spirited Away',
     description: 'During her family\'s move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods, witches, and spirits, where humans are changed into beasts.',
     posterUrl: 'https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/Ab8mkHmkYADjU7wQiOkia9BzGvS.jpg',
     duration: 125,
     rating: 4.8,
     genre: ['Animation', 'Adventure', 'Family'],
@@ -68,13 +77,15 @@ export const mockMovies: Movie[] = [
     releaseDate: '2024-03-25',
     director: 'Hayao Miyazaki',
     cast: ['Rumi Hiiragi', 'Miyu Irino', 'Mari Natsuki'],
-    language: 'Japanese'
+    language: 'Japanese',
+    trailerUrl: 'https://www.youtube.com/watch?v=ByXuk9QqQkk',
   },
   {
     id: '5',
     title: 'The Matrix',
     description: 'A computer programmer discovers that reality as he knows it is a simulation created by machines, and joins a rebellion to break free.',
     posterUrl: 'https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/l4QHerTSbMI7qgvasqxP36pqjN6.jpg',
     duration: 136,
     rating: 4.6,
     genre: ['Action', 'Sci-Fi'],
@@ -82,13 +93,15 @@ export const mockMovies: Movie[] = [
     releaseDate: '2024-03-12',
     director: 'The Wachowskis',
     cast: ['Keanu Reeves', 'Laurence Fishburne', 'Carrie-Anne Moss'],
-    language: 'English'
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=vKQi3bBA1y8',
   },
   {
     id: '6',
     title: 'Dune: Part Two',
     description: 'Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.',
     posterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/zIYROrkHJPYB3VTiW1L9QVgaQO.jpg',
     duration: 166,
     rating: 4.7,
     genre: ['Action', 'Adventure', 'Sci-Fi'],
@@ -96,13 +109,15 @@ export const mockMovies: Movie[] = [
     releaseDate: '2024-02-28',
     director: 'Denis Villeneuve',
     cast: ['Timothée Chalamet', 'Zendaya', 'Rebecca Ferguson'],
-    language: 'English'
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=m2rYc2RCvbo',
   },
   {
     id: '7',
     title: 'Deadpool & Wolverine',
     description: 'The merc with the mouth joins the MCU in an adventure that will change both his life and the MCU forever.',
-    posterUrl: 'https://image.tmdb.org/t/p/w500/3aduJY8JwfdVwQxmKQrVvQ3RaY0.jpg',
+    posterUrl: 'https://image.tmdb.org/t/p/w500/wDWwtvkRRlgTiUr6TyLSMX8FCuZ.jpg', // Updated poster URL
+    backdropUrl: 'https://image.tmdb.org/t/p/original/wB0RNzZvhwid1zHdL1DzuPpX9country.jpg', // Updated backdrop URL
     duration: 150,
     rating: 4.5,
     genre: ['Action', 'Comedy', 'Superhero'],
@@ -110,13 +125,15 @@ export const mockMovies: Movie[] = [
     releaseDate: '2024-07-26',
     director: 'Shawn Levy',
     cast: ['Ryan Reynolds', 'Hugh Jackman', 'Emma Corrin'],
-    language: 'English'
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=VORUjzaQNPw',
   },
   {
     id: '8',
     title: 'Inside Out 2',
     description: 'Follow Riley as a teenager as new emotions join Joy, Sadness, Anger, Fear, and Disgust in her mind.',
-    posterUrl: 'https://image.tmdb.org/t/p/w500/2AXxc5qrYsiiV8abdYUMI8nGlAj.jpg',
+    posterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/zIYROrkHJPYB3VTiW1L9QVgaQO.jpg',
     duration: 135,
     rating: 4.4,
     genre: ['Animation', 'Adventure', 'Comedy'],
@@ -124,6 +141,71 @@ export const mockMovies: Movie[] = [
     releaseDate: '2024-06-14',
     director: 'Kelsey Mann',
     cast: ['Amy Poehler', 'Phyllis Smith', 'Maya Hawke'],
-    language: 'English'
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=kujHlRRHOBY',
+  },
+  {
+    id: '9',
+    title: 'Furiosa: A Mad Max Saga',
+    description: 'The origin story of renegade warrior Furiosa before her encounter with Mad Max.',
+    posterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/zIYROrkHJPYB3VTiW1L9QVgaQO.jpg',
+    duration: 147,
+    rating: 4.6,
+    genre: ['Action', 'Adventure', 'Science Fiction'],
+    status: 'coming-soon',
+    releaseDate: '2024-05-24',
+    director: 'George Miller',
+    cast: ['Anya Taylor-Joy', 'Chris Hemsworth', 'Tom Burke'],
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=XRqphG_88Yc',
+  },
+  {
+    id: '10',
+    title: 'Kingdom of the Planet of the Apes',
+    description: 'Many years after the reign of Caesar, apes are now the dominant species living harmoniously and humans have been reduced to living in the shadows.',
+    posterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/zIYROrkHJPYB3VTiW1L9QVgaQO.jpg',
+    duration: 145,
+    rating: 4.3,
+    genre: ['Science Fiction', 'Adventure', 'Action'],
+    status: 'coming-soon',
+    releaseDate: '2024-05-10',
+    director: 'Wes Ball',
+    cast: ['Owen Teague', 'Freya Allan', 'Kevin Durand'],
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=hYEQV_FQG4M',
+  },
+  {
+    id: '11',
+    title: 'Despicable Me 4',
+    description: 'Gru and Lucy face a new nemesis who was once Gru\'s childhood best friend but turned against him.',
+    posterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/zIYROrkHJPYB3VTiW1L9QVgaQO.jpg',
+    duration: 130,
+    rating: 4.2,
+    genre: ['Animation', 'Adventure', 'Comedy', 'Family'],
+    status: 'coming-soon',
+    releaseDate: '2024-07-03',
+    director: 'Chris Renaud',
+    cast: ['Steve Carell', 'Kristen Wiig', 'Will Ferrell'],
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=wZti8QKBWPo',
+  },
+  {
+    id: '12',
+    title: 'Godzilla x Kong: The New Empire',
+    description: 'Two ancient titans, Godzilla and Kong, clash in an epic battle as humans unravel their intertwined origins and connection to Skull Island\'s mysteries.',
+    posterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    backdropUrl: 'https://image.tmdb.org/t/p/original/zIYROrkHJPYB3VTiW1L9QVgaQO.jpg',
+    duration: 155,
+    rating: 4.5,
+    genre: ['Action', 'Science Fiction', 'Adventure'],
+    status: 'coming-soon',
+    releaseDate: '2024-04-12',
+    director: 'Adam Wingard',
+    cast: ['Rebecca Hall', 'Brian Tyree Henry', 'Dan Stevens'],
+    language: 'English',
+    trailerUrl: 'https://www.youtube.com/watch?v=qnZ7fZhnQ_g',
   }
 ];
