@@ -61,7 +61,7 @@ const Navbar: React.FC = () => {
               Promotions
             </Link>
             
-            <ThemeToggle />
+
 
             {isAuthenticated ? (
               <div className="relative ml-3">

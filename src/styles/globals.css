@@ -1,0 +1,48 @@
+.section-padding {
+  @apply py-16;
+}
+
+.primary {
+  @apply text-blue-600;
+}
+
+.primary-dark {
+  @apply text-blue-700;
+}
+
+.container-custom {
+  @apply px-4 mx-auto max-w-7xl;
+}
+
+.text-primary-400 {
+  @apply text-blue-400;
+}
+
+.bg-primary-400 {
+  @apply bg-blue-400;
+}
+
+.text-secondary-200 {
+  @apply text-gray-200/90;
+}
+
+.bg-primary-500 {
+  @apply bg-blue-500;
+}
+
+.bg-primary-600 {
+  @apply bg-blue-600;
+}
+
+.bg-secondary-900 {
+  @apply bg-gray-900;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}

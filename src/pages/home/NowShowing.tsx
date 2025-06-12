@@ -1,26 +1,35 @@
-import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Star, Film } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Autoplay } from 'swiper/modules';
+import { motion } from 'framer-motion';
 import Button from '../../components/common/Button';
-import { Movie } from '../../types';
-import { movies } from '../../data/mockData';
+import { mockMovies } from '../../data/mockMovies';
+import 'swiper/css';
+import 'swiper/css/navigation';
 
 const NowShowing: React.FC = () => {
   const [hoveredMovie, setHoveredMovie] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  const nowShowingMovies = movies.filter(movie => movie.status === 'now-showing');
+  const nowShowingMovies = mockMovies.filter(movie => movie.status === 'now-showing');
 
-  const handleBookTicket = (movieId: string) => {
-    navigate(`/book/${movieId}`);
+  const handleMovieClick = (movieId: string) => {
+    navigate(`/movies/${movieId}`);
   };
 
   return (
-    <section className="py-16 bg-secondary-50 dark:bg-secondary-900">
+    <section className="py-16 bg-gradient-to-b from-secondary-50 to-white dark:from-secondary-900 dark:to-secondary-800">
       <div className="container-custom">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12"
+        >
           <div>
-            <h2 className="text-3xl font-bold text-secondary-900 dark:text-white mb-2">
+            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600 dark:from-primary-400 dark:to-secondary-400 mb-2">
               Now Showing
             </h2>
             <p className="text-secondary-600 dark:text-secondary-400">
@@ -28,87 +37,131 @@ const NowShowing: React.FC = () => {
             </p>
           </div>
           <Link to="/movies">
-            <Button variant="ghost" className="mt-4 md:mt-0">
+            <Button 
+              variant="ghost" 
+              className="mt-4 md:mt-0 hover:scale-105 transition-all duration-300"
+            >
               View All Movies
             </Button>
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {nowShowingMovies.map((movie) => (
-            <div
-              key={movie.id}
-              className="card card-hover"
-              onMouseEnter={() => setHoveredMovie(movie.id)}
-              onMouseLeave={() => setHoveredMovie(null)}
-            >
-              <div className="relative overflow-hidden" style={{ height: '400px' }}>
-                <img
-                  src={movie.posterUrl}
-                  alt={movie.title}
-                  className="w-full h-full object-cover"
-                />
-                <div
-                  className={`absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/70 to-transparent transition-opacity duration-300 ${
-                    hoveredMovie === movie.id ? 'opacity-100' : 'opacity-0'
-                  }`}
-                ></div>
-                <div
-                  className={`absolute inset-0 flex flex-col justify-end p-6 transition-opacity duration-300 ${
-                    hoveredMovie === movie.id ? 'opacity-100' : 'opacity-0'
-                  }`}
+        <div className="relative group">
+          <Swiper
+            modules={[Navigation, Autoplay]}
+            spaceBetween={32}
+            slidesPerView={1}
+            loop={true}
+            autoplay={{
+              delay: 5000,
+              disableOnInteraction: false,
+              pauseOnMouseEnter: true
+            }}
+            navigation={{
+              prevEl: '.swiper-button-prev',
+              nextEl: '.swiper-button-next',
+            }}
+            breakpoints={{
+              640: {
+                slidesPerView: 2,
+              },
+              1024: {
+                slidesPerView: 4,
+              },
+            }}
+            className="px-4 py-4"
+          >
+            {nowShowingMovies.map((movie) => (
+              <SwiperSlide key={movie.id}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  className="card overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 bg-white dark:bg-secondary-800 relative"
+                  onMouseEnter={() => setHoveredMovie(movie.id)}
+                  onMouseLeave={() => setHoveredMovie(null)}
                 >
-                  <h3 className="text-xl font-bold text-white mb-2">{movie.title}</h3>
-                  <p className="text-secondary-200 mb-4 line-clamp-3">{movie.description}</p>
-                  
-                  <div className="flex items-center space-x-4 text-white mb-4">
-                    <div className="flex items-center">
-                      <Clock size={16} className="mr-1 text-primary-400" />
-                      <span>{movie.duration} min</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Star size={16} className="mr-1 text-primary-400" />
-                      <span>{movie.rating.toFixed(1)}</span>
+                  <div className="relative aspect-[2/3]">
+                    <img
+                      src={movie.posterUrl}
+                      alt={movie.title}
+                      className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.currentTarget.src = '/fallback-movie-poster.jpg';
+                      }}
+                    />
+                    {/* Overlay content */}
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 pointer-events-none
+                        ${hoveredMovie === movie.id ? '!opacity-100 !pointer-events-auto' : ''}`}
+                      style={{ transition: 'opacity 300ms ease-in-out' }}
+                    >
+                      <div className="absolute inset-0 p-6 flex flex-col justify-end">
+                        <h3 className="text-xl font-bold text-white mb-2">{movie.title}</h3>
+                        <p className="text-gray-200 mb-4 line-clamp-3">{movie.description}</p>
+                        
+                        <div className="flex items-center space-x-4 text-white mb-4">
+                          <div className="flex items-center">
+                            <Clock size={16} className="mr-1 text-primary-400" />
+                            <span>{movie.duration} min</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Star size={16} className="mr-1 text-yellow-400" />
+                            <span>{movie.rating.toFixed(1)}</span>
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          onClick={() => handleMovieClick(movie.id)}
+                          fullWidth
+                          className="bg-primary-600 hover:bg-primary-500 transform hover:scale-105 transition-all duration-300"
+                        >
+                          View Details
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   
-                  <Button 
-                    onClick={() => handleBookTicket(movie.id)}
-                    fullWidth
+                  {/* Base content - Always visible when not hovered */}
+                  <div 
+                    className={`p-4 transition-opacity duration-300 absolute bottom-0 left-0 right-0 bg-white dark:bg-secondary-800
+                      ${hoveredMovie === movie.id ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                   >
-                    Book Now
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Movie info (visible by default) */}
-              <div className={`p-4 ${hoveredMovie === movie.id ? 'hidden' : 'block'}`}>
-                <h3 className="text-xl font-bold text-secondary-900 dark:text-white mb-2">
-                  {movie.title}
-                </h3>
-                <div className="flex items-center text-secondary-500 dark:text-secondary-400 mb-2">
-                  <Clock size={16} className="mr-1" />
-                  <span className="mr-4">{movie.duration} min</span>
-                  <Star size={16} className="mr-1 text-yellow-500" />
-                  <span>{movie.rating.toFixed(1)}</span>
-                </div>
-                <div className="flex items-center text-secondary-500 dark:text-secondary-400 mb-4">
-                  <Calendar size={16} className="mr-1" />
-                  <span>{new Date(movie.releaseDate).toLocaleDateString()}</span>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {movie.categories.slice(0, 3).map((genre, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
-                    >
-                      {genre}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
+                    <h3 className="text-lg font-semibold text-secondary-900 dark:text-white mb-2 line-clamp-1">
+                      {movie.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {movie.genre.slice(0, 3).map((genre, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-200"
+                        >
+                          {genre}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-secondary-600 dark:text-secondary-400">
+                      <div className="flex items-center">
+                        <Clock size={14} className="mr-1" />
+                        <span>{movie.duration} min</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Star size={14} className="mr-1 text-yellow-500" />
+                        <span>{movie.rating.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+
+          <button className="swiper-button-prev absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black/20 hover:bg-black/40 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-6 hover:scale-110">
+            <ChevronLeft size={28} />
+          </button>
+          <button className="swiper-button-next absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black/20 hover:bg-black/40 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-6 hover:scale-110">
+            <ChevronRight size={28} />
+          </button>
         </div>
       </div>
     </section>

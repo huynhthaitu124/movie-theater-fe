@@ -73,3 +73,24 @@
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 }
+
+/* Hide default Swiper navigation buttons */
+.swiper-button-prev::after,
+.swiper-button-next::after {
+  display: none;
+}
+
+/* Custom navigation button styles */
+.swiper-button-prev,
+.swiper-button-next {
+  transition: all 0.3s ease;
+}
+
+.swiper-button-disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed;
+}
+
+.swiper {
+  overflow-y: visible !important;
+}

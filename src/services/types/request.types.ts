@@ -4,7 +4,7 @@ import type { Movie } from '../../types/movie';
 type OmitAutoFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
 
 export interface SendOtpRequest {
-    email: string;
+  email: string;
 }
 
 export interface VerifyOtpRequest {

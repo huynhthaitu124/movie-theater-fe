@@ -25,6 +25,7 @@ import AddEditRoom from './pages/admin/rooms/AddEditRoom';
 import MemberList from './pages/admin/members/MemberList';
 import AddMember from './pages/admin/members/AddMember';
 import InactiveMembers from './pages/admin/members/InactiveMembers';
+import MovieDetails from './pages/movies/MovieDetails';
 
 const NotFound = () => {
   const location = useLocation();
@@ -182,6 +183,7 @@ const App: React.FC = () => {
               
               {/* Public Routes */}
               <Route path="/movies" element={<Movies />} />
+              <Route path="/movies/:id" element={<MovieDetails />} />
               <Route path="/promotions" element={<Promotions />} />
               
               {/* Protected Profile Route */}

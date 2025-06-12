@@ -11,10 +11,12 @@ export interface Movie {
   posterUrl: string;
   trailerUrl?: string;
   rating: number;
-  status: 'coming-soon' | 'now-showing' | 'ended';
+  status: 'coming-soon' | 'now-showing';
   language: string;
   createdAt: string;
   updatedAt: string;
+  backdropUrl?: string;
+  genre: string[];
 }
 
 export interface MovieCategory {

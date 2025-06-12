@@ -226,10 +226,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           ))}
 
           <div className="mt-auto pt-4 border-t border-secondary-700 px-2">
-            <div className="flex items-center justify-between mb-4 px-2">
-              <span className="text-sm text-secondary-400">Theme</span>
-              <ThemeToggle />
-            </div>
+            
             <button
               onClick={handleLogout}
               className="flex items-center w-full px-4 py-3 text-sm rounded-md text-secondary-200 hover:bg-secondary-700"
