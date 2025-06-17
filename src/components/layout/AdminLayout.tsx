@@ -14,7 +14,7 @@ const sidebarVariants = {
     x: 0,
     opacity: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 300,
       damping: 30
     }
@@ -23,7 +23,7 @@ const sidebarVariants = {
     x: "-100%", // Only on mobile
     opacity: 0,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 300,
       damping: 30
     }
@@ -161,7 +161,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     },
     {
       to: '/admin/showtimes',
-      icon: <Calendar size={20} />,
+      icon: <Calendar className="w-5 h-5" />,
       label: 'Showtimes',
     },
     {
