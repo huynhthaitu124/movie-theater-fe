@@ -56,6 +56,21 @@ export default {
           500: '#ef4444',
           600: '#dc2626',
         },
+        green: {
+          500: '#22c55e',
+        },
+        red: {
+          500: '#ef4444',
+        },
+        yellow: {
+          500: '#eab308',
+        },
+        gray: {
+          500: '#6b7280',
+        },
+        blue: {
+          500: '#3b82f6',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -93,5 +108,4 @@ export default {
       },
     },
   },
-  plugins: [],
 };
