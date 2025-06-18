@@ -25,6 +25,10 @@ import AddMember from './pages/admin/members/AddMember';
 import InactiveMembers from './pages/admin/members/InactiveMembers';
 import MovieDetails from './pages/movies/MovieDetails';
 import CinemaManagement from './pages/admin/cinemas/CinemaManagement';
+import ShowtimeManagement from './pages/admin/showtimes/ShowtimeManagement';
+
+
+
 
 const NotFound = () => {
   const location = useLocation();
@@ -155,6 +159,18 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Showtime Management Route */}
+              <Route
+                path="/admin/showtimes"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <ShowtimeManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              
               
               {/* Public Routes that require authentication */}
               <Route path="/book/:movieId" element={
@@ -189,3 +205,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

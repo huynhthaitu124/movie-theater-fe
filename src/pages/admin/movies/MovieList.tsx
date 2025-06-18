@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Edit2, Trash2, AlertCircle } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, AlertCircle, Calendar } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
 import { mockMovies } from '../../../data/mockMovies';
+import { mockLocations } from '../../../data/mockCinemas';
+import { Movie } from '../../../types/movie';
 
 const MovieList: React.FC = () => {
   const navigate = useNavigate();
@@ -108,6 +110,18 @@ const MovieList: React.FC = () => {
                   >
                     <Trash2 size={16} />
                   </button>
+                </div>
+
+                {/* Show current showtimes for this movie */}
+                <div className="mt-4 pt-4 border-t border-secondary-700">
+                  <Button
+                    onClick={() => navigate(`/admin/showtimes?movieId=${movie.id}`)}
+                    variant="secondary"
+                    className="w-full flex items-center justify-center gap-2 bg-secondary-700 hover:bg-secondary-600"
+                  >
+                    <Calendar size={16} />
+                    Manage Showtimes
+                  </Button>
                 </div>
               </div>
             </div>

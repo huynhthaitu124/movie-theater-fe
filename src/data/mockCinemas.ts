@@ -1,131 +1,214 @@
-interface Cinema {
-  id: string;
-  name: string;
-  address: string;
-  screens: number;
-  status: 'active' | 'maintenance' | 'closed';
-  capacity: number;
-  facilities: string[];
-}
+import { Cinema, Room, Seat, Location } from '../types/cinema';
 
-interface Location {
-  id: string;
-  name: string;
-  cinemas: Cinema[];
-}
+const generateSeats = (roomId: string, rows: string[], seatsPerRow: number): Seat[] => {
+  return rows.flatMap((row) =>
+    Array.from({ length: seatsPerRow }, (_, idx) => ({
+      id: `${roomId}-${row}${idx + 1}`,
+      row,
+      number: idx + 1,
+      type: "standard" as const,
+      status: "available" as const,
+      price: 75000
+    }))
+  );
+};
 
 export const mockLocations: Location[] = [
   {
-    id: '1',
-    name: 'Ho Chi Minh',
+    id: "loc-1",
+    name: "Ho Chi Minh City",
+    region: "South",
     cinemas: [
       {
-        id: 'hcm-1',
-        name: 'CGV Vincom Thu Duc',
-        address: '216 Vo Van Ngan, Binh Tho Ward, Thu Duc City',
-        screens: 5,
-        status: 'active',
-        capacity: 750,
-        facilities: ['IMAX', '4DX', 'Gold Class', 'Parking']
+        id: "cinema-1",
+        name: "FPT Cinema Cantavil",
+        address: "1 Song Hanh, Thu Duc",
+        city: "Ho Chi Minh City",
+        phone: "028-1234-5678",
+        email: "cantavil.hcm@fptcinema.com",
+        status: "active",
+        manager: "John Doe",
+        facilities: ["Parking", "Food Court", "VIP Lounge", "Gaming Zone"],
+        rooms: [
+          {
+            id: "room-1",
+            name: "Theater 1",
+            capacity: 70,
+            type: "standard",
+            status: "active",
+            features: ["Dolby Audio", "3D Ready"],
+            cinemaId: "cinema-1",
+            screenSize: "12m x 5m",
+            audioSystem: "Dolby 7.1 Surround",
+            createdAt: new Date("2024-01-01"),
+            updatedAt: new Date("2024-01-01"),
+            layout: {
+              rows: 7,
+              seatsPerRow: 10
+            },
+            seats: generateSeats("room-1", ['A', 'B', 'C', 'D', 'E', 'F', 'G'], 10)
+          },
+          {
+            id: "room-2",
+            name: "VIP Theater",
+            capacity: 50,
+            type: "vip",
+            status: "active",
+            features: ["Dolby Atmos", "4K Projection", "Reclining Seats"],
+            cinemaId: "cinema-1",
+            screenSize: "15m x 6.5m",
+            audioSystem: "Dolby Atmos",
+            createdAt: new Date("2024-01-01"),
+            updatedAt: new Date("2024-01-01"),
+            layout: {
+              rows: 5,
+              seatsPerRow: 10
+            },
+            seats: generateSeats("room-2", ['A', 'B', 'C', 'D', 'E'], 10)
+          }
+        ]
       },
       {
-        id: 'hcm-2',
-        name: 'CGV Pearl Plaza',
-        address: '561A Dien Bien Phu, Ward 25, Binh Thanh District',
-        screens: 6,
-        status: 'active',
-        capacity: 900,
-        facilities: ['Dolby Atmos', 'Gold Class', 'Parking']
-      },
-      {
-        id: 'hcm-3',
-        name: 'CGV Aeon Tan Phu',
-        address: '30 Bo Bao Tan Thang, Son Ky Ward, Tan Phu District',
-        screens: 4,
-        status: 'maintenance',
-        capacity: 600,
-        facilities: ['Standard', 'Premium', 'Food Court']
+        id: "cinema-2",
+        name: "FPT Cinema Sala",
+        address: "10 Mai Chi Tho, Thu Thiem",
+        city: "Ho Chi Minh City",
+        phone: "028-9876-5432",
+        email: "sala.hcm@fptcinema.com",
+        status: "active",
+        manager: "Jane Smith",
+        facilities: ["IMAX", "Restaurant", "Gaming Zone", "Kids Area"],
+        rooms: [
+          {
+            id: "room-3",
+            name: "IMAX Theater",
+            capacity: 100,
+            type: "imax",
+            status: "active",
+            features: ["IMAX Projection", "Dolby Atmos", "Premium Seating"],
+            cinemaId: "cinema-2",
+            screenSize: "22m x 16m",
+            audioSystem: "IMAX Enhanced Audio",
+            createdAt: new Date("2024-01-01"),
+            updatedAt: new Date("2024-01-01"),
+            layout: {
+              rows: 10,
+              seatsPerRow: 10
+            },
+            seats: generateSeats("room-3", ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'], 10)
+          }
+        ]
       }
     ]
   },
   {
-    id: '2',
-    name: 'Da Nang',
+    id: "loc-2",
+    name: "Ha Noi",
+    region: "North",
     cinemas: [
       {
-        id: 'dn-1',
-        name: 'CGV Vincom Da Nang',
-        address: '910B Ngo Quyen, An Hai Bac Ward, Son Tra District',
-        screens: 4,
-        status: 'active',
-        capacity: 600,
-        facilities: ['IMAX', 'Premium', 'Parking']
-      },
-      {
-        id: 'dn-2',
-        name: 'CGV Da Nang Center',
-        address: '255-257 Hung Vuong, Vinh Trung Ward, Thanh Khe District',
-        screens: 3,
-        status: 'closed',
-        capacity: 450,
-        facilities: ['Standard', 'Food Court']
+        id: "cinema-3",
+        name: "FPT Cinema Times City",
+        address: "458 Minh Khai Street",
+        city: "Ha Noi",
+        phone: "024-9876-5432",
+        email: "timescity.hn@fptcinema.com",
+        status: "active",
+        manager: "David Wilson",
+        facilities: ["IMAX", "Restaurant", "Gaming Zone", "Kids Area"],
+        rooms: [
+          {
+            id: "room-4",
+            name: "4DX Theater",
+            capacity: 80,
+            type: "4dx",
+            status: "active",
+            features: ["4DX Motion Seats", "Environmental Effects", "Dolby Atmos"],
+            cinemaId: "cinema-3",
+            screenSize: "18m x 7.5m",
+            audioSystem: "Dolby Atmos",
+            createdAt: new Date("2024-01-01"),
+            updatedAt: new Date("2024-01-01"),
+            layout: {
+              rows: 8,
+              seatsPerRow: 10
+            },
+            seats: generateSeats("room-4", ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], 10)
+          }
+        ]
       }
     ]
   },
   {
-    id: '3',
-    name: 'Ha Noi',
+    id: "loc-3",
+    name: "Da Nang",
+    region: "Central",
     cinemas: [
       {
-        id: 'hn-1',
-        name: 'CGV Vincom Royal City',
-        address: '72A Nguyen Trai, Thuong Dinh, Thanh Xuan',
-        screens: 7,
-        status: 'active',
-        capacity: 1050,
-        facilities: ['IMAX', '4DX', 'Gold Class', 'Premium', 'Parking']
-      },
-      {
-        id: 'hn-2',
-        name: 'CGV Times City',
-        address: '458 Minh Khai, Vinh Tuy, Hai Ba Trung',
-        screens: 5,
-        status: 'active',
-        capacity: 750,
-        facilities: ['Dolby Atmos', 'Premium', 'Food Court']
-      }
-    ]
-  },
-  {
-    id: '4',
-    name: 'Can Tho',
-    cinemas: [
-      {
-        id: 'ct-1',
-        name: 'CGV Vincom Can Tho',
-        address: '209 Cach Mang Thang 8, An Hoi, Ninh Kieu',
-        screens: 4,
-        status: 'active',
-        capacity: 600,
-        facilities: ['Standard', 'Premium', 'Parking']
-      }
-    ]
-  },
-  {
-    id: '5',
-    name: 'Bien Hoa',
-    cinemas: [
-      {
-        id: 'bh-1',
-        name: 'CGV Vincom Bien Hoa',
-        address: '1096 Pham Van Thuan, Tan Mai, Bien Hoa',
-        screens: 5,
-        status: 'maintenance',
-        capacity: 750,
-        facilities: ['Standard', 'Premium', 'Food Court', 'Parking']
+        id: "cinema-4",
+        name: "FPT Cinema Vincom",
+        address: "910 Ngo Quyen Street",
+        city: "Da Nang",
+        phone: "0236-7654-3210",
+        email: "vincom.dn@fptcinema.com",
+        status: "active",
+        manager: "Sarah Johnson",
+        facilities: ["3D Cinema", "Cafe", "Arcade"],
+        rooms: [
+          {
+            id: "room-5",
+            name: "Standard Theater 1",
+            capacity: 60,
+            type: "standard",
+            status: "active",
+            features: ["Digital Projection", "Surround Sound"],
+            cinemaId: "cinema-4",
+            screenSize: "14m x 6m",
+            audioSystem: "Dolby Digital 5.1",
+            createdAt: new Date("2024-01-01"),
+            updatedAt: new Date("2024-01-01"),
+            layout: {
+              rows: 6,
+              seatsPerRow: 10
+            },
+            seats: generateSeats("room-5", ['A', 'B', 'C', 'D', 'E', 'F'], 10)
+          },
+          {
+            id: "room-6",
+            name: "VIP Theater Gold",
+            capacity: 40,
+            type: "vip",
+            status: "maintenance",
+            features: ["Gold Class Seating", "Butler Service", "Premium Sound"],
+            cinemaId: "cinema-4",
+            screenSize: "16m x 7m",
+            audioSystem: "Dolby Digital 7.1",
+            createdAt: new Date("2024-01-01"),
+            updatedAt: new Date("2024-01-01"),
+            layout: {
+              rows: 4,
+              seatsPerRow: 10
+            },
+            seats: generateSeats("room-6", ['A', 'B', 'C', 'D'], 10)
+          }
+        ]
       }
     ]
   }
 ];
+
+export const findLocationById = (id: string): Location | undefined => {
+  return mockLocations.find(location => location.id === id);
+};
+
+export const findRoomById = (id: string): Room | undefined => {
+  for (const location of mockLocations) {
+    for (const cinema of location.cinemas) {
+      const room = cinema.rooms.find(room => room.id === id);
+      if (room) return room;
+    }
+  }
+  return undefined;
+};
 
 export default mockLocations;

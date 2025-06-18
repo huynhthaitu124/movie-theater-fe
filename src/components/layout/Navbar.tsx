@@ -70,11 +70,15 @@ const Navbar: React.FC = () => {
                   className="flex items-center space-x-2 text-secondary-200 hover:text-white"
                 >
                   <UserCircle size={24} />
-                  <span>{currentUser?.displayname}</span>
+                  <span>{currentUser?.displayname || 'User'}</span>
                 </button>
 
                 {isProfileOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-secondary-800 rounded-lg shadow-lg py-1 z-50">
+                    <div className="px-4 py-2 border-b border-secondary-700">
+                      <p className="text-sm font-medium text-white">{currentUser?.displayname}</p>
+                      <p className="text-xs text-secondary-400">{currentUser?.email}</p>
+                    </div>
                     <Link
                       to="/profile/edit"
                       className="block px-4 py-2 text-sm text-secondary-200 hover:bg-secondary-700"
