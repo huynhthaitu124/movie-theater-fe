@@ -29,6 +29,7 @@ export interface Room {
 export interface Cinema {
   id: string;
   name: string;
+  image: string;
   address: string;
   city: string;
   phone: string;
@@ -37,6 +38,7 @@ export interface Cinema {
   facilities: string[];
   status: 'active' | 'maintenance' | 'closed';
   manager: string;
+  rating: number;
 }
 
 export interface Location {
