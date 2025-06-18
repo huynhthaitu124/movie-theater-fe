@@ -5,7 +5,7 @@ import AuthService from '../services/modules/auth.service';
 import { User } from '../types/user';
 import { UserRole } from '../types/role';
 import { jwtDecode } from "jwt-decode";
-import { LoginGoogle } from '@/services/types/request.types';
+import { LoginGoogle, SendOtpRequest } from '@/services/types/request.types';
 import Login from '@/pages/auth/Login';
 
 // Hàm helper để lưu user vào localStorage
@@ -181,6 +181,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const userInfo = await AuthService.loginWithGoogle(credential);
             
             console.log('Google login response:', userInfo);
+            if (!userInfo || !userInfo.email) {
+                throw new Error('Invalid Google login response');
+            }
+
+            const checkRequest : SendOtpRequest = {
+                email: userInfo.email,
+            };
+
+            const checkedUserInfo = await AuthService.checkEmailExist(checkRequest);
+
+            console.log('Checked user info:', checkedUserInfo.data);
+
+            if (checkedUserInfo.data == false) {
+                navigate('/complete-register', { state: { email: userInfo.email } });
+                return;
+            }
 
             const user: User = {
                 email: userInfo.email,

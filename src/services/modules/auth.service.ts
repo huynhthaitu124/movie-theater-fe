@@ -1,5 +1,5 @@
 import { axiosClient } from '../api/axiosClient';
-import { ApiResponse, AuthResponse } from '../types/response.types';
+import { ApiResponse, AuthResponse, CheckMailResponse } from '../types/response.types';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { LoginRequest, RegisterRequest, SendOtpRequest, VerifyOtpRequest, LoginGoogle } from '../types/request.types';
 import { User } from '../../types/user';
@@ -27,6 +27,11 @@ class AuthService {
 
     async getCurrentUser(): Promise<ApiResponse<User>> {
         const response = await axiosClient.get<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.ME);
+        return response.data;
+    }
+
+    async checkEmailExist(data : SendOtpRequest): Promise<ApiResponse<boolean>> {
+        const response = await axiosClient.post<ApiResponse<boolean>>(API_ENDPOINTS.ACCOUNT.CHECK_EMAIL_EXIST, data);
         return response.data;
     }
 
