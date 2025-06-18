@@ -6,9 +6,10 @@ import Button from '../../components/common/Button';
 import CinemaCard from '../../components/booking/CinemaCard';
 import SeatSelection from '../../components/booking/SeatSelection';
 import PaymentForm, { PaymentFormData } from '../../components/booking/PaymentForm';
+import { mockMovies } from '../../data/mockMovies';
 import { mockShowtimes } from '../../data/mockShowtimes';
+import { mockLocations, mockCinemas } from '../../data/mockCinemas';
 import { BookingStep } from '../../types/booking';
-import { mockCinemas } from '../../data/mockCinemas';
 
 const BookTicket: React.FC = () => {
   const { movieId } = useParams();
@@ -27,16 +28,8 @@ const BookTicket: React.FC = () => {
     { step: 4, title: 'Payment', isCompleted: false },
   ];
 
-  // Mock movie data - in real app, fetch based on movieId
-  const movie = {
-    id: movieId || '1',
-    title: 'Avengers: Endgame',
-    posterUrl: 'https://images.pexels.com/photos/7991225/pexels-photo-7991225.jpeg?auto=compress&cs=tinysrgb&w=400',
-    duration: 181,
-    genre: ['Action', 'Adventure', 'Drama'],
-    rating: 'PG-13',
-    description: 'The grave course of events set in motion by Thanos that wiped out half the universe and fractured the Avengers ranks compels the remaining Avengers to take one final stand.'
-  };
+  // Get movie data from mockMovies
+  const movie = mockMovies.find(m => m.id === movieId && m.status === 'now-showing');
 
   // Generate next 7 days
   const dates = Array.from({ length: 7 }, (_, index) => {
@@ -84,6 +77,25 @@ const BookTicket: React.FC = () => {
     });
   };
 
+  // Get showtimes for the current movie and selected date
+  const getFilteredShowtimes = () => {
+    if (!selectedDate || !movie) return [];
+    
+    return mockShowtimes.filter(showtime => 
+      showtime.movieId === movie.id && 
+      showtime.startTime.split('T')[0] === selectedDate
+    );
+  };
+
+  // Get unique cinemas that have showtimes for this movie on selected date
+  const getAvailableCinemas = () => {
+    const filteredShowtimes = getFilteredShowtimes();
+    const cinemaIds = [...new Set(filteredShowtimes.map(st => st.cinemaId))];
+    return mockLocations.flatMap(loc => 
+      loc.cinemas.filter(cinema => cinemaIds.includes(cinema.id))
+    );
+  };
+
   const getSelectedShowtime = () => {
     return mockShowtimes.find(st => st.id === selectedShowtime);
   };
@@ -98,6 +110,8 @@ const BookTicket: React.FC = () => {
   };
 
   const handlePayment = async (paymentData: PaymentFormData) => {
+    if (!movie) return;
+    
     setIsProcessing(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -132,31 +146,57 @@ const BookTicket: React.FC = () => {
     }
   };
 
+  // Add this check at the beginning of your render method
+  if (!movie) {
+    return (
+      <div className="min-h-screen bg-secondary-900 p-8 text-center">
+        <h2 className="text-2xl text-white mb-4">Movie not found or not currently showing</h2>
+        <button 
+          onClick={() => navigate('/movies')}
+          className="text-primary-500 hover:text-primary-400"
+        >
+          Back to Movies
+        </button>
+      </div>
+    );
+  }
+
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-900">
         {/* Header with Movie Info */}
         <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex items-center space-x-4">
-              <img 
-                src={movie.posterUrl} 
-                alt={movie.title}
-                className="w-16 h-24 object-cover rounded-lg shadow-md"
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                  <Film className="mr-2 text-blue-600" size={24} />
-                  {movie.title}
-                </h1>
-                <div className="flex items-center space-x-4 text-gray-600 dark:text-gray-400 mt-1">
-                  <span>{movie.duration} min</span>
-                  <span>•</span>
-                  <span>{movie.rating}</span>
-                  <span>•</span>
-                  <span>{movie.genre.join(', ')}</span>
+            <div className="flex items-center justify-between">  {/* Changed to justify-between */}
+              <div className="flex items-center space-x-4">
+                <img 
+                  src={movie.posterUrl} 
+                  alt={movie.title}
+                  className="w-16 h-24 object-cover rounded-lg shadow-md"
+                />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <Film className="mr-2 text-blue-600" size={24} />
+                    {movie.title}
+                  </h1>
+                  <div className="flex items-center space-x-4 text-gray-600 dark:text-gray-400 mt-1">
+                    <span>{movie.duration} min</span>
+                    <span>•</span>
+                    <span>{movie.rating}</span>
+                    <span>•</span>
+                    <span>{movie.genre.join(', ')}</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Add Cancel Button */}
+              <Button
+                variant="secondary"
+                onClick={() => navigate(`/movies/${movieId}`)}
+                className="flex items-center space-x-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20"
+              >
+                <span>Cancel Booking</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -264,11 +304,11 @@ const BookTicket: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {mockCinemas.map((cinema) => (
+                {getAvailableCinemas().map((cinema) => (
                   <CinemaCard
                     key={cinema.id}
                     cinema={cinema}
-                    showtimes={mockShowtimes}
+                    showtimes={getFilteredShowtimes().filter(st => st.cinemaId === cinema.id)}
                     selectedCinema={selectedCinema}
                     selectedShowtime={selectedShowtime}
                     onCinemaSelect={handleCinemaSelect}

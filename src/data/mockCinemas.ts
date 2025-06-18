@@ -39,6 +39,44 @@ const mockRooms = {
       createdAt: new Date(),
       updatedAt: new Date()
     }
+  ],
+  premium: [
+    {
+      id: 'room-3',
+      name: 'IMAX Theater',
+      capacity: 120,
+      seats: [],
+      layout: {
+        rows: 10,
+        seatsPerRow: 12
+      },
+      type: 'imax' as const,
+      status: 'active' as const,
+      features: ['IMAX Projection', 'Dolby Atmos', 'Premium Seating'],
+      cinemaId: 'cin-1',
+      screenSize: '22x16 meters',
+      audioSystem: 'IMAX Enhanced Sound',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: 'room-4',
+      name: '4DX Experience',
+      capacity: 80,
+      seats: [],
+      layout: {
+        rows: 8,
+        seatsPerRow: 10
+      },
+      type: '4dx' as const,
+      status: 'active' as const,
+      features: ['Motion Seats', 'Environmental Effects', 'Dolby Sound'],
+      cinemaId: 'cin-2',
+      screenSize: '16x9 meters',
+      audioSystem: 'Dolby Digital',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
   ]
 };
 
@@ -61,6 +99,20 @@ export const mockLocations: Location[] = [
         status: 'active',
         manager: 'John Doe',
         rating: 4.5
+      },
+      {
+        id: 'cin-3',
+        name: 'CGV Royal City',
+        image: 'https://example.com/cinema3.jpg',
+        address: '72A Nguyen Trai, Thanh Xuan',
+        city: 'Ha Noi',
+        phone: '024 9876 5432',
+        email: 'royalcity@cgv.vn',
+        rooms: [...mockRooms.standard, mockRooms.premium[0]],
+        facilities: ['IMAX', '4DX', 'Gold Class'],
+        status: 'active',
+        manager: 'David Wilson',
+        rating: 4.7
       }
     ]
   },
@@ -82,6 +134,27 @@ export const mockLocations: Location[] = [
         status: 'active',
         manager: 'Jane Smith',
         rating: 4.8
+      }
+    ]
+  },
+  {
+    id: 'loc-3',
+    name: 'Da Nang',
+    region: 'Central',
+    cinemas: [
+      {
+        id: 'cin-4',
+        name: 'CGV Vincom Da Nang',
+        image: 'https://example.com/cinema4.jpg',
+        address: '910 Ngo Quyen, Son Tra',
+        city: 'Da Nang',
+        phone: '0236 1234 567',
+        email: 'danang@cgv.vn',
+        rooms: [...mockRooms.standard, mockRooms.premium[1]],
+        facilities: ['4DX', 'Premium Cinema', 'Kids Room'],
+        status: 'active',
+        manager: 'Sarah Chen',
+        rating: 4.6
       }
     ]
   }
