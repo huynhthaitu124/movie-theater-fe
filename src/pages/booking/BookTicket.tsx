@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Star, Film } from 'lucide-react';
+import { Clock, Film, Loader2 } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/common/Button';
 import CinemaCard from '../../components/booking/CinemaCard';
 import SeatSelection from '../../components/booking/SeatSelection';
 import PaymentForm, { PaymentFormData } from '../../components/booking/PaymentForm';
-import { mockMovies } from '../../data/mockMovies';
-import { mockShowtimes } from '../../data/mockShowtimes';
 import { mockLocations, mockCinemas } from '../../data/mockCinemas';
 import { BookingStep } from '../../types/booking';
+import { Movie } from '../../types/movie';
+import { Showtime } from '../../types/showtime';
+import { movieService } from '../../services/modules/movie.service';
+import { showtimeService } from '../../services/modules/showtime.service';
 
 const BookTicket: React.FC = () => {
   const { movieId } = useParams();
@@ -20,6 +22,10 @@ const BookTicket: React.FC = () => {
   const [selectedShowtime, setSelectedShowtime] = useState<string>('');
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [movie, setMovie] = useState<Movie | null>(null);
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
 
   const steps: BookingStep[] = [
     { step: 1, title: 'Select Date', isCompleted: false },
@@ -28,8 +34,53 @@ const BookTicket: React.FC = () => {
     { step: 4, title: 'Payment', isCompleted: false },
   ];
 
-  // Get movie data from mockMovies
-  const movie = mockMovies.find(m => m.id === movieId && m.status === 'now-showing');
+  useEffect(() => {
+    const fetchMovie = async () => {
+      if (!movieId) return;
+      try {
+        setIsLoading(true);
+        // Get movie details
+        const movieResponse = await movieService.getAll();
+        const movieData = movieResponse.data.find(m => m.movieID === movieId && m.status === 'ACTIVE');
+        if (!movieData) {
+          setError('Movie not found or not currently showing');
+          setIsLoading(false);
+          return;
+        }
+        setMovie(movieData);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load movie details');
+        setMovie(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMovie();
+  }, [movieId]);
+
+  useEffect(() => {
+    const fetchShowtimes = async () => {
+      if (!movieId || !selectedDate) {
+        setShowtimes([]);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        // Giả sử API hỗ trợ truyền startDate dạng yyyy-MM-dd
+        const showtimeResponse = await showtimeService.getByMovie(movieId);
+        console.log('Showtimes response:', showtimeResponse.data);
+        setShowtimes(showtimeResponse.data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load showtimes');
+        setShowtimes([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchShowtimes();
+  }, [movieId]);
 
   // Generate next 7 days
   const dates = Array.from({ length: 7 }, (_, index) => {
@@ -77,15 +128,8 @@ const BookTicket: React.FC = () => {
     });
   };
 
-  // Get showtimes for the current movie and selected date
-  const getFilteredShowtimes = () => {
-    if (!selectedDate || !movie) return [];
-    
-    return mockShowtimes.filter(showtime => 
-      showtime.movieId === movie.id && 
-      showtime.startTime.split('T')[0] === selectedDate
-    );
-  };
+  // Không cần lọc showtimes theo ngày ở FE nữa
+  const getFilteredShowtimes = () => showtimes;
 
   // Get unique cinemas that have showtimes for this movie on selected date
   const getAvailableCinemas = () => {
@@ -97,7 +141,7 @@ const BookTicket: React.FC = () => {
   };
 
   const getSelectedShowtime = () => {
-    return mockShowtimes.find(st => st.id === selectedShowtime);
+    return showtimes.find(st => st.id === selectedShowtime);
   };
 
   const getSelectedCinema = () => {
@@ -121,7 +165,7 @@ const BookTicket: React.FC = () => {
       
       navigate('/booking/success', {
         state: {
-          movieTitle: movie.title,
+          movieTitle: movie.movieName,
           cinemaName: cinema?.name,
           date: selectedDate,
           time: showtime?.startTime,
@@ -146,164 +190,144 @@ const BookTicket: React.FC = () => {
     }
   };
 
-  // Add this check at the beginning of your render method
-  if (!movie) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-secondary-900 p-8 text-center">
-        <h2 className="text-2xl text-white mb-4">Movie not found or not currently showing</h2>
-        <button 
-          onClick={() => navigate('/movies')}
-          className="text-primary-500 hover:text-primary-400"
-        >
-          Back to Movies
-        </button>
-      </div>
+      <Layout>
+        <div className="min-h-screen bg-secondary-900 p-8 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+            <p className="mt-4 text-white">Loading movie details...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !movie) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-secondary-900 p-8 text-center">
+          <h2 className="text-2xl text-white mb-4">{error || 'Movie not found or not currently showing'}</h2>
+          <button 
+            onClick={() => navigate('/movies')}
+            className="text-primary-500 hover:text-primary-400"
+          >
+            Back to Movies
+          </button>
+        </div>
+      </Layout>
     );
   }
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-900">
-        {/* Header with Movie Info */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex items-center justify-between">  {/* Changed to justify-between */}
-              <div className="flex items-center space-x-4">
-                <img 
-                  src={movie.posterUrl} 
-                  alt={movie.title}
-                  className="w-16 h-24 object-cover rounded-lg shadow-md"
-                />
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                    <Film className="mr-2 text-blue-600" size={24} />
-                    {movie.title}
-                  </h1>
-                  <div className="flex items-center space-x-4 text-gray-600 dark:text-gray-400 mt-1">
-                    <span>{movie.duration} min</span>
-                    <span>•</span>
-                    <span>{movie.rating}</span>
-                    <span>•</span>
-                    <span>{movie.genre.join(', ')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Add Cancel Button */}
-              <Button
-                variant="secondary"
-                onClick={() => navigate(`/movies/${movieId}`)}
-                className="flex items-center space-x-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20"
-              >
-                <span>Cancel Booking</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="min-h-screen bg-secondary-900 text-white py-8">
+        <div className="container mx-auto px-4">
           {/* Progress Steps */}
-          <div className="mb-12">
-            <div className="flex items-center justify-center">
+          <div className="mb-8">
+            <div className="flex justify-between items-center">
               {steps.map((step, index) => (
-                <React.Fragment key={step.step}>
-                  <div className="flex items-center">
-                    <div className={`
-                      w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300
-                      ${currentStep === step.step 
-                        ? 'bg-blue-600 text-white shadow-lg scale-110' 
-                        : currentStep > step.step 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}
-                    `}>
-                      {currentStep > step.step ? '✓' : step.step}
-                    </div>
-                    <div className="ml-3 hidden sm:block">
-                      <p className={`text-sm font-medium ${
-                        currentStep >= step.step 
-                          ? 'text-gray-900 dark:text-white' 
-                          : 'text-gray-500 dark:text-gray-400'
-                      }`}>
-                        {step.title}
-                      </p>
-                    </div>
+                <div key={step.step} className="flex items-center">
+                  <div
+                    className={`
+                      w-8 h-8 rounded-full flex items-center justify-center
+                      ${currentStep === step.step ? 'bg-primary-500 text-white' :
+                        currentStep > step.step ? 'bg-success-500 text-white' : 'bg-secondary-700 text-secondary-400'}
+                    `}
+                  >
+                    {currentStep > step.step ? '✓' : step.step}
                   </div>
+                  <span className="hidden sm:block ml-2 text-sm font-medium text-secondary-400">
+                    {step.title}
+                  </span>
                   {index < steps.length - 1 && (
-                    <div className={`w-16 sm:w-24 h-0.5 mx-4 transition-colors duration-300 ${
-                      currentStep > step.step ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
-                    }`} />
+                    <div className="w-16 sm:w-32 h-1 mx-2 bg-secondary-700">
+                      <div
+                        className={`h-full ${currentStep > step.step ? 'bg-primary-500' : ''}`}
+                      />
+                    </div>
                   )}
-                </React.Fragment>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Step 1: Date Selection */}
-          {currentStep === 1 && (
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-                <div className="text-center mb-8">
-                  <Calendar className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    Select Your Preferred Date
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Choose from the next 7 days
-                  </p>
+          {/* Movie Info */}
+          <div className="bg-secondary-800 rounded-xl p-6 mb-8">
+            <div className="flex flex-col sm:flex-row">
+              <div className="w-full sm:w-1/4 mb-4 sm:mb-0">
+                <img
+                  src={movie.imageUrl}
+                  alt={movie.movieName}
+                  className="w-full h-auto rounded-lg"
+                />
+              </div>
+              <div className="w-full sm:w-3/4 sm:pl-6">
+                <h1 className="text-2xl font-bold mb-2">{movie.movieName}</h1>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <div className="flex items-center text-secondary-400">
+                      <Clock size={16} className="mr-2" />
+                      <span>{movie.duration} min</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center text-secondary-400">
+                      <Film size={16} className="mr-2" />
+                      <span>{movie.movieTypes}</span>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
-                  {dates.map((date) => {
-                    const formattedDate = formatDate(date);
-                    const isSelected = selectedDate === date;
-                    
-                    return (
-                      <button
-                        key={date}
-                        onClick={() => setSelectedDate(date)}
-                        className={`
-                          p-4 rounded-xl border-2 text-center transition-all duration-300 transform hover:scale-105
-                          ${isSelected 
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shadow-lg' 
-                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 text-gray-700 dark:text-gray-300'}
-                        `}
-                      >
-                        <div className="text-sm font-medium mb-1">{formattedDate.day}</div>
-                        <div className="text-2xl font-bold mb-1">{formattedDate.date}</div>
-                        <div className="text-sm opacity-75">{formattedDate.month}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    onClick={() => setCurrentStep(2)}
-                    disabled={!selectedDate}
-                    size="lg"
-                    className="px-8"
-                  >
-                    Continue to Cinemas
-                  </Button>
-                </div>
+                <p className="text-secondary-300">{movie.description}</p>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Step 2: Cinema & Showtime Selection */}
-          {currentStep === 2 && (
-            <div className="space-y-8">
-              <div className="text-center">
-                <MapPin className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Choose Cinema & Showtime
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Select your preferred cinema and showtime for {formatDate(selectedDate).day}, {formatDate(selectedDate).month} {formatDate(selectedDate).date}
-                </p>
+          {/* Booking Steps */}
+          <div className="space-y-8">
+            {/* Step 1: Date Selection */}
+            <div className={currentStep === 1 ? 'block' : 'hidden'}>
+              <h2 className="text-xl font-semibold mb-4">Select Date</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
+                {dates.map((date) => (
+                  <button
+                    key={date}
+                    onClick={() => setSelectedDate(date)}
+                    className={`
+                      p-4 rounded-xl text-center transition-all
+                      ${selectedDate === date 
+                        ? 'bg-primary-500 text-white' 
+                        : 'bg-secondary-800 text-secondary-400 hover:bg-secondary-700'}
+                    `}
+                  >
+                    <div className="text-sm">{formatDate(date).day}</div>
+                    <div className="text-2xl font-bold my-1">{formatDate(date).date}</div>
+                    <div className="text-sm">{formatDate(date).month}</div>
+                  </button>
+                ))}
               </div>
+              <div className="mt-6 flex justify-end">
+                <Button
+                  disabled={!canProceedToStep(2)}
+                  onClick={() => setCurrentStep(2)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Step 2: Cinema & Showtime Selection */}
+            <div className={currentStep === 2 ? 'block' : 'hidden'}>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Choose Cinema & Time</h2>
+                <button
+                  onClick={() => setCurrentStep(1)}
+                  className="text-primary-500 hover:text-primary-400"
+                >
+                  Change Date
+                </button>
+              </div>
+              <div className="space-y-4">
                 {getAvailableCinemas().map((cinema) => (
                   <CinemaCard
                     key={cinema.id}
@@ -316,85 +340,67 @@ const BookTicket: React.FC = () => {
                   />
                 ))}
               </div>
-
-              <div className="flex justify-between max-w-4xl mx-auto">
-                <Button
-                  variant="secondary"
-                  onClick={() => setCurrentStep(1)}
-                  size="lg"
-                >
-                  Back to Dates
+              <div className="mt-6 flex justify-end space-x-4">
+                <Button variant="secondary" onClick={() => setCurrentStep(1)}>
+                  Back
                 </Button>
                 <Button
-                  onClick={() => setCurrentStep(3)}
                   disabled={!canProceedToStep(3)}
-                  size="lg"
-                  className="px-8"
+                  onClick={() => setCurrentStep(3)}
                 >
-                  Choose Seats
+                  Next
                 </Button>
               </div>
             </div>
-          )}
 
-          {/* Step 3: Seat Selection */}
-          {currentStep === 3 && (
-            <div className="space-y-8">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Select Your Seats
-                </h2>
-                <div className="text-gray-600 dark:text-gray-400">
-                  <p>{getSelectedCinema()?.name}</p>
-                  <p>{formatDate(selectedDate).day}, {formatDate(selectedDate).month} {formatDate(selectedDate).date} at {getSelectedShowtime()?.startTime}</p>
-                </div>
+            {/* Step 3: Seat Selection */}
+            <div className={currentStep === 3 ? 'block' : 'hidden'}>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Select Your Seats</h2>
+                <button
+                  onClick={() => setCurrentStep(2)}
+                  className="text-primary-500 hover:text-primary-400"
+                >
+                  Change Showtime
+                </button>
               </div>
-
               <SeatSelection
                 selectedSeats={selectedSeats}
                 onSeatSelect={handleSeatSelect}
                 ticketPrice={getSelectedShowtime()?.price || 0}
               />
-              
-              <div className="flex justify-between max-w-4xl mx-auto">
-                <Button
-                  variant="secondary"
-                  onClick={() => setCurrentStep(2)}
-                  size="lg"
-                >
-                  Back to Cinemas
+              <div className="mt-6 flex justify-end space-x-4">
+                <Button variant="secondary" onClick={() => setCurrentStep(2)}>
+                  Back
                 </Button>
                 <Button
-                  onClick={() => setCurrentStep(4)}
                   disabled={!canProceedToStep(4)}
-                  size="lg"
-                  className="px-8"
+                  onClick={() => setCurrentStep(4)}
                 >
-                  Proceed to Payment
+                  Next
                 </Button>
               </div>
             </div>
-          )}
 
-          {/* Step 4: Payment */}
-          {currentStep === 4 && (
-            <div className="space-y-8">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Complete Your Booking
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Review your selection and complete payment
-                </p>
+            {/* Step 4: Payment */}
+            <div className={currentStep === 4 ? 'block' : 'hidden'}>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Payment Details</h2>
+                <button
+                  onClick={() => setCurrentStep(3)}
+                  className="text-primary-500 hover:text-primary-400"
+                >
+                  Change Seats
+                </button>
               </div>
-
+              
               {/* Booking Summary */}
-              <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Booking Summary</h3>
-                <div className="space-y-3 text-sm">
+              <div className="bg-secondary-800 rounded-xl p-6 mb-6">
+                <h3 className="text-lg font-semibold mb-4">Booking Summary</h3>
+                <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Movie:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{movie.title}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{movie.movieName}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Cinema:</span>
@@ -410,42 +416,27 @@ const BookTicket: React.FC = () => {
                     <span className="text-gray-600 dark:text-gray-400">Seats:</span>
                     <span className="font-medium text-gray-900 dark:text-white">{selectedSeats.join(', ')}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Format:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{getSelectedShowtime()?.format}</span>
-                  </div>
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between">
-                    <span className="font-semibold text-gray-900 dark:text-white">Total:</span>
-                    <span className="font-bold text-xl text-blue-600 dark:text-blue-400">${calculateTotal()}</span>
+                  <div className="flex justify-between pt-3 border-t border-secondary-700">
+                    <span className="text-gray-600 dark:text-gray-400">Total:</span>
+                    <span className="font-semibold text-primary-500">{calculateTotal().toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</span>
                   </div>
                 </div>
               </div>
 
+              {/* Payment Form */}
               <PaymentForm
-                total={calculateTotal()}
                 onSubmit={handlePayment}
+                isProcessing={isProcessing}
+                amount={calculateTotal()}
               />
-              
-              <div className="flex justify-between max-w-2xl mx-auto">
-                <Button
-                  variant="secondary"
-                  onClick={() => setCurrentStep(3)}
-                  size="lg"
-                >
-                  Back to Seats
-                </Button>
-                <Button
-                  type="submit"
-                  form="payment-form"
-                  isLoading={isProcessing}
-                  size="lg"
-                  className="px-8"
-                >
-                  {isProcessing ? 'Processing...' : `Pay $${calculateTotal()}`}
+
+              <div className="mt-6 flex justify-end space-x-4">
+                <Button variant="secondary" onClick={() => setCurrentStep(3)}>
+                  Back
                 </Button>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </Layout>

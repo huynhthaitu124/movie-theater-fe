@@ -1,32 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, Star, Calendar, Film, Tag, Award, ArrowLeft, Play, X } from 'lucide-react';
+import { Clock, Film, ArrowLeft, Play, X } from 'lucide-react';
 import YouTube from 'react-youtube';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/common/Button';
-import { mockMovies } from '../../data/mockMovies';
+import { movieService } from '../../services/modules/movie.service';
+import { Movie } from '../../types/movie';
 
 const MovieDetails: React.FC = () => {
   const [showTrailer, setShowTrailer] = useState(false);
+  const [movie, setMovie] = useState<Movie | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const movie = mockMovies.find(m => m.id === id);
+
+  useEffect(() => {
+    const fetchMovie = async () => {
+      if (!id) return;
+      try {
+        setIsLoading(true);
+        const response = await movieService.getAll();
+        const foundMovie = response.data.find(m => m.movieID === id);
+        if (foundMovie) {
+          setMovie(foundMovie);
+        } else {
+          setError('Movie not found');
+        }
+      } catch (err) {
+        setError('Failed to load movie details');
+        console.error('Error fetching movie:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMovie();
+  }, [id]);
 
   const handleTrailer = () => {
     if (movie?.trailerUrl) {
-      const videoId = movie.trailerUrl.split('v=')[1];
       setShowTrailer(true);
     }
   };
 
-  if (!movie) {
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !movie) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-white">
-            <h1 className="text-2xl font-bold mb-4">Movie not found</h1>
+            <h1 className="text-2xl font-bold mb-4">{error || 'Movie not found'}</h1>
             <Button onClick={() => navigate('/movies')}>Back to Movies</Button>
           </div>
         </div>
@@ -53,7 +88,7 @@ const MovieDetails: React.FC = () => {
         {/* Hero Section with Backdrop */}
         <div 
           className="relative h-[60vh] bg-cover bg-center -mt-16"
-          style={{ backgroundImage: `url(${movie.backdropUrl || movie.posterUrl})` }}
+          style={{ backgroundImage: `url(${movie.imageUrl})` }}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/80 to-transparent" />
         </div>
@@ -64,29 +99,32 @@ const MovieDetails: React.FC = () => {
             {/* Movie Poster */}
             <div className="lg:w-1/3">
               <img 
-                src={movie.posterUrl} 
-                alt={movie.title}
+                src={movie.imageUrl} 
+                alt={movie.movieName}
                 className="rounded-xl shadow-2xl w-full max-w-[300px] mx-auto"
               />
             </div>
 
             {/* Movie Info */}
             <div className="lg:w-2/3">
-              <h1 className="text-4xl font-bold text-white mb-4">{movie.title}</h1>
+              <h1 className="text-4xl font-bold text-white mb-4">{movie.movieName}</h1>
               
               <div className="flex flex-wrap gap-4 mb-6">
                 <div className="flex items-center text-secondary-300">
                   <Clock size={20} className="mr-2" />
                   <span>{movie.duration} minutes</span>
                 </div>
-                <div className="flex items-center text-secondary-300">
-                  <Calendar size={20} className="mr-2" />
-                  <span>{movie.releaseDate}</span>
-                </div>
-                <div className="flex items-center text-yellow-500">
-                  <Star size={20} className="mr-2" />
-                  <span>{movie.rating.toFixed(1)}</span>
-                </div>
+                {movie.minimumAge && (
+                  <div className="flex items-center text-secondary-300">
+                    <span>{movie.minimumAge}+</span>
+                  </div>
+                )}
+                {movie.movieLanguage && (
+                  <div className="flex items-center text-secondary-300">
+                    <Film size={20} className="mr-2" />
+                    <span>{movie.movieLanguage}</span>
+                  </div>
+                )}
               </div>
 
               <div className="mb-6">
@@ -97,36 +135,53 @@ const MovieDetails: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div>
-                  <h2 className="text-xl font-semibold text-white mb-2">Genre</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {movie.genre.map((genre, index) => (
-                      <span 
-                        key={index}
-                        className="px-3 py-1 bg-secondary-800 text-secondary-300 rounded-full text-sm"
-                      >
-                        {genre}
-                      </span>
-                    ))}
+                {movie.movieTypes && movie.movieTypes.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-white mb-2">Genre</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {movie.movieTypes.map((type, index) => (
+                        <span 
+                          key={index}
+                          className="px-3 py-1 bg-secondary-800 text-secondary-300 rounded-full text-sm"
+                        >
+                          {type}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
                 
                 <div>
                   <h2 className="text-xl font-semibold text-white mb-2">Status</h2>
                   <span className={`px-3 py-1 rounded-full text-sm ${
-                    movie.status === 'now-showing' 
+                    movie.status === 'ACTIVE' 
                       ? 'bg-green-900 text-green-300' 
                       : 'bg-blue-900 text-blue-300'
                   }`}>
-                    {movie.status === 'now-showing' ? 'Now Showing' : 'Coming Soon'}
+                    {movie.status === 'ACTIVE' ? 'Now Showing' : 'Coming Soon'}
                   </span>
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                {movie.director && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-white mb-2">Director</h2>
+                    <p className="text-secondary-300">{movie.director}</p>
+                  </div>
+                )}
+                {movie.productionCompany && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-white mb-2">Production</h2>
+                    <p className="text-secondary-300">{movie.productionCompany}</p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-4">
-                {movie.status === 'now-showing' && (
+                {movie.status === 'ACTIVE' && (
                   <Button
-                    onClick={() => navigate(`/book/${movie.id}`)}
+                    onClick={() => navigate(`/book/${movie.movieID}`)}
                     size="lg"
                     className="bg-primary-600 hover:bg-primary-700 text-white px-8"
                   >
@@ -151,7 +206,7 @@ const MovieDetails: React.FC = () => {
 
         {/* Trailer Modal */}
         <AnimatePresence>
-          {showTrailer && (
+          {showTrailer && movie.trailerUrl && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -171,8 +226,9 @@ const MovieDetails: React.FC = () => {
                   <X size={24} />
                 </button>
                 <div className="relative pt-[56.25%]">
+                  {/* Extract video ID from various YouTube URL formats */}
                   <YouTube
-                    videoId={movie.trailerUrl?.split('v=')[1]}
+                    videoId={movie.trailerUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|v\/|embed\/)|\.be\/)([^"&?\s]{11})/)?.[1]}
                     opts={{
                       width: '100%',
                       height: '100%',

@@ -1,26 +1,26 @@
 export interface Movie {
-  id: string;
-  title: string;
+  movieID: string; // renamed from movieId
+  movieName: string;
   description: string;
-  duration: number; // in minutes
-  subtitleId: string;
-  categories: string[]; // Liên kết với MovieCategories
-  releaseDate: string;
+  duration: number;
+  subtitleId: string; 
+  categories: string[];
+  actor: string;
   director: string;
-  cast: string[];
-  posterUrl: string;
-  trailerUrl?: string;
-  rating: number;
-  status: 'coming-soon' | 'now-showing';
-  language: string;
+  dubbing: boolean;
+  imageUrl: string;
+  minimumAge: number;
+  movieLanguage: string;
+  movieTypes: string[];
+  productionCompany: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  trailerUrl: string;
   createdAt: string;
   updatedAt: string;
-  backdropUrl?: string;
-  genre: string[];
 }
 
 export interface MovieCategory {
-  movieId: string;
+  movieID: string; // renamed from movieId
   categoryId: string;
 }
 
