@@ -1,22 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Calendar, Clock, Building2, Settings2, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Clock, Building2, Settings2, Trash2, AlertCircle, Loader2 } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
-import { mockMovies } from '../../../data/mockMovies';
 import { mockLocations } from '../../../data/mockCinemas';
-import { mockShowtimes } from '../../../data/mockShowtimes';
+import { mockMovies } from '../../../data/mockMovies';
 import { Showtime } from '../../../types/showtime';
+import { Movie } from '../../../types/movie';
 import ShowtimeManagementModal from '../../../components/modals/ShowtimeManagementModal';
 import DeleteConfirmationModal from '../../../components/modals/DeleteConfirmationModal';
 import MultipleShowtimeModal from '../../../components/modals/MultipleShowtimeModal';
-import { Movie } from '../../../types/movie';
 import { useSearchParams } from 'react-router-dom';
+import { showtimeService } from '../../../services/modules/showtime.service';
+import { movieService } from '../../../services/modules/movie.service';
 
 const ShowtimeManagement: React.FC = () => {
   const [searchParams] = useSearchParams();
   const movieId = searchParams.get('movieId');
 
-  const [showtimes, setShowtimes] = useState(mockShowtimes);
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<string>(movieId || '');
   const [selectedCinema, setSelectedCinema] = useState<string>('');
   const [selectedRoom, setSelectedRoom] = useState<string>('');
@@ -26,6 +29,22 @@ const ShowtimeManagement: React.FC = () => {
   const [isMultipleModalOpen, setIsMultipleModalOpen] = useState(false);
   const [selectedMovieForMultiple, setSelectedMovieForMultiple] = useState<Movie | null>(null);
 
+  useEffect(() => {
+    const fetchShowtimes = async () => {
+      setIsLoading(true);
+      try {
+        const response = await showtimeService.getAll();
+        setShowtimes(response.data);
+      } catch (err) {
+        setError('Failed to load showtimes. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchShowtimes();
+  }, []);
+
   // Filter showtimes based on selection
   const filteredShowtimes = showtimes.filter(showtime => {
     const matchesMovie = !selectedMovie || showtime.movieId === selectedMovie;
@@ -34,92 +53,124 @@ const ShowtimeManagement: React.FC = () => {
     return matchesMovie && matchesCinema && matchesRoom;
   });
 
-  const handleSaveShowtime = (data: Partial<Showtime>) => {
-    if (selectedShowtime) {
-      // Update existing showtime
-      setShowtimes(prev => prev.map(st => 
-        st.id === selectedShowtime.id ? { ...st, ...data } : st
-      ));
-    } else {
-      // Add new showtime
-      const movie = mockMovies.find(m => m.id === data.movieId);
-      const cinema = mockLocations
-        .flatMap(l => l.cinemas)
-        .find(c => c.id === data.cinemaId);
-      const room = cinema?.rooms.find(r => r.id === data.roomId);
-
-      const newShowtime: Showtime = {
-        id: `st-${Date.now()}`,
-        ...data,
-        movie,
-        cinema,
-        room,
-        status: 'scheduled'
-      } as Showtime;
-
-      setShowtimes(prev => [...prev, newShowtime]);
-    }
-    setIsModalOpen(false);
-    setSelectedShowtime(null);
-  };
-
-  const handleDeleteShowtime = () => {
-    if (selectedShowtime) {
-      setShowtimes(prev => prev.filter(st => st.id !== selectedShowtime.id));
-    }
-    setShowDeleteModal(false);
-    setSelectedShowtime(null);
-  };
-
-  const handleSaveMultipleShowtimes = (entries: any[]) => {
-    const newShowtimes = entries.flatMap(entry => 
-      entry.times.map((time: any) => {
-        const startDateTime = new Date(`${entry.date}T${time}`);
-        const endDateTime = new Date(
-          startDateTime.getTime() + 
-          (selectedMovieForMultiple?.duration || 0) * 60000
-        );
-
+  const handleSaveShowtime = async (data: Partial<Showtime>) => {
+    try {
+      if (selectedShowtime) {
+        // Update existing showtime
+        const response = await showtimeService.update(selectedShowtime.id, data);
+        if (response.data) {
+          setShowtimes(prev => prev.map(st => 
+            st.id === selectedShowtime.id ? response.data : st
+          ));
+        }
+      } else {
+        const movie = mockMovies.find(m => m.movieID === data.movieId);
         const cinema = mockLocations
           .flatMap(l => l.cinemas)
-          .find(c => c.id === entry.cinemaId);
-        const room = cinema?.rooms.find(r => r.id === entry.roomId);
+          .find(c => c.id === data.cinemaId);
+        const room = cinema?.rooms.find(r => r.id === data.roomId);
 
-        return {
-          id: `st-${Date.now()}-${Math.random()}`,
-          movieId: selectedMovieForMultiple?.id || '',
-          cinemaId: entry.cinemaId,
-          roomId: entry.roomId,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
-          price: entry.price,
-          status: 'scheduled' as const,
-          movie: selectedMovieForMultiple,
+        const response = await showtimeService.create({
+          ...data,
+          status: 'scheduled',
+          movie,
           cinema,
-          room
-        };
-      })
+          room,
+          availableSeats: room?.capacity || 0,
+          totalSeats: room?.capacity || 0,
+          format: room?.type.toUpperCase() as Showtime['format']
+        } as Omit<Showtime, 'id'>);
+
+        if (response.data) {
+          setShowtimes(prev => [...prev, response.data]);
+        }
+      }
+      setIsModalOpen(false);
+      setSelectedShowtime(null);
+    } catch (err) {
+      setError('Failed to save showtime. Please try again.');
+    }
+  };
+
+  const handleDeleteShowtime = async () => {
+    if (selectedShowtime) {
+      try {
+        await showtimeService.delete(selectedShowtime.id);
+        setShowtimes(prev => prev.filter(st => st.id !== selectedShowtime.id));
+        setShowDeleteModal(false);
+        setSelectedShowtime(null);
+      } catch (err) {
+        setError('Failed to delete showtime. Please try again.');
+      }
+    }
+  };
+
+  const handleSaveMultipleShowtimes = async (entries: any[]) => {
+    try {
+      const newShowtimes = entries.flatMap(entry => 
+        entry.times.map((time: string) => {
+          const startDateTime = new Date(`${entry.date}T${time}`);
+          const endDateTime = new Date(
+            startDateTime.getTime() + 
+            (selectedMovieForMultiple?.duration || 0) * 60000
+          );
+
+          const cinema = mockLocations
+            .flatMap(l => l.cinemas)
+            .find(c => c.id === entry.cinemaId);
+          const room = cinema?.rooms.find(r => r.id === entry.roomId);
+
+          return {
+            movieId: selectedMovieForMultiple?.movieID || '',
+            cinemaId: entry.cinemaId,
+            roomId: entry.roomId,
+            startTime: startDateTime.toISOString(),
+            endTime: endDateTime.toISOString(),
+            price: entry.price,
+            status: 'scheduled' as const,
+            movie: selectedMovieForMultiple,
+            cinema,
+            room,
+            format: room?.type.toUpperCase() as Showtime['format'],
+            availableSeats: room?.capacity || 0,
+            totalSeats: room?.capacity || 0
+          };
+        })
+      );
+
+      const response = await showtimeService.createMany(newShowtimes as Omit<Showtime, 'id'>[]);
+      if (response.data) {
+        setShowtimes(prev => [...prev, ...response.data]);
+      }
+      setIsMultipleModalOpen(false);
+      setSelectedMovieForMultiple(null);
+    } catch (err) {
+      setError('Failed to create showtimes. Please try again.');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="animate-spin h-10 w-10 text-primary-500" />
+        </div>
+      </AdminLayout>
     );
+  }
 
-    setShowtimes(prev => [...prev, ...newShowtimes]);
-    setIsMultipleModalOpen(false);
-    setSelectedMovieForMultiple(null);
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatTime = (date: string) => {
-    return new Date(date).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="p-6">
+          <div className="flex items-center p-4 bg-error-500/10 rounded-lg">
+            <AlertCircle className="w-6 h-6 text-error-500 mr-3" />
+            <span className="text-error-500 font-medium">{error}</span>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -147,7 +198,7 @@ const ShowtimeManagement: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                const movie = mockMovies.find(m => m.id === selectedMovie);
+                const movie = mockMovies.find(m => m.movieID === selectedMovie);
                 if (movie) {
                   setSelectedMovieForMultiple(movie);
                   setIsMultipleModalOpen(true);
@@ -162,7 +213,7 @@ const ShowtimeManagement: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Update the Movie Filter to show the pre-selected movie */}
+        {/* Filters */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -175,7 +226,7 @@ const ShowtimeManagement: React.FC = () => {
           >
             <option value="">All Movies</option>
             {mockMovies.map(movie => (
-              <option key={movie.id} value={movie.id}>{movie.title}</option>
+              <option key={movie.movieID} value={movie.movieID}>{movie.movieName}</option>
             ))}
           </select>
 
@@ -191,9 +242,7 @@ const ShowtimeManagement: React.FC = () => {
             <option value="">All Cinemas</option>
             {mockLocations.flatMap(location => 
               location.cinemas.map(cinema => (
-                <option key={cinema.id} value={cinema.id}>
-                  {cinema.name}
-                </option>
+                <option key={cinema.id} value={cinema.id}>{cinema.name}</option>
               ))
             )}
           </select>
@@ -233,7 +282,7 @@ const ShowtimeManagement: React.FC = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-lg font-medium text-white">
-                      {showtime.movie?.title}
+                      {showtime.movie?.movieName}
                     </h3>
                     <p className="text-sm text-secondary-400">
                       {showtime.movie?.duration} minutes

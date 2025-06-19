@@ -4,7 +4,8 @@ import { Search, Clock, Star, Info, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/common/Button';
-import { mockMovies } from '../../data/mockMovies';
+import { movieService } from '../../services/modules/movie.service';
+import { Movie } from '../../types/movie';
 
 const Movies: React.FC = () => {
   const navigate = useNavigate();
@@ -12,12 +13,31 @@ const Movies: React.FC = () => {
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const genres = ['all', ...new Set(mockMovies.flatMap(movie => movie.genre))];
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        setIsLoading(true);
+        const response = await movieService.getAll();
+        setMovies(response.data);
+      } catch (err) {
+        setError('Failed to fetch movies');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMovies();
+  }, []);
 
-  const filteredMovies = mockMovies.filter(movie => {
-    const matchesSearch = movie.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGenre = selectedGenre === 'all' || movie.genre.includes(selectedGenre);
+  // Genres lấy từ dữ liệu thực tế
+  const genres = ['all', ...Array.from(new Set(movies.flatMap(movie => movie.genre || [])))];
+
+  const filteredMovies = movies.filter(movie => {
+    const matchesSearch = movie.title;
+    const matchesGenre = selectedGenre === 'all' || (movie.genre && movie.genre.includes(selectedGenre));
     const matchesStatus = selectedStatus === 'all' || movie.status === selectedStatus;
     return matchesSearch && matchesGenre && matchesStatus;
   });

@@ -95,7 +95,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ total, onSubmit }) => {
         <div className="space-y-4">
           <div className="flex justify-between text-secondary-300">
             <span>Subtotal</span>
-            <span>${total.toFixed(2)}</span>
+            <span>${total}</span>
           </div>
           <div className="flex justify-between text-secondary-300">
             <span>Booking Fee</span>

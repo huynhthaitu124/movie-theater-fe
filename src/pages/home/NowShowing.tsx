@@ -1,23 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Autoplay } from 'swiper/modules';
 import { motion } from 'framer-motion';
 import Button from '../../components/common/Button';
-import { mockMovies } from '../../data/mockMovies';
+import { Movie } from '../../types/movie';
+import { movieService } from '../../services/modules/movie.service';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
 const NowShowing: React.FC = () => {
   const [hoveredMovie, setHoveredMovie] = useState<string | null>(null);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  
-  const nowShowingMovies = mockMovies.filter(movie => movie.status === 'now-showing');
 
-  const handleMovieClick = (movieId: string) => {
-    navigate(`/movies/${movieId}`);
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        setIsLoading(true);
+        const response = await movieService.getAll();
+        setMovies(response.data);
+      } catch (err) {
+        setError('Failed to fetch movies');
+        console.error('Error fetching movies:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMovies();
+  }, []);
+  
+  const nowShowingMovies = movies.filter(movie => movie.status === 'ACTIVE');
+  console.log('Now showing movies:', movies);
+
+  const handleMovieClick = (movieID: string) => {
+    navigate(`/movies/${movieID}`);
   };
+
+  if (isLoading) {
+    return (
+      <section className="py-16">
+        <div className="container-custom">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-16">
+        <div className="container-custom">
+          <div className="text-center text-error-500">
+            {error}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 bg-gradient-to-b from-secondary-50 to-white dark:from-secondary-900 dark:to-secondary-800">
@@ -72,19 +117,19 @@ const NowShowing: React.FC = () => {
             className="px-4 py-4"
           >
             {nowShowingMovies.map((movie) => (
-              <SwiperSlide key={movie.id}>
+              <SwiperSlide key={movie.movieID}>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
                   className="card overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 bg-white dark:bg-secondary-800 relative"
-                  onMouseEnter={() => setHoveredMovie(movie.id)}
+                  onMouseEnter={() => setHoveredMovie(movie.movieID)}
                   onMouseLeave={() => setHoveredMovie(null)}
                 >
                   <div className="relative aspect-[2/3]">
                     <img
-                      src={movie.posterUrl}
-                      alt={movie.title}
+                      src={movie.imageUrl}
+                      alt={movie.movieName}
                       className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
                       onError={(e) => {
                         e.currentTarget.src = '/fallback-movie-poster.jpg';
@@ -93,11 +138,11 @@ const NowShowing: React.FC = () => {
                     {/* Overlay content */}
                     <div
                       className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 pointer-events-none
-                        ${hoveredMovie === movie.id ? '!opacity-100 !pointer-events-auto' : ''}`}
+                        ${hoveredMovie === movie.movieID ? '!opacity-100 !pointer-events-auto' : ''}`}
                       style={{ transition: 'opacity 300ms ease-in-out' }}
                     >
                       <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                        <h3 className="text-xl font-bold text-white mb-2">{movie.title}</h3>
+                        <h3 className="text-xl font-bold text-white mb-2">{movie.movieName}</h3>
                         <p className="text-gray-200 mb-4 line-clamp-3">{movie.description}</p>
                         
                         <div className="flex items-center space-x-4 text-white mb-4">
@@ -105,14 +150,15 @@ const NowShowing: React.FC = () => {
                             <Clock size={16} className="mr-1 text-primary-400" />
                             <span>{movie.duration} min</span>
                           </div>
-                          <div className="flex items-center">
-                            <Star size={16} className="mr-1 text-yellow-400" />
-                            <span>{movie.rating.toFixed(1)}</span>
-                          </div>
+                          {movie.minimumAge && (
+                            <div className="flex items-center">
+                              <span className="text-primary-400">{movie.minimumAge}+</span>
+                            </div>
+                          )}
                         </div>
                         
                         <Button 
-                          onClick={() => handleMovieClick(movie.id)}
+                          onClick={() => handleMovieClick(movie.movieID)}
                           fullWidth
                           className="bg-primary-600 hover:bg-primary-500 transform hover:scale-105 transition-all duration-300"
                         >
@@ -125,18 +171,18 @@ const NowShowing: React.FC = () => {
                   {/* Base content - Always visible when not hovered */}
                   <div 
                     className={`p-4 transition-opacity duration-300 absolute bottom-0 left-0 right-0 bg-white dark:bg-secondary-800
-                      ${hoveredMovie === movie.id ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                      ${hoveredMovie === movie.movieID ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                   >
                     <h3 className="text-lg font-semibold text-secondary-900 dark:text-white mb-2 line-clamp-1">
-                      {movie.title}
+                      {movie.movieName}
                     </h3>
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {movie.genre.slice(0, 3).map((genre, index) => (
+                      {movie.movieTypes && movie.movieTypes.map((type, index) => (
                         <span
                           key={index}
                           className="px-2 py-1 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-200"
                         >
-                          {genre}
+                          {type}
                         </span>
                       ))}
                     </div>
@@ -145,10 +191,11 @@ const NowShowing: React.FC = () => {
                         <Clock size={14} className="mr-1" />
                         <span>{movie.duration} min</span>
                       </div>
-                      <div className="flex items-center">
-                        <Star size={14} className="mr-1 text-yellow-500" />
-                        <span>{movie.rating.toFixed(1)}</span>
-                      </div>
+                      {movie.minimumAge && (
+                        <div className="flex items-center">
+                          <span>{movie.minimumAge}+</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>

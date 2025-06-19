@@ -1,30 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Edit2, Trash2, AlertCircle, Calendar } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, AlertCircle, Calendar, Loader2 } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
-import { mockMovies } from '../../../data/mockMovies';
-import { mockLocations } from '../../../data/mockCinemas';
 import { Movie } from '../../../types/movie';
+import { movieService } from '../../../services/modules/movie.service';
 
 const MovieList: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredMovies = mockMovies.filter(movie =>
-    movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    movie.genre.some(g => g.toLowerCase().includes(searchQuery.toLowerCase()))
+  useEffect(() => {
+    fetchMovies();
+  }, []);
+
+  const fetchMovies = async () => {
+    try {
+      setIsLoading(true);
+      const response = await movieService.getAll();
+      console.log('Fetched movies:', response);
+      setMovies(response.data);
+    } catch (err) {
+      setError('Failed to fetch movies');
+      console.error('Error fetching movies:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Đổi filter sang movie.movieName (tìm kiếm theo tên phim)
+  const filteredMovies = movies.filter(movie =>
+    movie.movieName && movie.movieName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleDelete = async (id: string) => {
     try {
-      // TODO: Implement delete API call
+      // TODO: Implement delete API call when the endpoint is ready
       setShowDeleteModal(false);
       setSelectedMovie(null);
+      // After successful deletion, refresh the movie list
+      await fetchMovies();
     } catch (error) {
       console.error('Failed to delete movie:', error);
+      setError('Failed to delete movie');
     }
   };
 
@@ -53,80 +76,94 @@ const MovieList: React.FC = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredMovies.map((movie) => (
-            <div key={movie.id} className="bg-secondary-800 rounded-lg overflow-hidden shadow-md">
-              <div className="aspect-[2/3] relative">
-                <img
-                  src={movie.posterUrl}
-                  alt={movie.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = '/images/placeholder.jpg';
-                  }}
-                />
-                <div className="absolute top-2 right-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    movie.status === 'now-showing' 
-                      ? 'bg-success-500 text-white' 
-                      : 'bg-primary-500 text-white'
-                  }`}>
-                    {movie.status === 'now-showing' ? 'Now Showing' : 'Coming Soon'}
-                  </span>
-                </div>
-              </div>
+        {error && (
+          <div className="bg-error-900/50 text-error-300 p-4 rounded-lg flex items-center">
+            <AlertCircle size={20} className="mr-2" />
+            {error}
+          </div>
+        )}
 
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-white mb-2">{movie.title}</h3>
-                <div className="space-y-2 text-sm text-secondary-300">
-                  <p>Duration: {movie.duration} min</p>
-                  <p>Rating: {movie.rating.toFixed(1)}/5.0</p>
-                  <p>Release: {new Date(movie.releaseDate).toLocaleDateString()}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {movie.genre.map((g, i) => (
-                      <span 
-                        key={i}
-                        className="px-2 py-1 bg-secondary-700 rounded-full text-xs"
-                      >
-                        {g}
-                      </span>
-                    ))}
+        {isLoading ? (
+          <div className="flex justify-center items-center min-h-[200px]">
+            <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredMovies.map((movie) => (
+              <div key={movie.movieID} className="bg-secondary-800 rounded-lg overflow-hidden shadow-md">
+                <div className="aspect-[2/3] relative">
+                  <img
+                    src={movie.imageUrl || '/images/placeholder.jpg'}
+                    alt={movie.movieName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/images/placeholder.jpg';
+                    }}
+                  />
+                  <div className="absolute top-2 right-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      movie.status === 'ACTIVE' 
+                        ? 'bg-success-500 text-white' 
+                        : 'bg-primary-500 text-white'
+                    }`}>
+                      {movie.status === 'ACTIVE' ? 'Now Showing' : 'Coming Soon'}
+                    </span>
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-end space-x-2">
-                  <button
-                    onClick={() => navigate(`/admin/movies/edit/${movie.id}`)}
-                    className="p-2 text-primary-500 hover:bg-secondary-700 rounded-full"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedMovie(movie.id);
-                      setShowDeleteModal(true);
-                    }}
-                    className="p-2 text-accent-500 hover:bg-secondary-700 rounded-full"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold text-white mb-2">{movie.movieName}</h3>
+                  <div className="space-y-2 text-sm text-secondary-300">
+                    <p>Duration: {movie.duration} min</p>
+                    {typeof movie.minimumAge === 'number' && <p>Age Rating: {movie.minimumAge}+</p>}
+                    <p>Language: {movie.movieLanguage}</p>
+                    <p>Release: {movie.createdAt ? new Date(movie.createdAt).toLocaleDateString() : ''}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {movie.movieTypes && movie.movieTypes.map((type, i) => (
+                        <span 
+                          key={i}
+                          className="px-2 py-1 bg-secondary-700 rounded-full text-xs"
+                        >
+                          {type}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
 
-                {/* Show current showtimes for this movie */}
-                <div className="mt-4 pt-4 border-t border-secondary-700">
-                  <Button
-                    onClick={() => navigate(`/admin/showtimes?movieId=${movie.id}`)}
-                    variant="secondary"
-                    className="w-full flex items-center justify-center gap-2 bg-secondary-700 hover:bg-secondary-600"
-                  >
-                    <Calendar size={16} />
-                    Manage Showtimes
-                  </Button>
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <button
+                      onClick={() => navigate(`/admin/movies/edit/${movie.movieID}`)}
+                      className="p-2 text-primary-500 hover:bg-secondary-700 rounded-full"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedMovie(movie.movieID);
+                        setShowDeleteModal(true);
+                      }}
+                      className="p-2 text-accent-500 hover:bg-secondary-700 rounded-full"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+
+                  {/* Show current showtimes for this movie */}
+                  <div className="mt-4 pt-4 border-t border-secondary-700">
+                    <Button
+                      onClick={() => navigate(`/admin/showtimes?movieID=${movie.movieID}`)}
+                      variant="secondary"
+                      className="w-full flex items-center justify-center gap-2 bg-secondary-700 hover:bg-secondary-600"
+                    >
+                      <Calendar size={16} />
+                      Manage Showtimes
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
