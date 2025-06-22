@@ -26,6 +26,9 @@ import InactiveMembers from './pages/admin/members/InactiveMembers';
 import MovieDetails from './pages/movies/MovieDetails';
 import CinemaManagement from './pages/admin/cinemas/CinemaManagement';
 import ShowtimeManagement from './pages/admin/showtimes/ShowtimeManagement';
+import SeatTypeManagement from '../src/components/seatType/SeatTypeManagement';
+import SeatManagement from '../src/components/seatManagement/SeatManagement';
+
 
 
 
@@ -159,6 +162,7 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+              
 
               {/* Showtime Management Route */}
               <Route
@@ -170,6 +174,25 @@ const App: React.FC = () => {
                 }
               />
 
+              {/* Seat Type Management Route */}
+              <Route
+                path="/admin/seat-types"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <SeatTypeManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Seat Type Management Route */}
+              <Route
+                path="/admin/seats/:roomId"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <SeatManagement />
+                  </ProtectedRoute>
+                }
+              />
               
               
               {/* Public Routes that require authentication */}

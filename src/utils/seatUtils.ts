@@ -1,67 +1,93 @@
-import { Seat } from '../types/cinema';
+import { LocalSeat, SeatType } from '../types/seat';
 
-export const getSeatColor = (type: Seat['type'], status: Seat['status']): string => {
-  // Base colors for different seat types
-  const typeColors = {
-    standard: 'border-secondary-600 bg-secondary-700/50',
-    vip: 'border-warning-500 bg-warning-500/20',
-    couple: 'border-pink-500 bg-pink-500/20',
-    disabled: 'border-blue-500 bg-blue-500/20'
-  };
-
-  // Status overlays
-  const statusColors = {
-    available: 'text-white hover:bg-primary-500/20 hover:border-primary-400',
-    occupied: 'bg-error-500/80 border-error-400 text-white cursor-not-allowed',
-    maintenance: 'bg-warning-500/80 border-warning-400 text-white',
-    reserved: 'bg-secondary-500/80 border-secondary-400 text-white'
-  };
-
-  const baseColor = typeColors[type] || typeColors.standard;
-  const statusColor = statusColors[status] || statusColors.available;
-
-  return `${baseColor} ${statusColor}`;
+export const getSeatTypeColor = (seatTypeName: string): string => {
+  switch (seatTypeName.toLowerCase()) {
+    case 'ghế thường':
+    case 'standard':
+      return 'bg-blue-500/20 border-blue-500 text-blue-400';
+    case 'ghế vip':
+    case 'vip':
+      return 'bg-yellow-500/20 border-yellow-500 text-yellow-400';
+    case 'ghế đôi':
+    case 'couple':
+      return 'bg-pink-500/20 border-pink-500 text-pink-400';
+    default:
+      return 'bg-gray-500/20 border-gray-500 text-gray-400';
+  }
 };
 
-export const getSeatTypeIcon = (type: Seat['type']): string => {
-  const icons = {
-    standard: '💺',
-    vip: '👑',
-    couple: '💕',
-    disabled: '♿'
-  };
-  return icons[type] || icons.standard;
+export const getSeatStatusColor = (status: string): string => {
+  switch (status.toUpperCase()) {
+    case 'AVAILABLE':
+      return 'hover:bg-green-500/30 hover:border-green-400';
+    case 'OCCUPIED':
+      return 'bg-red-500/20 border-red-500 text-red-400 cursor-not-allowed';
+    case 'MAINTENANCE':
+      return 'bg-orange-500/20 border-orange-500 text-orange-400';
+    default:
+      return 'bg-gray-500/20 border-gray-500 text-gray-400';
+  }
 };
 
-export const getSeatPrice = (type: Seat['type']): number => {
-  const prices = {
-    standard: 12,
-    vip: 25,
-    couple: 30,
-    disabled: 12
-  };
-  return prices[type] || prices.standard;
+export const getSeatTypeIcon = (seatTypeName: string): string => {
+  switch (seatTypeName.toLowerCase()) {
+    case 'ghế thường':
+    case 'standard':
+      return '🪑';
+    case 'ghế vip':
+    case 'vip':
+      return '👑';
+    case 'ghế đôi':
+    case 'couple':
+      return '💕';
+    default:
+      return '🪑';
+  }
 };
 
-export const generateSeatId = (row: string, number: number): string => {
-  return `${row}${number.toString().padStart(2, '0')}`;
+export const generateSeatId = (row: string, number: string): string => {
+  // Generate a UUID for new seats
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 };
 
-export const createDefaultSeats = (rows: string[], seatsPerRow: number): Seat[] => {
-  const seats: Seat[] = [];
-  
+export const formatPrice = (price: number): string => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(price);
+};
+
+export const createDefaultSeatLayout = (
+  rows: string[],
+  seatsPerRow: number,
+  seatTypes: SeatType[]
+): LocalSeat[] => {
+  const seats: LocalSeat[] = [];
+  const defaultSeatType = seatTypes[0];
+
+  if (!defaultSeatType) return seats;
+
   rows.forEach(row => {
     for (let i = 1; i <= seatsPerRow; i++) {
       seats.push({
-        id: generateSeatId(row, i),
-        row,
-        number: i,
-        type: 'standard',
-        status: 'available',
-        price: getSeatPrice('standard')
+        id: generateSeatId(row, i.toString()), // This should match the API's UUID format
+        roomId: '',
+        seatTypeId: defaultSeatType.seattypeid,
+        seatTypeName: defaultSeatType.name,
+        number: i.toString(),
+        row: row,
+        status: 'AVAILABLE',
+        isactive: true,
+        islinked: false,
+        linkedto: null,
+        price: defaultSeatType.price,
       });
     }
   });
-  
+
   return seats;
 };

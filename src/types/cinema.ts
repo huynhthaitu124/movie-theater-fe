@@ -1,44 +1,35 @@
-export interface Seat {
-  id: string;
-  row: string;
-  number: number;
-  type: 'standard' | 'vip' | 'couple';
-  status: 'available' | 'maintenance'; // removed 'reserved'
-  price?: number;
-}
-
 export interface Room {
-  id: string;
-  name: string;
+  id: string;          // This maps to roomId from API
+  roomtypeid: string;  // Add this field
+  cinemaname: string;  // Add this field
+  roomnumber: number;
+  name?: string;       // Add this as optional since API doesn't provide it
   capacity: number;
-  seats: Seat[];
-  layout: {
-    rows: number;
-    seatsPerRow: number;
-  };
-  type: 'standard' | 'vip' | 'imax' | '4dx';
-  status: 'active' | 'maintenance' | 'closed';
-  features: string[];
-  cinemaId: string;
-  screenSize: string;
-  audioSystem: string;
-  createdAt: Date;
-  updatedAt: Date;
+  isactive: boolean;
+  createdat: string;
+  updatedat: string;
 }
 
 export interface Cinema {
-  id: string;
-  name: string;
-  image: string;
+  cinemaid: string;
+  cinemaname: string;
   address: string;
   city: string;
   phone: string;
-  email: string;
-  rooms: Room[];
-  facilities: string[];
-  status: 'active' | 'maintenance' | 'closed';
-  manager: string;
-  rating: number;
+  email: string | null;
+  totalroom: number;
+  opentime: string;
+  closetime: string;
+  status: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED'; // Ensure uppercase values
+  isactive: boolean;
+  createdat?: string;
+  updatedat?: string;
+  // Frontend specific fields
+  rooms?: Room[];
+  facilities?: string[];
+  manager?: string;
+  rating?: number;
+  image?: string;
 }
 
 export interface Location {
@@ -48,19 +39,11 @@ export interface Location {
   cinemas: Cinema[];
 }
 
-export interface SeatSelection {
-  seats: string[];
-  type: Seat['type'];
-  status: Seat['status'];
-}
 
 
 
-export interface SeatType {
-  id: string;
-  name: string;
-  basePrice: number;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-}
+
+
+
+
+
