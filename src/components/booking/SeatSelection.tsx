@@ -1,16 +1,17 @@
 import React, { useMemo } from 'react';
 import { Square, Star, Heart } from 'lucide-react';
+import { Schedule } from '../../types/schedule';
 
 interface SeatSelectionProps {
   selectedSeats: string[];
   onSeatSelect: (seatId: string) => void;
-  ticketPrice: number;
+  showtime: Schedule | undefined;
 }
 
 const SeatSelection: React.FC<SeatSelectionProps> = ({
   selectedSeats,
   onSeatSelect,
-  ticketPrice,
+  showtime,
 }) => {
   // Use useMemo to create persistent seat layout
   const seatRows = useMemo(
@@ -28,11 +29,11 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
             status: [2, 7, 12, 18, 25, 45, 52].includes(rowIndex * 12 + seatIndex + 1)
               ? 'occupied'
               : 'available',
-            price: rowIndex < 2 ? ticketPrice * 1.5 : ticketPrice,
+            price: rowIndex < 2 ? (showtime?.price || 0) * 1.5 : (showtime?.price || 0),
           })),
         };
       }),
-    [ticketPrice] // Only recreate when ticket price changes
+    [showtime?.price] // Only recreate when ticket price changes
   );
 
   const getSeatIcon = (type: 'vip' | 'couple' | 'standard') => {
@@ -119,12 +120,12 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
           </div>
           <div className="flex justify-between text-secondary-300">
             <span>Regular Price</span>
-            <span>${ticketPrice} × {selectedSeats.length}</span>
+            <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(showtime?.price || 0)} × {selectedSeats.length}</span>
           </div>
           <div className="pt-4 border-t border-secondary-700">
             <div className="flex justify-between text-white">
               <span className="font-medium">Total</span>
-              <span className="font-medium">${selectedSeats.length * ticketPrice}</span>
+              <span className="font-medium">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format((showtime?.price || 0) * selectedSeats.length)}</span>
             </div>
           </div>
         </div>

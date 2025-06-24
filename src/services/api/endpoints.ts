@@ -109,4 +109,14 @@ export const API_ENDPOINTS = {
         DELETE: (id: string) => `/api/MovieSchedule/${id}`,
         GET_BY_MOVIE: (movieId: string) => `/api/MovieSchedule/movie/${movieId}`,
     },
+
+    // Movie Schedule endpoints
+    MOVIE_SCHEDULE: {
+        GET_ALL: '/api/MovieSchedule',
+        GET_BY_MOVIE: (movieId: string) => `/api/MovieSchedule/movie/${movieId}`,
+        GET_FOR_BOOKING: '/api/MovieSchedule/GetMovieScheduleForBooking',
+        CREATE: '/api/MovieSchedule',
+        UPDATE: (id: string) => `/api/MovieSchedule/${id}`,
+        DELETE: (id: string) => `/api/MovieSchedule/${id}`,
+    },
 };

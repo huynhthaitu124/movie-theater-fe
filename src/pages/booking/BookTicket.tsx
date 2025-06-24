@@ -6,12 +6,12 @@ import Button from '../../components/common/Button';
 import CinemaCard from '../../components/booking/CinemaCard';
 import SeatSelection from '../../components/booking/SeatSelection';
 import PaymentForm, { PaymentFormData } from '../../components/booking/PaymentForm';
-import { mockLocations, mockCinemas } from '../../data/mockCinemas';
+import { mockCinemas } from '../../data/mockCinemas';
 import { BookingStep } from '../../types/booking';
 import { Movie } from '../../types/movie';
-import { Showtime } from '../../types/showtime';
+import { Schedule } from '../../types/schedule';
 import { movieService } from '../../services/modules/movie.service';
-import { showtimeService } from '../../services/modules/showtime.service';
+import { scheduleService } from '../../services/modules/schedule.service';
 
 const BookTicket: React.FC = () => {
   const { movieId } = useParams();
@@ -19,13 +19,13 @@ const BookTicket: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedCinema, setSelectedCinema] = useState<string>('');
-  const [selectedShowtime, setSelectedShowtime] = useState<string>('');
+  const [selectedSchedule, setSelectedSchedule] = useState<string>('');
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [movie, setMovie] = useState<Movie | null>(null);
-  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
 
   const steps: BookingStep[] = [
     { step: 1, title: 'Select Date', isCompleted: false },
@@ -34,12 +34,12 @@ const BookTicket: React.FC = () => {
     { step: 4, title: 'Payment', isCompleted: false },
   ];
 
+  // Fetch movie details
   useEffect(() => {
     const fetchMovie = async () => {
       if (!movieId) return;
       try {
         setIsLoading(true);
-        // Get movie details
         const movieResponse = await movieService.getAll();
         const movieData = movieResponse.data.find(m => m.movieID === movieId && m.status === 'ACTIVE');
         if (!movieData) {
@@ -59,28 +59,78 @@ const BookTicket: React.FC = () => {
     fetchMovie();
   }, [movieId]);
 
+  // Fetch schedules when date changes
   useEffect(() => {
-    const fetchShowtimes = async () => {
-      if (!movieId || !selectedDate) {
-        setShowtimes([]);
-        return;
-      }
+    const fetchSchedules = async () => {
+      if (!movieId) return;
       try {
         setIsLoading(true);
-        // Giả sử API hỗ trợ truyền startDate dạng yyyy-MM-dd
-        const showtimeResponse = await showtimeService.getByMovie(movieId);
-        console.log('Showtimes response:', showtimeResponse.data);
-        setShowtimes(showtimeResponse.data);
+        const scheduleResponse = await scheduleService.getByMovie(movieId);
+        console.log('Fetched schedules:', scheduleResponse.data);
+        
+        // Convert API response to match Schedule type
+        const formattedSchedules: Schedule[] = scheduleResponse.data.map(schedule => ({
+          scheduleId: schedule.scheduleId,
+          movieId: movieId,
+          cinemaId: '1', // Default cinema ID
+          roomId: schedule.roomnumber.toString(),
+          startTime: `${schedule.showdate}T${schedule.starttime}`,
+          date: schedule.showdate,
+          price: 75000, // Default price in VND
+          availableSeats: 80, // Default available seats
+          totalSeats: 100, // Default total seats
+          movieName: schedule.moviename,
+          movieImageUrl: schedule.image,
+          status: 'scheduled',
+          room: {
+            id: schedule.roomnumber.toString(),
+            name: `Room ${schedule.roomnumber}`,
+            capacity: 100,
+            seats: [],
+            layout: {
+              rows: 10,
+              seatsPerRow: 10
+            },
+            type: 'standard',
+            status: 'active',
+            features: [],
+            cinemaId: '1',
+            screenSize: '16m x 8m',
+            audioSystem: 'Dolby Atmos',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        }));
+
+        // Filter schedules for selected date
+        setSchedules(formattedSchedules.filter(schedule => 
+          schedule.date === selectedDate
+        ));
         setError(null);
       } catch (err) {
-        setError('Failed to load showtimes');
-        setShowtimes([]);
+        console.error('Error fetching schedules:', err);
+        setError('Failed to load schedules');
+        setSchedules([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchShowtimes();
-  }, [movieId]);
+    if (selectedDate) {
+      fetchSchedules();
+    }
+  }, [movieId, selectedDate]);
+
+  // Reset selections when date changes
+  useEffect(() => {
+    setSelectedCinema('');
+    setSelectedSchedule('');
+    setSelectedSeats([]);
+  }, [selectedDate]);
+
+  // Reset seat selection when schedule changes
+  useEffect(() => {
+    setSelectedSeats([]);
+  }, [selectedSchedule]);
 
   // Generate next 7 days
   const dates = Array.from({ length: 7 }, (_, index) => {
@@ -115,11 +165,16 @@ const BookTicket: React.FC = () => {
     setSelectedCinema(cinemaId);
   };
 
-  const handleShowtimeSelect = (showtimeId: string) => {
-    setSelectedShowtime(showtimeId);
+  const handleScheduleSelect = (scheduleId: string) => {
+    setSelectedSchedule(scheduleId);
   };
 
   const handleSeatSelect = (seatId: string) => {
+    const schedule = getSelectedSchedule();
+    if (schedule && selectedSeats.length >= 10 && !selectedSeats.includes(seatId)) {
+      return; // Max 10 seats per booking
+    }
+    
     setSelectedSeats(prev => {
       if (prev.includes(seatId)) {
         return prev.filter(id => id !== seatId);
@@ -128,20 +183,42 @@ const BookTicket: React.FC = () => {
     });
   };
 
-  // Không cần lọc showtimes theo ngày ở FE nữa
-  const getFilteredShowtimes = () => showtimes;
-
-  // Get unique cinemas that have showtimes for this movie on selected date
-  const getAvailableCinemas = () => {
-    const filteredShowtimes = getFilteredShowtimes();
-    const cinemaIds = [...new Set(filteredShowtimes.map(st => st.cinemaId))];
-    return mockLocations.flatMap(loc => 
-      loc.cinemas.filter(cinema => cinemaIds.includes(cinema.id))
-    );
+  // Get filtered schedules with proper sorting
+  const getFilteredSchedules = () => {
+    return schedules.sort((a, b) => {
+      // First sort by cinema/room
+      if (a.cinemaId !== b.cinemaId) {
+        return a.cinemaId.localeCompare(b.cinemaId);
+      }
+      // Then sort by start time
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+    });
   };
 
-  const getSelectedShowtime = () => {
-    return showtimes.find(st => st.id === selectedShowtime);
+  // Get unique cinemas that have schedules for this movie on selected date
+  const getAvailableCinemas = () => {
+    const filteredSchedules = getFilteredSchedules();
+    const cinemaIds = [...new Set(filteredSchedules.map(st => st.cinemaId))];
+    
+    // Create proper Cinema objects
+    return cinemaIds.map(id => ({
+      id,
+      name: `Cinema ${id}`,
+      image: '/images/cinema-default.jpg',
+      address: '123 Movie Street',
+      city: 'Ho Chi Minh City',
+      phone: '(+84) 123-456-789',
+      email: 'cinema@example.com',
+      rooms: [],
+      facilities: ['Parking', 'Food Court', 'Wheelchair Access'],
+      status: 'active' as const,
+      manager: 'John Doe',
+      rating: 4.5
+    }));
+  };
+
+  const getSelectedSchedule = () => {
+    return schedules.find(st => st.scheduleId === selectedSchedule);
   };
 
   const getSelectedCinema = () => {
@@ -149,8 +226,8 @@ const BookTicket: React.FC = () => {
   };
 
   const calculateTotal = () => {
-    const showtime = getSelectedShowtime();
-    return selectedSeats.length * (showtime?.price || 0);
+    const schedule = getSelectedSchedule();
+    return selectedSeats.length * (schedule?.price || 0);
   };
 
   const handlePayment = async (paymentData: PaymentFormData) => {
@@ -158,17 +235,26 @@ const BookTicket: React.FC = () => {
     
     setIsProcessing(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // TODO: Replace with actual payment API integration
+      console.log('Processing payment with:', {
+        cardNumber: paymentData.cardNumber,
+        cardHolder: paymentData.cardHolder,
+        expiryDate: paymentData.expiryDate,
+        amount: calculateTotal(),
+      });
       
-      const showtime = getSelectedShowtime();
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulated payment processing
+      
+      const schedule = getSelectedSchedule();
       const cinema = getSelectedCinema();
       
       navigate('/booking/success', {
         state: {
           movieTitle: movie.movieName,
           cinemaName: cinema?.name,
+          screenName: schedule?.room?.name,
           date: selectedDate,
-          time: showtime?.startTime,
+          time: schedule?.startTime,
           seats: selectedSeats,
           totalAmount: calculateTotal(),
           confirmationCode: `BK${Math.random().toString(36).substr(2, 9).toUpperCase()}`
@@ -176,6 +262,7 @@ const BookTicket: React.FC = () => {
       });
     } catch (error) {
       console.error('Payment failed:', error);
+      // TODO: Show error message to user
     } finally {
       setIsProcessing(false);
     }
@@ -184,8 +271,8 @@ const BookTicket: React.FC = () => {
   const canProceedToStep = (step: number) => {
     switch (step) {
       case 2: return selectedDate;
-      case 3: return selectedDate && selectedCinema && selectedShowtime;
-      case 4: return selectedDate && selectedCinema && selectedShowtime && selectedSeats.length > 0;
+      case 3: return selectedDate && selectedCinema && selectedSchedule;
+      case 4: return selectedDate && selectedCinema && selectedSchedule && selectedSeats.length > 0;
       default: return true;
     }
   };
@@ -316,7 +403,7 @@ const BookTicket: React.FC = () => {
               </div>
             </div>
 
-            {/* Step 2: Cinema & Showtime Selection */}
+            {/* Step 2: Cinema & Schedule Selection */}
             <div className={currentStep === 2 ? 'block' : 'hidden'}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Choose Cinema & Time</h2>
@@ -332,11 +419,11 @@ const BookTicket: React.FC = () => {
                   <CinemaCard
                     key={cinema.id}
                     cinema={cinema}
-                    showtimes={getFilteredShowtimes().filter(st => st.cinemaId === cinema.id)}
+                    schedules={getFilteredSchedules().filter(st => st.cinemaId === cinema.id)}
                     selectedCinema={selectedCinema}
-                    selectedShowtime={selectedShowtime}
+                    selectedSchedule={selectedSchedule}
                     onCinemaSelect={handleCinemaSelect}
-                    onShowtimeSelect={handleShowtimeSelect}
+                    onScheduleSelect={handleScheduleSelect}
                   />
                 ))}
               </div>
@@ -361,13 +448,13 @@ const BookTicket: React.FC = () => {
                   onClick={() => setCurrentStep(2)}
                   className="text-primary-500 hover:text-primary-400"
                 >
-                  Change Showtime
+                  Change Cinema/Time
                 </button>
               </div>
               <SeatSelection
                 selectedSeats={selectedSeats}
                 onSeatSelect={handleSeatSelect}
-                ticketPrice={getSelectedShowtime()?.price || 0}
+                showtime={getSelectedSchedule()}
               />
               <div className="mt-6 flex justify-end space-x-4">
                 <Button variant="secondary" onClick={() => setCurrentStep(2)}>
@@ -385,7 +472,7 @@ const BookTicket: React.FC = () => {
             {/* Step 4: Payment */}
             <div className={currentStep === 4 ? 'block' : 'hidden'}>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Payment Details</h2>
+                <h2 className="text-xl font-semibold">Payment</h2>
                 <button
                   onClick={() => setCurrentStep(3)}
                   className="text-primary-500 hover:text-primary-400"
@@ -409,7 +496,7 @@ const BookTicket: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Date & Time:</span>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {formatDate(selectedDate).day}, {formatDate(selectedDate).month} {formatDate(selectedDate).date} at {getSelectedShowtime()?.startTime}
+                      {formatDate(selectedDate).day}, {formatDate(selectedDate).month} {formatDate(selectedDate).date} at {new Date(getSelectedSchedule()?.startTime || '').toLocaleTimeString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -418,7 +505,7 @@ const BookTicket: React.FC = () => {
                   </div>
                   <div className="flex justify-between pt-3 border-t border-secondary-700">
                     <span className="text-gray-600 dark:text-gray-400">Total:</span>
-                    <span className="font-semibold text-primary-500">{calculateTotal().toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</span>
+                    <span className="font-semibold text-primary-500">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(calculateTotal())}</span>
                   </div>
                 </div>
               </div>

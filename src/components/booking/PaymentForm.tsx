@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { CreditCard, Calendar, Lock } from 'lucide-react';
 import Input from '../common/Input';
+import Button from '../common/Button';
 
 interface PaymentFormProps {
-  total: number;
+  amount: number;
   onSubmit: (paymentData: PaymentFormData) => void;
+  isProcessing?: boolean;
 }
 
 export interface PaymentFormData {
@@ -14,13 +16,17 @@ export interface PaymentFormData {
   cvv: string;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ total, onSubmit }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSubmit, isProcessing }) => {
   const [formData, setFormData] = useState<PaymentFormData>({
     cardNumber: '',
     cardHolder: '',
     expiryDate: '',
     cvv: '',
   });
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +40,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ total, onSubmit }) => {
       [name]: value,
     }));
   };
+
+  const bookingFee = 20000; // 20,000 VND booking fee
 
   return (
     <div className="space-y-8">
@@ -50,6 +58,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ total, onSubmit }) => {
                 onChange={handleChange}
                 placeholder="1234 5678 9012 3456"
                 required
+                leftIcon={<CreditCard className="h-4 w-4" />}
               />
             </div>
             
@@ -72,6 +81,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ total, onSubmit }) => {
                 onChange={handleChange}
                 placeholder="MM/YY"
                 required
+                leftIcon={<Calendar className="h-4 w-4" />}
               />
 
               <Input
@@ -84,30 +94,38 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ total, onSubmit }) => {
                 required
                 type="password"
                 maxLength={3}
+                leftIcon={<Lock className="h-4 w-4" />}
               />
             </div>
           </div>
-        </form>
-      </div>
 
-      <div className="bg-secondary-800 rounded-lg p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">Order Summary</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between text-secondary-300">
-            <span>Subtotal</span>
-            <span>${total}</span>
-          </div>
-          <div className="flex justify-between text-secondary-300">
-            <span>Booking Fee</span>
-            <span>$2.00</span>
-          </div>
-          <div className="pt-4 border-t border-secondary-700">
-            <div className="flex justify-between text-white">
-              <span className="font-medium">Total</span>
-              <span className="font-medium">${(total + 2).toFixed(2)}</span>
+          <div className="space-y-4">
+            <div className="flex justify-between text-secondary-300">
+              <span>Subtotal</span>
+              <span>{formatCurrency(amount)}</span>
+            </div>
+            <div className="flex justify-between text-secondary-300">
+              <span>Booking Fee</span>
+              <span>{formatCurrency(bookingFee)}</span>
+            </div>
+            <div className="pt-4 border-t border-secondary-700">
+              <div className="flex justify-between text-white">
+                <span className="font-medium">Total</span>
+                <span className="font-medium">{formatCurrency(amount + bookingFee)}</span>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="mt-6">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isProcessing}
+            >
+              {isProcessing ? 'Processing...' : `Pay ${formatCurrency(amount + bookingFee)}`}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );
