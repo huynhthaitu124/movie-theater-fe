@@ -84,7 +84,7 @@ const Dashboard: React.FC = () => {
       <div className="p-6 space-y-6">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <DashboardCard
             title="Employee Management"
             description="Manage staff and their roles"
@@ -112,7 +112,7 @@ const Dashboard: React.FC = () => {
             icon={<Calendar size={24} className="text-primary-500" />}
             link="/admin/rooms"
           />
-        </div>
+        </div> */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
@@ -274,11 +274,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-8">
-          <Link to="/admin/rooms" className="text-primary-500 hover:underline">
-            Room List
-          </Link>
-        </div>
       </div>
     </AdminLayout>
   );

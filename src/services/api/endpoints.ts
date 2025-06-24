@@ -110,6 +110,40 @@ export const API_ENDPOINTS = {
         GET_BY_MOVIE: (movieId: string) => `/api/MovieSchedule/movie/${movieId}`,
     },
 
+    // Cinema endpoints
+    CINEMA: {
+        GET_ALL: '/api/Cinema/GetAllCinema',
+        CREATE: '/api/Cinema',
+        UPDATE: '/api/Cinema',
+        DELETE: '/api/Cinema',
+    },
+
+    // Room endpoints
+    ROOM: {
+        GET_ALL: '/api/Room',
+        CREATE: '/api/Room',
+        UPDATE: '/api/Room',
+        DELETE: '/api/Room',
+    },
+
+    // RoomType endpoints
+    ROOMTYPE: {
+        GET_ALL: '/api/Roomtype',
+        CREATE: '/api/Roomtype',
+        UPDATE: '/api/Roomtype',
+        DELETE: '/api/Roomtype',
+    },
+
+    // Seat endpoints
+    SEAT: {
+        GET_ALL: '/api/Seat',
+        CREATE: '/api/Seat',
+        UPDATE: '/api/Seat',
+        DELETE: '/api/Seat',
+        GET_BY_ROOM: (roomId: string) => `/api/Seat/room?roomId=${roomId}`,
+    },
+
+
     // Movie Schedule endpoints
     MOVIE_SCHEDULE: {
         GET_ALL: '/api/MovieSchedule',
