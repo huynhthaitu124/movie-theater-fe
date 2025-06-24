@@ -1,27 +1,27 @@
 import React from 'react';
 import { MapPin, Star, Clock, Users } from 'lucide-react';
 import { Cinema } from '../../types/cinema';
-import { Showtime } from '../../types/showtime';
+import { Schedule } from '../../types/schedule';
 
 interface CinemaCardProps {
   cinema: Cinema;
-  showtimes: Showtime[];
+  schedules: Schedule[];
   selectedCinema: string;
-  selectedShowtime: string;
+  selectedSchedule: string;
   onCinemaSelect: (cinemaId: string) => void;
-  onShowtimeSelect: (showtimeId: string) => void;
+  onScheduleSelect: (scheduleId: string) => void;
 }
 
 const CinemaCard: React.FC<CinemaCardProps> = ({
   cinema,
-  showtimes,
+  schedules,
   selectedCinema,
-  selectedShowtime,
+  selectedSchedule,
   onCinemaSelect,
-  onShowtimeSelect
+  onScheduleSelect
 }) => {
   const isSelected = selectedCinema === cinema.id;
-  const cinemaShowtimes = showtimes
+  const cinemaSchedules = schedules;
 
   const getAvailabilityColor = (available: number, total: number) => {
     const percentage = (available / total) * 100;
@@ -30,13 +30,12 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
     return 'text-red-500';
   };
 
-  const getFormatBadgeColor = (format: string) => {
-    switch (format) {
-      case 'IMAX': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-      case '4DX': return 'bg-red-500/20 text-red-300 border-red-500/30';
-      case 'Dolby Atmos': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-    }
+  const formatTime = (timeString: string) => {
+    return new Date(timeString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
   };
 
   return (
@@ -55,6 +54,11 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
         <div className="absolute bottom-4 left-4 right-4">
           <div className="flex items-center justify-between">
             <div>
+              <h3 className="text-white font-medium text-lg">{cinema.name}</h3>
+              <div className="flex items-center text-gray-300">
+                <MapPin size={14} className="mr-1" />
+                <span className="text-sm">{cinema.address}</span>
+              </div>
             </div>
             <div className="flex items-center bg-black/30 backdrop-blur-sm rounded-full px-2 py-1">
               <Star size={14} className="text-yellow-400 mr-1" />
@@ -65,35 +69,33 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
       </div>
 
       {/* Cinema Details */}
-      <div className="p-4">
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">{cinema.address}</p>
-        
+      <div className="p-4">        
         {/* Amenities */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {cinema.facilities.map((amenity, index) => (
+          {cinema.facilities.map((facility, index) => (
             <span 
               key={index}
               className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
             >
-              {amenity}
+              {facility}
             </span>
           ))}
         </div>
 
-        {/* Showtimes */}
+        {/* Schedules */}
         <div className="space-y-3">
-          <h4 className="font-semibold text-gray-900 dark:text-white">Available Showtimes</h4>
+          <h4 className="font-semibold text-gray-900 dark:text-white">Available Times</h4>
           <div className="grid grid-cols-1 gap-2">
-            {cinemaShowtimes.map((showtime) => (
+            {cinemaSchedules.map((schedule) => (
               <button
-                key={showtime.scheduleId}
+                key={schedule.scheduleId}
                 onClick={() => {
                   onCinemaSelect(cinema.id);
-                  onShowtimeSelect(showtime.scheduleId);
+                  onScheduleSelect(schedule.scheduleId);
                 }}
                 className={`
                   p-3 rounded-lg border transition-all duration-200 text-left
-                  ${selectedShowtime === showtime.scheduleId 
+                  ${selectedSchedule === schedule.scheduleId 
                     ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400' 
                     : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'}
                 `}
@@ -101,20 +103,22 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-3">
                     <Clock size={16} className="text-gray-500" />
-                    <span className="font-medium">{showtime.starttime}</span>
-                    <span className={`px-2 py-1 text-xs rounded border ${getFormatBadgeColor(showtime.format)}`}>
-                      {showtime.format}
-                    </span>
+                    <span className="font-medium">{formatTime(schedule.startTime)}</span>
                   </div>
-                  <span className="font-bold text-lg">${showtime.price}</span>
+                  <span className="font-bold text-lg">
+                    {new Intl.NumberFormat('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND'
+                    }).format(schedule.price)}
+                  </span>
                 </div>
                 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">không biết để gì để đại :3</span>
+                  <span className="text-gray-500 dark:text-gray-400">Room: {schedule.room?.name}</span>
                   <div className="flex items-center space-x-1">
-                    <Users size={14} className={getAvailabilityColor(showtime.availableSeats, showtime.totalSeats)} />
-                    <span className={`${getAvailabilityColor(showtime.availableSeats, showtime.totalSeats)} font-medium`}>
-                      {showtime.availableSeats}/{showtime.totalSeats} seats
+                    <Users size={14} className={getAvailabilityColor(schedule.availableSeats, schedule.totalSeats)} />
+                    <span className={`${getAvailabilityColor(schedule.availableSeats, schedule.totalSeats)} font-medium`}>
+                      {schedule.availableSeats}/{schedule.totalSeats} seats
                     </span>
                   </div>
                 </div>
