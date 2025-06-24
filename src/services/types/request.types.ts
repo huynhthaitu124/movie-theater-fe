@@ -89,3 +89,76 @@ export interface MemberRequest {
     password: string;
     phoneNumber?: string;
 }
+
+// Add these types
+export interface CinemaCreateDto {
+  cinemaname: string;
+  address: string;
+  city: string;
+  phone: string;
+  email: string | null;
+  totalroom: number;
+  opentime: string;
+  closetime: string;
+  status: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED';
+  isactive: boolean;
+}
+
+export interface CinemaResponse {
+  cinemaid: string;
+  cinemaname: string;
+  address: string;
+  city: string;
+  phone: string;
+  email: string | null;
+  totalroom: number;
+  opentime: string;
+  closetime: string;
+  status: string;
+  isactive: boolean;
+  createdat: string;
+  updatedat: string;
+}
+
+export interface CinemaUpdateDto extends CinemaCreateDto {
+  cinemaid: string;
+}
+
+export interface RoomCreateDto {
+  cinemaid: string;
+  roomtypeid: string;
+  roomnumber: number;  
+  capacity: number;
+}
+
+export interface RoomUpdateDto {
+  roomId: string;
+  roomtypeid: string;
+  roomnumber: number;
+  capacity: number;
+}
+
+export interface RoomResponse {
+  roomId: string;
+  cinemaname: string;
+  roomtypeid: string;
+  roomnumber: number;
+  capacity: number;
+  isactive: boolean;
+  createdat: string;
+  updatedat: string;
+  cinema: null;
+  roomtype: null;
+  schedules: any[];
+  seats: any[];
+}
+
+export interface RoomTypeResponse {
+  roomtypeid: string;
+  typename: string;
+  issingle: boolean;
+  status: string;
+  isactive: boolean;
+  createdat: string;
+  updatedat: string;
+}
