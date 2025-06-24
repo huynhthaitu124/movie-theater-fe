@@ -100,6 +100,16 @@ export const API_ENDPOINTS = {
         LOGOUT: '/auth/logout',
     },
 
+    // Showtime endpoints
+    SHOWTIME: {
+        GET_ALL: '/api/MovieSchedule',
+        CREATE: '/api/MovieSchedule',
+        CREATE_MANY: '/api/MovieSchedule/bulk',
+        UPDATE: (id: string) => `/api/MovieSchedule/${id}`,
+        DELETE: (id: string) => `/api/MovieSchedule/${id}`,
+        GET_BY_MOVIE: (movieId: string) => `/api/MovieSchedule/movie/${movieId}`,
+    },
+
     // Cinema endpoints
     CINEMA: {
         GET_ALL: '/api/Cinema/GetAllCinema',

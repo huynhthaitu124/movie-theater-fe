@@ -21,7 +21,7 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
   onShowtimeSelect
 }) => {
   const isSelected = selectedCinema === cinema.id;
-  const cinemaShowtimes = showtimes.filter(st => st.cinemaId === cinema.id);
+  const cinemaShowtimes = showtimes
 
   const getAvailabilityColor = (available: number, total: number) => {
     const percentage = (available / total) * 100;
@@ -86,14 +86,14 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
           <div className="grid grid-cols-1 gap-2">
             {cinemaShowtimes.map((showtime) => (
               <button
-                key={showtime.id}
+                key={showtime.scheduleId}
                 onClick={() => {
                   onCinemaSelect(cinema.id);
-                  onShowtimeSelect(showtime.id);
+                  onShowtimeSelect(showtime.scheduleId);
                 }}
                 className={`
                   p-3 rounded-lg border transition-all duration-200 text-left
-                  ${selectedShowtime === showtime.id 
+                  ${selectedShowtime === showtime.scheduleId 
                     ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400' 
                     : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'}
                 `}
@@ -101,7 +101,7 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-3">
                     <Clock size={16} className="text-gray-500" />
-                    <span className="font-medium">{showtime.startTime}</span>
+                    <span className="font-medium">{showtime.starttime}</span>
                     <span className={`px-2 py-1 text-xs rounded border ${getFormatBadgeColor(showtime.format)}`}>
                       {showtime.format}
                     </span>
