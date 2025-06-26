@@ -23,7 +23,7 @@ interface RoomManagementModalProps {
   onCinemaUpdate: () => Promise<void>;
 }
 
-const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack }) => {
+const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack, onCinemaUpdate }) => {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [isSeatModalOpen, setIsSeatModalOpen] = useState(false);
@@ -144,11 +144,13 @@ const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack }) 
       roomtypeid: room.roomtypeid,
       cinemaname: cinema.cinemaname,
       roomnumber: room.roomnumber,
-      name: `Room ${room.roomnumber}`, // Generate a name from room number
+      name: `Room ${room.roomnumber}`,
       capacity: room.capacity,
       isactive: room.isactive,
       createdat: room.createdat,
       updatedat: room.updatedat,
+      rows: room.rows,         // <-- Add this
+      columns: room.columns,   // <-- Add this
     };
   };
 
@@ -160,6 +162,8 @@ const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack }) 
           roomtypeid: roomData.roomtypeid || selectedRoom.roomtypeid,
           roomnumber: roomData.roomnumber || selectedRoom.roomnumber,
           capacity: roomData.capacity,
+          seatRows: roomData.rows ?? 0,      // <-- Ensure number, fallback to 0
+          seatColumns: roomData.columns ?? 0 // <-- Ensure number, fallback to 0
         };
 
         await roomService.update(selectedRoom.id, updateDto);
@@ -174,23 +178,20 @@ const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack }) 
           cinemaid: cinema.cinemaid,
           roomtypeid: roomData.roomtypeid,
           roomnumber: roomData.roomnumber || displayRooms.length + 1,
-          capacity: roomData.capacity || 0
+          capacity: roomData.capacity || 0,
+          seatRows: roomData.rows ?? 0,      // <-- Add this
+          seatColumns: roomData.columns ?? 0// <-- Add this
         };
 
-        // Create the room first
         await roomService.create(createDto);
-        
-        // Wait a moment before fetching updated room count
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Fetch rooms to get accurate count
         await fetchRooms();
-        
         toast.success('Room created successfully');
       }
-      
+
       setIsRoomModalOpen(false);
       setSelectedRoom(null);
+      if (onCinemaUpdate) await onCinemaUpdate();
     } catch (error: any) {
       console.error('Error saving room:', error);
       const errorMessage = error.response?.data?.message || 'Failed to save room';
@@ -199,18 +200,14 @@ const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack }) 
   };
 
   const handleDeleteRoom = async (roomId: string) => {
-
-
     try {
       await roomService.delete(roomId);
-      
-      // Update cinema total rooms
       const newTotalRooms = displayRooms.length - 1;
       await cinemaService.updateTotalRooms(cinema.cinemaid, newTotalRooms);
-      
       toast.success('Room deleted successfully');
-      await updateCinemaTotalRooms(cinema.cinemaid); // <-- update after delete
-      fetchRooms(); // Refresh the list
+      await updateCinemaTotalRooms(cinema.cinemaid);
+      fetchRooms();
+      if (onCinemaUpdate) await onCinemaUpdate(); // <-- Add this line
     } catch (error) {
       console.error('Error deleting room:', error);
       toast.error('Failed to delete room');
@@ -295,6 +292,14 @@ const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack }) 
                   <div>
                     <p className="text-secondary-400 text-xs uppercase tracking-wider mb-1">Room Number</p>
                     <p className="text-white font-medium">#{room.roomnumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-secondary-400 text-xs uppercase tracking-wider mb-1">Rows</p>
+                    <p className="text-white font-medium">{room.rows ?? '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-secondary-400 text-xs uppercase tracking-wider mb-1">Columns</p>
+                    <p className="text-white font-medium">{room.columns ?? '-'}</p>
                   </div>
                 </div>
               </div>
@@ -728,7 +733,7 @@ const CinemaManagement: React.FC = () => {
             <RoomManagement 
               cinema={locations.flatMap(l => l.cinemas).find(c => c.cinemaid === selectedCinemaId)!} 
               onBack={() => setSelectedCinemaId(null)} 
-              onCinemaUpdate={fetchCinemas}
+              onCinemaUpdate={fetchCinemas} // Pass this prop
             />
           ) : (
             <div className="space-y-6">

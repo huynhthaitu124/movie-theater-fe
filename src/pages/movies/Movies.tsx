@@ -33,11 +33,13 @@ const Movies: React.FC = () => {
   }, []);
 
   // Genres lấy từ dữ liệu thực tế
-  const genres = ['all', ...Array.from(new Set(movies.flatMap(movie => movie.genre || [])))];
+  const genres = ['all', ...Array.from(new Set(movies.flatMap(movie => movie.categories || [])))];
 
   const filteredMovies = movies.filter(movie => {
-    const matchesSearch = movie.title;
-    const matchesGenre = selectedGenre === 'all' || (movie.genre && movie.genre.includes(selectedGenre));
+    const matchesSearch =
+      searchQuery.trim() === '' ||
+      (movie.movieName && movie.movieName.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesGenre = selectedGenre === 'all' || (movie.categories && movie.categories.includes(selectedGenre));
     const matchesStatus = selectedStatus === 'all' || movie.status === selectedStatus;
     return matchesSearch && matchesGenre && matchesStatus;
   });
@@ -159,7 +161,7 @@ const Movies: React.FC = () => {
             <AnimatePresence>
               {filteredMovies.map((movie) => (
                 <motion.div
-                  key={movie.id}
+                  key={movie.movieID}
                   layout
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -169,22 +171,22 @@ const Movies: React.FC = () => {
                 >
                   <div 
                     className="relative aspect-[2/3] cursor-pointer group"
-                    onClick={() => navigate(`/movies/${movie.id}`)}
+                    onClick={() => navigate(`/movies/${movie.movieID}`)}
                   >
                     {/* Status Tag */}
                     <div className="absolute top-4 left-4 z-10">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        movie.status === 'now-showing' 
+                        movie.status === 'ACTIVE' 
                           ? 'bg-green-500/80 text-white' 
                           : 'bg-blue-500/80 text-white'
                       }`}>
-                        {movie.status === 'now-showing' ? 'Now Showing' : 'Coming Soon'}
+                        {movie.status === 'ACTIVE' ? 'Now Showing' : 'Coming Soon'}
                       </span>
                     </div>
 
                     <img
-                      src={movie.posterUrl}
-                      alt={movie.title}
+                      src={movie.imageUrl}
+                      alt={movie.movieName}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.currentTarget.src = '/fallback-movie-poster.jpg'; // Add a fallback image
@@ -199,9 +201,9 @@ const Movies: React.FC = () => {
                   
                   <div className="p-6 space-y-4">
                     <h3 className="text-xl font-semibold text-white hover:text-primary-400 cursor-pointer line-clamp-2"
-                        onClick={() => navigate(`/movies/${movie.id}`)}
+                        onClick={() => navigate(`/movies/${movie.movieID}`)}
                     >
-                      {movie.title}
+                      {movie.movieName}
                     </h3>
 
                     <div className="flex items-center justify-between text-secondary-300">
@@ -211,12 +213,12 @@ const Movies: React.FC = () => {
                       </div>
                       <div className="flex items-center">
                         <Star size={16} className="mr-1 text-yellow-500" />
-                        <span>{movie.rating.toFixed(1)}</span>
+                        <span>1</span>
                       </div>
                     </div>
 
                     <Button
-                      onClick={() => navigate(`/movies/${movie.id}`)}
+                      onClick={() => navigate(`/movies/${movie.movieID}`)}
                       fullWidth
                       leftIcon={<Info size={18} />}
                       className="bg-primary-600 hover:bg-primary-500 text-white transition-all duration-300 rounded-xl py-3"

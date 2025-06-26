@@ -129,6 +129,8 @@ export interface RoomCreateDto {
   roomtypeid: string;
   roomnumber: number;  
   capacity: number;
+  seatRows: number,      // <-- Add this
+  seatColumns: number // <-- Add this
 }
 
 export interface RoomUpdateDto {
@@ -149,6 +151,8 @@ export interface RoomResponse {
   updatedat: string;
   cinema: null;
   roomtype: null;
+  rows: number;
+  columns: number;
   schedules: any[];
   seats: any[];
 }

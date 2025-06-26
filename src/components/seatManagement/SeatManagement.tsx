@@ -108,6 +108,15 @@ const SeatManagement: React.FC = () => {
     const handleEditSeat = async (seatData: any) => {
     setLoading(true);
     try {
+        if (seatData.delete) {
+            await seatService.delete(seatData.seatid);
+            fetchSeats();
+            setIsModalOpen(false);
+            setSelectedSeat(null);
+            showToast('Seat deleted successfully!', 'success');
+            setLoading(false);
+            return;
+        }
         const updatePayload: any = {
             SeatId: seatData.seatid,
             SeatTypeId: seatData.seattypeid,
@@ -162,6 +171,90 @@ const SeatManagement: React.FC = () => {
         } catch (error) {
             console.error('Error creating seats:', error);
             showToast('Failed to create seats', 'error');
+        }
+        setLoading(false);
+    };
+
+    const handleQuickCreateSeat = async (row: string, number: string) => {
+        setLoading(true);
+        try {
+            // Use default seat type (first in list) and status
+            const defaultType = seatTypes[0];
+            await seatService.create({
+                seattypeid: defaultType?.seattypeid,
+                roomid: selectedRoom!.id,
+                number,
+                row
+            });
+            fetchSeats();
+            showToast(`Seat ${row}${number} created!`, 'success');
+        } catch (error) {
+            showToast('Failed to create seat', 'error');
+        }
+        setLoading(false);
+    };
+
+    const handleBatchCreate = async (seatsToCreate: {row: string, number: string, seattypeid: string}[]) => {
+        setLoading(true);
+        try {
+            const payload = seatsToCreate.map(({row, number, seattypeid}) => ({
+                seattypeid,
+                roomid: selectedRoom!.id,
+                number,
+                row
+            }));
+            for (const seat of payload) {
+                await seatService.create(seat);
+            }
+            await fetchSeats();
+            showToast(`${payload.length} seats created!`, 'success');
+        } catch (error) {
+            showToast('Failed to create seats', 'error');
+        }
+        setLoading(false);
+    };
+
+    const handleBatchDelete = async (seatIds: string[]) => {
+        setLoading(true);
+        try {
+            for (const seatId of seatIds) {
+                await seatService.delete(seatId);
+            }
+            await fetchSeats(); // Only refresh once
+            showToast(`${seatIds.length} seats deleted!`, 'success');
+        } catch (error) {
+            showToast('Failed to delete seats', 'error');
+        }
+        setLoading(false);
+    };
+
+    const handleBatchUpdate = async (seats: Seat[]) => {
+        setLoading(true);
+        try {
+            for (const seat of seats) {
+                const updatePayload: any = {
+                    SeatId: seat.seatId,
+                    SeatTypeId: seat.seattypeid,
+                    Number: seat.number,
+                    Row: seat.row,
+                    Status: seat.status,
+                    IsActive: seat.isactive,
+                    IsLinked: seat.islinked,
+                };
+                // Map linkedto to LinkedTo if present and valid
+                if (
+                    seat.islinked &&
+                    seat.linkedto &&
+                    /^[0-9a-fA-F\-]{36}$/.test(seat.linkedto)
+                ) {
+                    updatePayload.LinkedTo = seat.linkedto;
+                }
+                await seatService.update(updatePayload);
+            }
+            await fetchSeats();
+            showToast('Seats updated!', 'success');
+        } catch (error) {
+            showToast('Failed to update seats', 'error');
         }
         setLoading(false);
     };
@@ -234,22 +327,11 @@ const SeatManagement: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setIsBulkModalOpen(true)}
-                                disabled={!selectedRoom || loading}
-                                className="group flex items-center gap-2 px-4 py-2.5 bg-warning-500/20 hover:bg-warning-500/30 text-warning-400 hover:text-warning-300 rounded-xl transition-all duration-200 border border-warning-500/30 hover:border-warning-400/50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                            >
-                                <Settings size={18} className="group-hover:rotate-90 transition-transform duration-200" />
-                                <span>Bulk Create</span>
-                            </button>
-                            <button
-                                onClick={() => openModal(null)}
-                                disabled={!selectedRoom || loading}
-                                className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-                            >
-                                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-200" />
-                                <span>Add Seat</span>
-                            </button>
+                            {/* REMOVE THESE BUTTONS */}
+                            {/* 
+                            <button ...>Bulk Create</button>
+                            <button ...>Add Seat</button>
+                            */}
                         </div>
                     </div>
 
@@ -330,6 +412,21 @@ const SeatManagement: React.FC = () => {
                             loading={loading}
                             onSeatClick={openModal}
                             onSeatDelete={handleDeleteSeat}
+                            onSeatCreate={handleQuickCreateSeat}
+                            onBatchCreate={async (seatsToCreate: { row: string; number: string; seattypeid?: string }[]) => {
+                                // Add default seattypeid if missing (use first seatType as default)
+                                const defaultTypeId = seatTypes[0]?.seattypeid || '';
+                                const seatsWithType = seatsToCreate.map(seat => ({
+                                    ...seat,
+                                    seattypeid: seat.seattypeid ?? defaultTypeId
+                                }));
+                                await handleBatchCreate(seatsWithType);
+                            }}
+                            onBatchDelete={handleBatchDelete}
+                            onBatchUpdate={handleBatchUpdate}
+                            rowsCount={selectedRoom.rows ?? 10}
+                            columnsCount={selectedRoom.columns ?? 12}
+                            seatTypes={seatTypes} // <-- Add this
                         />
                     </div>
                 )}

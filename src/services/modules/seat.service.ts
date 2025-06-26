@@ -47,7 +47,21 @@ export const seatService = {
   async delete(seatId: string) {
     // Your backend expects seatId as a query param
     return api.delete(`/Seat?seatId=${seatId}`);
-  }
+  },
+
+  linkSeats: async (firstSeatId: string, secondSeatId: string) => {
+    return api.put('/Seat/LinkSeat', {
+      firstSeatId,
+      secondSeatId,
+    });
+  },
+
+  unlinkSeats: async (firstSeatId: string, secondSeatId: string) => {
+    return api.put('/Seat/UnLinkSeat', {
+      firstSeatId,
+      secondSeatId,
+    });
+  },
 };
 
 export const seatTypeService = {
