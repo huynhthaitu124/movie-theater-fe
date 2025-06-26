@@ -1,13 +1,15 @@
 export interface Room {
   id: string;          // This maps to roomId from API
-  roomtypeid: string;  // Add this field
-  cinemaname: string;  // Add this field
+  roomtypeid: string;
+  cinemaname: string;
   roomnumber: number;
-  name?: string;       // Add this as optional since API doesn't provide it
+  name?: string;
   capacity: number;
   isactive: boolean;
   createdat: string;
   updatedat: string;
+  rows?: number;       // <-- Add this
+  columns?: number;    // <-- Add this
 }
 
 export interface Cinema {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Hash, Type, ToggleLeft, ToggleRight, Loader2, Link } from 'lucide-react';
 import { Seat, SeatType } from '../../types/seat';
+import { seatService } from '../../services/modules/seat.service';
 
 interface SeatModalProps {
     seat: Seat | null;
@@ -21,6 +22,8 @@ const SeatModal: React.FC<SeatModalProps> = ({ seat, seatTypes, onSubmit, onClos
     const [linkedto, setLinkedTo] = useState(seat ? seat.linkedto || '' : '');
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [selectedTypeId, setSelectedTypeId] = useState<string>(seatTypes[0]?.seattypeid || '');
+    const [deleteSeat, setDeleteSeat] = useState(false);
 
     const statusOptions = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'BLOCKED'];
 
@@ -35,6 +38,22 @@ const SeatModal: React.FC<SeatModalProps> = ({ seat, seatTypes, onSubmit, onClos
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+
+        // If seat was linked and now is unlinked
+        if (seat && seat.islinked && !islinked && seat.linkedto) {
+            try {
+                await seatService.unlinkSeats(seat.seatId, seat.linkedto);
+            } catch (err) {
+                setError('Failed to unlink seats');
+                return;
+            }
+        }
+
+        if (deleteSeat) {
+            // Only pass seatId for deletion
+            await onSubmit({ delete: true, seatid: seat?.seatId });
+            return;
+        }
 
         // Validation
         if (!row.trim()) {
@@ -295,6 +314,23 @@ const SeatModal: React.FC<SeatModalProps> = ({ seat, seatTypes, onSubmit, onClos
                             )}
                         </button>
                     </div>
+
+                    {/* Delete Seat Option */}
+                    {seat && (
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="delete-seat"
+                                checked={deleteSeat}
+                                onChange={() => setDeleteSeat(!deleteSeat)}
+                                disabled={submitting || loading}
+                                className="w-4 h-4 accent-error-500"
+                            />
+                            <label htmlFor="delete-seat" className="text-error-400 font-medium select-none cursor-pointer">
+                                Delete this seat
+                            </label>
+                        </div>
+                    )}
                 </form>
             </div>
         </div>

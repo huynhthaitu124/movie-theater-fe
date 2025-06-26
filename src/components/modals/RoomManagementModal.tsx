@@ -38,6 +38,8 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
     roomnumber: 0,
     capacity: 0,
     roomtypeid: '',
+    rows: 0,
+    columns: 0,
   });
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -49,6 +51,8 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
         roomnumber: room.roomnumber,
         capacity: room.capacity,
         roomtypeid: room.roomtypeid,
+        rows: room.rows ?? 0,
+        columns: room.columns ?? 0
       });
     } else {
       // Reset form for new room
@@ -56,9 +60,19 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
         roomnumber: 0,
         capacity: 0,
         roomtypeid: '',
+        rows: 0,
+        columns: 0,
       });
     }
   }, [room, isOpen]);
+
+  // Update capacity when rows or columns change
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      capacity: (prev.rows > 0 && prev.columns > 0) ? prev.rows * prev.columns : 0
+    }));
+  }, [formData.rows, formData.columns]);
 
   // Memoized handlers
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -70,6 +84,10 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
     }
     if (formData.capacity <= 0) {
       toast.error('Capacity must be greater than 0');
+      return;
+    }
+    if (formData.rows <= 0 || formData.columns <= 0) {
+      toast.error('Rows and Columns must be greater than 0');
       return;
     }
     onSave(formData);
@@ -140,22 +158,6 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
 
             <div>
               <label className="block text-sm text-secondary-300 mb-2">
-                Capacity
-              </label>
-              <input
-                type="number"
-                value={formData.capacity}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  capacity: parseInt(e.target.value) 
-                })}
-                className="w-full bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-secondary-300 mb-2">
                 Room Type
               </label>
               <select
@@ -174,6 +176,52 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm text-secondary-300 mb-2">
+                Rows
+              </label>
+              <input
+                type="number"
+                value={formData.rows}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  rows: parseInt(e.target.value)
+                })}
+                className="w-full bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white"
+                required
+                min={1}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-secondary-300 mb-2">
+                Columns
+              </label>
+              <input
+                type="number"
+                value={formData.columns}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  columns: parseInt(e.target.value)
+                })}
+                className="w-full bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white"
+                required
+                min={1}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-secondary-300 mb-2">
+                Capacity
+              </label>
+              <input
+                type="number"
+                value={formData.capacity}
+                readOnly
+                disabled
+                className="w-full bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white opacity-60 cursor-not-allowed"
+              />
             </div>
           </div>
 
