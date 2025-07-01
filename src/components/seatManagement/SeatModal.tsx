@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X, MapPin, Hash, Type, ToggleLeft, ToggleRight, Loader2, Link } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Type, Loader2 } from 'lucide-react';
 import { Seat, SeatType } from '../../types/seat';
-import { seatService } from '../../services/modules/seat.service';
 
 interface SeatModalProps {
     seat: Seat | null;
@@ -13,68 +12,22 @@ interface SeatModalProps {
 
 const SeatModal: React.FC<SeatModalProps> = ({ seat, seatTypes, onSubmit, onClose, loading = false }) => {
     const [seatTypeName, setSeatTypeName] = useState(seat ? seat.seatTypeName : seatTypes[0]?.name || '');
-    const [seattypeid, setSeatTypeId] = useState(seat ? seat.seattypeid : seatTypes[0]?.seattypeid || '');
-    const [number, setNumber] = useState(seat ? seat.number : '');
-    const [row, setRow] = useState(seat ? seat.row : '');
-    const [status, setStatus] = useState(seat ? seat.status : 'AVAILABLE');
-    const [isactive, setIsActive] = useState(seat ? seat.isactive : true);
-    const [islinked, setIsLinked] = useState(seat ? seat.islinked : false);
-    const [linkedto, setLinkedTo] = useState(seat ? seat.linkedto || '' : '');
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [selectedTypeId, setSelectedTypeId] = useState<string>(seatTypes[0]?.seattypeid || '');
-    const [deleteSeat, setDeleteSeat] = useState(false);
-
-    const statusOptions = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'BLOCKED'];
-
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [onClose]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
 
-        // If seat was linked and now is unlinked
-        if (seat && seat.islinked && !islinked && seat.linkedto) {
-            try {
-                await seatService.unlinkSeats(seat.seatId, seat.linkedto);
-            } catch (err) {
-                setError('Failed to unlink seats');
-                return;
-            }
-        }
-
-        if (deleteSeat) {
-            // Only pass seatId for deletion
-            await onSubmit({ delete: true, seatid: seat?.seatId });
-            return;
-        }
-
         // Validation
-        if (!row.trim()) {
-            setError('Row is required');
-            return;
-        }
-        if (!number.trim()) {
-            setError('Seat number is required');
-            return;
-        }
-        if (islinked && !linkedto.trim()) {
-            setError('Linked seat ID is required when seat is linked');
+        if (!seatTypeName) {
+            setError('Seat type is required');
             return;
         }
 
         setSubmitting(true);
         try {
-            // Find the seat type object by name
-            
             const selectedType = seatTypes.find(type => type.name === seatTypeName);
-
             if (!selectedType) {
                 setError('Invalid seat type selected');
                 setSubmitting(false);
@@ -82,34 +35,17 @@ const SeatModal: React.FC<SeatModalProps> = ({ seat, seatTypes, onSubmit, onClos
             }
 
             await onSubmit({
-                
-                seatid: seat ? seat.seatId : undefined,
-                seattypeid: selectedType.seattypeid, // use the mapped ID
-                seatTypeName,
-                number: number.trim(),
-                row: row.trim().toUpperCase(),
-                status,
-                isactive,
-                islinked,
-                linkedto: islinked ? linkedto.trim() : null,
+                seatid: seat?.seatId,
+                row: seat?.row,
+                number: seat?.number,
+                roomid: seat?.roomId,
+                seattypeid: selectedType.seattypeid,
+                // add other required fields if needed
             });
         } catch (err) {
             setError('Failed to save seat. Please try again.');
         }
         setSubmitting(false);
-    };
-
-    // When toggling linked, set linkedto to this seat's id if turning on
-    const handleLinkedToggle = () => {
-        setIsLinked((prev) => {
-            const newValue = !prev;
-            if (newValue && seat && seat.seatId) {
-                setLinkedTo(seat.seatId); // Auto-fill with this seat's ID
-            } else if (!newValue) {
-                setLinkedTo('');
-            }
-            return newValue;
-        });
     };
 
     return (
@@ -132,6 +68,28 @@ const SeatModal: React.FC<SeatModalProps> = ({ seat, seatTypes, onSubmit, onClos
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {/* Read-only seat info */}
+                    {seat && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Row</label>
+                                <input
+                                    className="w-full bg-slate-900/50 border border-slate-600/50 text-white px-3 py-2 rounded-xl"
+                                    value={seat.row}
+                                    readOnly
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Number</label>
+                                <input
+                                    className="w-full bg-slate-900/50 border border-slate-600/50 text-white px-3 py-2 rounded-xl"
+                                    value={seat.number}
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Seat Type */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -149,138 +107,6 @@ const SeatModal: React.FC<SeatModalProps> = ({ seat, seatTypes, onSubmit, onClos
                             ))}
                         </select>
                     </div>
-
-                    {/* Row and Number */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                                <MapPin size={16} />
-                                Row
-                            </label>
-                            <input
-                                type="text"
-                                className="w-full bg-slate-900/50 border border-slate-600/50 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-slate-500 uppercase"
-                                value={row}
-                                onChange={e => setRow(e.target.value)}
-                                placeholder="A"
-                                maxLength={2}
-                                required
-                                disabled={submitting}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                                <Hash size={16} />
-                                Number
-                            </label>
-                            <input
-                                type="text"
-                                className="w-full bg-slate-900/50 border border-slate-600/50 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-slate-500"
-                                value={number}
-                                onChange={e => setNumber(e.target.value)}
-                                placeholder="1"
-                                required
-                                disabled={submitting}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Status */}
-                    <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                            Status
-                        </label>
-                        <select
-                            className="w-full bg-slate-900/50 border border-slate-600/50 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200"
-                            value={status}
-                            onChange={e => setStatus(e.target.value as any)}
-                            disabled={submitting}
-                        >
-                            {statusOptions.map(option => (
-                                <option key={option} value={option}>{option}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Active Toggle */}
-                    <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                            Active Status
-                        </label>
-                        <button
-                            type="button"
-                            onClick={() => setIsActive(!isactive)}
-                            disabled={submitting}
-                            className={`flex items-center gap-3 w-full p-4 rounded-xl border transition-all duration-200 ${
-                                isactive 
-                                    ? 'bg-success-500/10 border-success-500/30 text-success-300' 
-                                    : 'bg-slate-700/30 border-slate-600/50 text-slate-400'
-                            }`}
-                        >
-                            {isactive ? (
-                                <ToggleRight className="w-6 h-6 text-success-400" />
-                            ) : (
-                                <ToggleLeft className="w-6 h-6 text-slate-500" />
-                            )}
-                            <div className="text-left">
-                                <div className="font-medium">
-                                    {isactive ? 'Active' : 'Inactive'}
-                                </div>
-                                <div className="text-xs opacity-75">
-                                    {isactive ? 'Seat is available for use' : 'Seat is disabled'}
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-
-                    {/* Linked Toggle */}
-                    <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                            <Link size={16} />
-                            Linked Seat
-                        </label>
-                        <button
-                            type="button"
-                            onClick={handleLinkedToggle}
-                            disabled={submitting}
-                            className={`flex items-center gap-3 w-full p-4 rounded-xl border transition-all duration-200 ${
-                                islinked 
-                                    ? 'bg-purple-500/10 border-purple-500/30 text-purple-300' 
-                                    : 'bg-slate-700/30 border-slate-600/50 text-slate-400'
-                            }`}
-                        >
-                            {islinked ? (
-                                <ToggleRight className="w-6 h-6 text-purple-400" />
-                            ) : (
-                                <ToggleLeft className="w-6 h-6 text-slate-500" />
-                            )}
-                            <div className="text-left">
-                                <div className="font-medium">
-                                    {islinked ? 'Linked' : 'Not Linked'}
-                                </div>
-                                <div className="text-xs opacity-75">
-                                    {islinked ? 'This seat is linked to another' : 'Independent seat'}
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-
-                    {/* Linked To Field */}
-                    {islinked && (
-                        <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                                Linked To (Seat ID)
-                            </label>
-                            <input
-                                type="text"
-                                className="w-full bg-slate-900/50 border border-slate-600/50 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-slate-500"
-                                value={linkedto}
-                                onChange={e => setLinkedTo(e.target.value)}
-                                placeholder="Enter seat ID to link to"
-                                disabled={submitting}
-                            />
-                        </div>
-                    )}
 
                     {/* Error Message */}
                     {error && (
@@ -314,23 +140,6 @@ const SeatModal: React.FC<SeatModalProps> = ({ seat, seatTypes, onSubmit, onClos
                             )}
                         </button>
                     </div>
-
-                    {/* Delete Seat Option */}
-                    {seat && (
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                id="delete-seat"
-                                checked={deleteSeat}
-                                onChange={() => setDeleteSeat(!deleteSeat)}
-                                disabled={submitting || loading}
-                                className="w-4 h-4 accent-error-500"
-                            />
-                            <label htmlFor="delete-seat" className="text-error-400 font-medium select-none cursor-pointer">
-                                Delete this seat
-                            </label>
-                        </div>
-                    )}
                 </form>
             </div>
         </div>

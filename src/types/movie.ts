@@ -1,22 +1,22 @@
 export interface Movie {
-  movieID: string; // renamed from movieId
+  movieID: string;
   movieName: string;
   description: string;
-  duration: number;
-  subtitleId: string; 
-  categories: string[];
   actor: string;
   director: string;
-  dubbing: boolean;
-  imageUrl: string;
-  minimumAge: number;
-  movieLanguage: string;
-  movieTypes: string[];
   productionCompany: string;
-  status: 'ACTIVE' | 'INACTIVE';
-  trailerUrl: string;
-  createdAt: string;
-  updatedAt: string;
+  duration: number;
+  image: string; // <-- match backend: "image"
+  trailer: string; // <-- match backend: "trailer"
+  minimumAge: number;
+  dubbing: boolean;
+  movieTypes: string; // <-- match backend: comma separated string
+  subtitleID: string; // <-- match backend: "subtitleID"
+  movieLanguage: string;
+  status: string; // 'ACTIVE' | 'INACTIVE' or string if backend allows
+  // Remove: subtitleId, categories, imageUrl, trailerUrl
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MovieCategory {

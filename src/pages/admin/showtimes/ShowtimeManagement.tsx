@@ -1,393 +1,396 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Calendar, Clock, Building2, Settings2, Trash2, AlertCircle, Loader2 } from 'lucide-react';
-import AdminLayout from '../../../components/layout/AdminLayout';
-import { mockLocations } from '../../../data/mockCinemas';
-import { mockMovies } from '../../../data/mockMovies';
-import { Showtime } from '../../../types/showtime';
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Calendar, Film, Monitor, Plus } from 'lucide-react';
+import { CalendarEvent } from '../../../types/showtime';
+import { Cinema, Room } from '../../../types/cinema';
 import { Movie } from '../../../types/movie';
-import ShowtimeManagementModal from '../../../components/modals/ShowtimeManagementModal';
-import DeleteConfirmationModal from '../../../components/modals/DeleteConfirmationModal';
-import MultipleShowtimeModal from '../../../components/modals/MultipleShowtimeModal';
-import { useSearchParams } from 'react-router-dom';
-import { showtimeService } from '../../../services/modules/showtime.service';
+import MovieSidebar from '../../../components/calendar/MovieSidebar';
+import CalendarGrid from '../../../components/calendar/CalendarGrid';
+import EventModal from '../../../components/calendar/EventModal';
+import SettingModal from '../../../components/calendar/SettingModal';
 import { movieService } from '../../../services/modules/movie.service';
+import { cinemaService } from '../../../services/modules/cinema.service';
+import { showtimeService } from '../../../services/modules/showtime.service';
+import { movieCinemaService } from '../../../services/modules/movieCinema.service';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { roomService } from '../../../services/modules/room.service';
 
 const ShowtimeManagement: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const movieId = searchParams.get('movieId');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const cinemaIdParam = params.get('cinemaId') || '';
 
-  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<string>(movieId || '');
-  const [selectedCinema, setSelectedCinema] = useState<string>('');
-  const [selectedRoom, setSelectedRoom] = useState<string>('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null);
-  const [isMultipleModalOpen, setIsMultipleModalOpen] = useState(false);
-  const [selectedMovieForMultiple, setSelectedMovieForMultiple] = useState<Movie | null>(null);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [cinemaName, setCinemaName] = useState<string>('');
+  const [cinemaLocation, setCinemaLocation] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isSettingModalOpen, setIsSettingModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [cinemaId, setCinemaId] = useState<string>('');
+  const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
+  const [daysToShow, setDaysToShow] = useState<number>(7);
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+  const [pendingShowtime, setPendingShowtime] = useState<Omit<CalendarEvent, 'id'> | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
+  // Fetch movies and cinemas from API
   useEffect(() => {
-    const fetchShowtimes = async () => {
-      setIsLoading(true);
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const response = await showtimeService.getAll();
-        setShowtimes(response.data);
+        // Fetch all cinemas
+        const cinemaRes = await cinemaService.getAll();
+        // Find the cinema that matches the id from the URL
+        const foundCinema = cinemaRes.data.find(
+          (c: any) => c.cinemaid === cinemaIdParam
+        );
+        if (foundCinema) {
+          setCinemaId(foundCinema.cinemaid);
+          setCinemaName(foundCinema.cinemaname);
+          setCinemaLocation(foundCinema.location);
+
+          // Fetch rooms for this cinema using cinemaId
+          const roomsRes = await roomService.getByCinema(foundCinema.cinemaid);
+          const mappedRooms = roomsRes.data.map((room: any) => ({
+            id: room.roomId,
+            number: room.roomnumber,
+            type: room.roomtype,
+            capacity: room.capacity,
+            ...room,
+          }));
+          setRooms(mappedRooms);
+
+          // Fetch movies for this cinema
+          const movieRes = await movieCinemaService.getMoviesByCinema(foundCinema.cinemaid);
+          const mappedMovies = movieRes.data.map((movie: any) => ({
+            ...movie,
+            movieId: movie.movieID || movie.movieId, // ensure both are mapped
+          }));
+          setMovies(mappedMovies);
+        } else {
+          setRooms([]);
+          setMovies([]);
+        }
+
+        // Fetch showtimes for this cinema
+        if (foundCinema) {
+          const showtimeRes = await showtimeService.getSchedulesByCinema(foundCinema.cinemaid);
+          setEvents(
+            showtimeRes.data.map((showtime: any) => ({
+              id: showtime.scheduleId,
+              roomId: showtime.roomid,      // <-- fix casing
+              movieId: showtime.movieid,    // <-- fix casing
+              date: showtime.showdate,      // <-- fix casing
+              startTime: showtime.starttime, // <-- fix casing
+              endTime: showtime.endtime,     // <-- fix casing
+              title: showtime.moviename || showtime.title || "Untitled",
+              color: showtime.color || "#3b82f6",
+              price: showtime.price ?? 0,
+              status: showtime.status,
+              isActive: showtime.isactive,
+            }))
+          );
+        } else {
+          setEvents([]);
+        }
       } catch (err) {
-        setError('Failed to load showtimes. Please try again later.');
+        // handle error
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
+    fetchData();
+  }, [cinemaIdParam]);
 
-    fetchShowtimes();
-  }, []);
+  const showToast = (message: string) => {
+    setToast({ message, visible: true });
+    setTimeout(() => setToast({ message: '', visible: false }), 2500);
+  };
+  // Add showtime
+  const handleEventCreate = (eventData: Omit<CalendarEvent, 'id'>) => {
+    const now = new Date();
+    const eventDate = new Date(`${eventData.date}T${eventData.startTime}`);
+    if (eventDate < now) {
+      showToast("You cannot add showtime in the past!");
+      return;
+    }
+    setPendingShowtime(eventData);
+    setIsConfirmModalOpen(true);
+  };
 
-  // Filter showtimes based on selection
-  const filteredShowtimes = showtimes.filter(showtime => {
-    const matchesMovie = !selectedMovie || showtime.movieId === selectedMovie;
-    const matchesCinema = !selectedCinema || showtime.cinemaId === selectedCinema;
-    const matchesRoom = !selectedRoom || showtime.roomId === selectedRoom;
-    return matchesMovie && matchesCinema && matchesRoom;
-  });
-
-  const handleSaveShowtime = async (data: Partial<Showtime>) => {
+  // Delete event (hard delete showtime)
+  const handleEventDelete = async (eventId: string) => {
     try {
-      if (selectedShowtime) {
-        // Update existing showtime
-        const response = await showtimeService.update(selectedShowtime.id, data);
-        if (response.data) {
-          setShowtimes(prev => prev.map(st => 
-            st.id === selectedShowtime.id ? response.data : st
-          ));
-        }
-      } else {
-        const movie = mockMovies.find(m => m.movieID === data.movieId);
-        const cinema = mockLocations
-          .flatMap(l => l.cinemas)
-          .find(c => c.id === data.cinemaId);
-        const room = cinema?.rooms.find(r => r.id === data.roomId);
-
-        const response = await showtimeService.create({
-          ...data,
-          status: 'scheduled',
-          movie,
-          cinema,
-          room,
-          availableSeats: room?.capacity || 0,
-          totalSeats: room?.capacity || 0,
-          format: room?.type.toUpperCase() as Showtime['format']
-        } as Omit<Showtime, 'id'>);
-
-        if (response.data) {
-          setShowtimes(prev => [...prev, response.data]);
-        }
-      }
-      setIsModalOpen(false);
-      setSelectedShowtime(null);
+      console.log(`Deleting event with ID: ${eventId}`);
+      await showtimeService.hardDeleteMovieSchedule(eventId);
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+      // Optionally show success message
     } catch (err) {
-      setError('Failed to save showtime. Please try again.');
+      // handle error
     }
   };
 
-  const handleDeleteShowtime = async () => {
-    if (selectedShowtime) {
-      try {
-        await showtimeService.delete(selectedShowtime.id);
-        setShowtimes(prev => prev.filter(st => st.id !== selectedShowtime.id));
-        setShowDeleteModal(false);
-        setSelectedShowtime(null);
-      } catch (err) {
-        setError('Failed to delete showtime. Please try again.');
-      }
-    }
+  // Click event
+  const handleEventClick = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setIsEventModalOpen(true);
   };
 
-  const handleSaveMultipleShowtimes = async (entries: any[]) => {
+  // Open settings modal
+  const openSettingModal = () => {
+    setIsSettingModalOpen(true);
+  };
+
+  // Close settings modal
+  const closeSettingModal = () => {
+    setIsSettingModalOpen(false);
+  };
+
+  
+
+  // Toggle room selection
+  const handleRoomToggle = (roomId: string) => {
+  setSelectedRooms(prev =>
+    prev.includes(roomId)
+      ? prev.filter(id => id !== roomId)
+      : [...prev, roomId]
+  );
+  console.log(`Room ${roomId} toggled. Selected rooms:`, selectedRooms);
+  console.log(`Selected rooms count: ${selectedRooms.length}`);
+};
+
+  // Select all rooms
+  const handleSelectAll = () => {
+    setSelectedRooms(rooms.map(room => room.id));
+  };
+
+  // Deselect all rooms
+  const handleSelectNone = () => {
+    setSelectedRooms([]);
+  };
+
+  // Change days to show
+  const handleDaysChange = (days: number) => {
+    setDaysToShow(days);
+  };
+
+  const actuallyAddShowtime = async (eventData: Omit<CalendarEvent, 'id'>) => {
     try {
-      const newShowtimes = entries.flatMap(entry => 
-        entry.times.map((time: string) => {
-          const startDateTime = new Date(`${entry.date}T${time}`);
-          const endDateTime = new Date(
-            startDateTime.getTime() + 
-            (selectedMovieForMultiple?.duration || 0) * 60000
-          );
+      const showDate = eventData.date;
+      const startTime = eventData.startTime.length === 5 ? eventData.startTime + ":00" : eventData.startTime;
+      const endTime = eventData.endTime.length === 5 ? eventData.endTime + ":00" : eventData.endTime;
 
-          const cinema = mockLocations
-            .flatMap(l => l.cinemas)
-            .find(c => c.id === entry.cinemaId);
-          const room = cinema?.rooms.find(r => r.id === entry.roomId);
+      const payload = {
+        roomId: eventData.roomId,
+        movieId: eventData.movieId,
+        showDate,
+        startTime,
+        endTime,
+        status: eventData.status || "ACTIVE",
+        isActive: eventData.isActive ?? true,
+      };
 
-          return {
-            movieId: selectedMovieForMultiple?.movieID || '',
-            cinemaId: entry.cinemaId,
-            roomId: entry.roomId,
-            startTime: startDateTime.toISOString(),
-            endTime: endDateTime.toISOString(),
-            price: entry.price,
-            status: 'scheduled' as const,
-            movie: selectedMovieForMultiple,
-            cinema,
-            room,
-            format: room?.type.toUpperCase() as Showtime['format'],
-            availableSeats: room?.capacity || 0,
-            totalSeats: room?.capacity || 0
-          };
-        })
+      Object.keys(payload).forEach(
+        key => payload[key] === undefined && delete payload[key]
       );
 
-      const response = await showtimeService.createMany(newShowtimes as Omit<Showtime, 'id'>[]);
-      if (response.data) {
-        setShowtimes(prev => [...prev, ...response.data]);
+      if (!payload.roomId || !payload.movieId) {
+        alert('Missing room or movie!');
+        return;
       }
-      setIsMultipleModalOpen(false);
-      setSelectedMovieForMultiple(null);
+
+      await showtimeService.addMovieSchedule(payload);
+
+      // Refetch showtimes for this cinema and update state
+      const showtimeRes = await showtimeService.getSchedulesByCinema(cinemaId);
+      setEvents(
+        showtimeRes.data.map((showtime: any) => ({
+          id: showtime.scheduleId,
+          roomId: showtime.roomid,
+          movieId: showtime.movieid,
+          date: showtime.showdate,
+          startTime: showtime.starttime,
+          endTime: showtime.endtime,
+          title: showtime.moviename || showtime.title || "Untitled",
+          color: showtime.color || "#3b82f6",
+          price: showtime.price ?? 0,
+          status: showtime.status,
+          isActive: showtime.isactive,
+        }))
+      );
     } catch (err) {
-      setError('Failed to create showtimes. Please try again.');
+      alert('Failed to add showtime. See console for details.');
+      console.error(err);
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-screen">
-          <Loader2 className="animate-spin h-10 w-10 text-primary-500" />
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <AdminLayout>
-        <div className="p-6">
-          <div className="flex items-center p-4 bg-error-500/10 rounded-lg">
-            <AlertCircle className="w-6 h-6 text-error-500 mr-3" />
-            <span className="text-error-500 font-medium">{error}</span>
-          </div>
-        </div>
-      </AdminLayout>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
     );
   }
 
   return (
-    <AdminLayout>
-      <div className="p-6 space-y-6">
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center"
+    <div className="h-screen flex flex-col bg-secondary-900">
+      {/* Back Button */}
+      <div className="px-6 pt-4">
+        <button
+          onClick={() => navigate('/admin/cinemas')}
+          className="flex items-center gap-2 text-sm text-primary-400 hover:underline"
         >
-          <h1 className="text-2xl font-bold text-white">Showtime Management</h1>
-          <div className="flex gap-4">
-            {/* Single Showtime Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-secondary-700 text-white rounded-lg hover:bg-secondary-600 flex items-center"
-            >
-              <Plus size={20} className="mr-2" />
-              Add Single Showtime
-            </motion.button>
-
-            {/* Multiple Showtimes Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                const movie = mockMovies.find(m => m.movieID === selectedMovie);
-                if (movie) {
-                  setSelectedMovieForMultiple(movie);
-                  setIsMultipleModalOpen(true);
-                }
-              }}
-              disabled={!selectedMovie}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Plus size={20} className="mr-2" />
-              Add Multiple Showtimes
-            </motion.button>
-          </div>
-        </motion.div>
-
-        {/* Filters */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4"
-        >
-          <select
-            value={selectedMovie}
-            onChange={(e) => setSelectedMovie(e.target.value)}
-            className="bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white"
-          >
-            <option value="">All Movies</option>
-            {mockMovies.map(movie => (
-              <option key={movie.movieID} value={movie.movieID}>{movie.movieName}</option>
-            ))}
-          </select>
-
-          {/* Cinema Filter */}
-          <select
-            value={selectedCinema}
-            onChange={(e) => {
-              setSelectedCinema(e.target.value);
-              setSelectedRoom('');
-            }}
-            className="bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white"
-          >
-            <option value="">All Cinemas</option>
-            {mockLocations.flatMap(location => 
-              location.cinemas.map(cinema => (
-                <option key={cinema.id} value={cinema.id}>{cinema.name}</option>
-              ))
-            )}
-          </select>
-
-          {/* Room Filter */}
-          <select
-            value={selectedRoom}
-            onChange={(e) => setSelectedRoom(e.target.value)}
-            className="bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white"
-            disabled={!selectedCinema}
-          >
-            <option value="">All Rooms</option>
-            {selectedCinema && mockLocations
-              .flatMap(l => l.cinemas)
-              .find(c => c.id === selectedCinema)
-              ?.rooms.map(room => (
-                <option key={room.id} value={room.id}>{room.name}</option>
-              ))}
-          </select>
-        </motion.div>
-
-        {/* Showtimes Grid */}
-        <motion.div 
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          <AnimatePresence>
-            {filteredShowtimes.map((showtime) => (
-              <motion.div
-                key={showtime.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-secondary-800 rounded-lg p-4 space-y-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-medium text-white">
-                      {showtime.movie?.movieName}
-                    </h3>
-                    <p className="text-sm text-secondary-400">
-                      {showtime.movie?.duration} minutes
-                    </p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <motion.button 
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 hover:bg-secondary-700 rounded-lg"
-                      onClick={() => {
-                        setSelectedShowtime(showtime);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      <Settings2 size={18} className="text-secondary-400" />
-                    </motion.button>
-                    <motion.button 
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 hover:bg-error-500/20 rounded-lg"
-                      onClick={() => {
-                        setSelectedShowtime(showtime);
-                        setShowDeleteModal(true);
-                      }}
-                    >
-                      <Trash2 size={18} className="text-error-500" />
-                    </motion.button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <Calendar className="w-4 h-4 mr-2 text-primary-500" />
-                    <span>
-                      {new Date(showtime.startTime).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-2 text-primary-500" />
-                    <span>
-                      {new Date(showtime.startTime).toLocaleTimeString()} - 
-                      {new Date(showtime.endTime).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Building2 className="w-4 h-4 mr-2 text-primary-500" />
-                    <span>
-                      {showtime.cinema?.name} - {showtime.room?.name}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center pt-2 border-t border-secondary-700">
-                  <span className="text-sm font-medium text-white">Price</span>
-                  <motion.span 
-                    whileHover={{ scale: 1.05 }}
-                    className="text-primary-500"
-                  >
-                    {new Intl.NumberFormat('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND'
-                    }).format(showtime.price)}
-                  </motion.span>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Modals */}
-        <ShowtimeManagementModal
-          showtime={selectedShowtime || undefined}
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedShowtime(null);
-          }}
-          onSave={handleSaveShowtime}
-        />
-
-        <DeleteConfirmationModal
-          isOpen={showDeleteModal}
-          onClose={() => {
-            setShowDeleteModal(false);
-            setSelectedShowtime(null);
-          }}
-          onConfirm={handleDeleteShowtime}
-          title="Delete Showtime"
-          message="Are you sure you want to delete this showtime? This action cannot be undone."
-        />
-
-        {selectedMovieForMultiple && (
-          <MultipleShowtimeModal
-            movie={selectedMovieForMultiple}
-            isOpen={isMultipleModalOpen}
-            onClose={() => {
-              setIsMultipleModalOpen(false);
-              setSelectedMovieForMultiple(null);
-            }}
-            onSave={handleSaveMultipleShowtimes}
-          />
-        )}
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Back to Cinema Management
+        </button>
       </div>
-    </AdminLayout>
+
+      {/* Compact Header */}
+      <div className="bg-secondary-800 border-b border-secondary-700 px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white">Showtime Management</h1>
+            <p className="text-secondary-300 text-sm mt-1">
+              {cinemaName && (
+                <span className="font-semibold text-primary-400">{cinemaName}</span>
+              )}
+            </p>
+            <p className="text-secondary-300 text-sm mt-1">
+              Drag movies from sidebar to schedule • Use settings to customize view
+            </p>
+          </div>
+          
+          {/* Quick Stats */}
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-2">
+              <div className="p-1.5 bg-blue-500/20 rounded">
+                <Film className="h-4 w-4 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-xs text-secondary-400">Movies</p>
+                <p className="text-sm font-semibold text-white">{movies.length}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <div className="p-1.5 bg-green-500/20 rounded">
+                <Monitor className="h-4 w-4 text-green-400" />
+              </div>
+              <div>
+                <p className="text-xs text-secondary-400">Theaters</p>
+                <p className="text-sm font-semibold text-white">{rooms.length}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <div className="p-1.5 bg-purple-500/20 rounded">
+                <Calendar className="h-4 w-4 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs text-secondary-400">Showtimes</p>
+                <p className="text-sm font-semibold text-white">{events.length}</p>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        <MovieSidebar movies={movies} />
+        <CalendarGrid
+          rooms={rooms}
+          movies={movies}
+          events={events}
+          onEventCreate={handleEventCreate}
+          onEventDelete={handleEventDelete}
+          onEventClick={handleEventClick}
+          cinemaName={cinemaName}
+          cinemaLocation={cinemaLocation}
+          cinemaId={cinemaId} // <-- Pass cinemaId
+        />
+      </div>
+
+      {/* Event Modal */}
+      <EventModal
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        event={selectedEvent}
+        // movie={selectedMovie}
+        // room={selectedRoom}
+        // onUpdate={handleEventUpdate}
+        onDelete={handleEventDelete}
+      />
+
+      {/* Settings Modal */}
+      <SettingModal
+        isOpen={isSettingModalOpen}
+        onClose={closeSettingModal}
+        selectedRooms={selectedRooms}
+        onRoomToggle={handleRoomToggle}
+        onSelectAll={handleSelectAll}
+        onSelectNone={handleSelectNone}
+        daysToShow={daysToShow}
+        onDaysChange={handleDaysChange}
+        cinemaName={cinemaName}
+        cinemaId={cinemaId} // <-- pass cinemaId
+        cinemaLocation={cinemaLocation}
+      />
+
+      {/* Confirm Modal */}
+      {isConfirmModalOpen && pendingShowtime && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="bg-secondary-800 rounded-lg p-6 w-full max-w-md shadow-lg">
+      <h2 className="text-lg font-bold mb-4 text-white">Confirm Showtime</h2>
+      <div className="space-y-2 text-secondary-200 text-sm">
+        <div><strong>Movie:</strong> {movies.find(m => m.movieId === pendingShowtime.movieId)?.movieName || pendingShowtime.movieId}</div>
+        <div><strong>Room:</strong> {rooms.find(r => r.id === pendingShowtime.roomId)?.number || pendingShowtime.roomId}</div>
+        <div><strong>Date:</strong> {pendingShowtime.date}</div>
+        <div><strong>Start Time:</strong> {pendingShowtime.startTime}</div>
+        <div><strong>End Time:</strong> {pendingShowtime.endTime}</div>
+        <div><strong>Status:</strong> {pendingShowtime.status || "ACTIVE"}</div>
+      </div>
+      <div className="flex justify-end gap-2 mt-6">
+        <button
+          className="px-4 py-2 rounded bg-secondary-600 text-white hover:bg-secondary-500"
+          onClick={() => {
+            setIsConfirmModalOpen(false);
+            setPendingShowtime(null);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-4 py-2 rounded bg-primary-600 text-white hover:bg-primary-500"
+          onClick={async () => {
+            setIsConfirmModalOpen(false);
+            if (pendingShowtime) {
+              await actuallyAddShowtime(pendingShowtime);
+              setPendingShowtime(null);
+            }
+          }}
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+    {/* Toast */}
+    {toast.visible && (
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded shadow-lg z-50 transition-all">
+        {toast.message}
+      </div>
+    )}
+    </div>
   );
 };
 

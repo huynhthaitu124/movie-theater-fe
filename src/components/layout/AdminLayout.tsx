@@ -160,11 +160,6 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       label: 'Cinemas',
     },
     {
-      to: '/admin/showtimes',
-      icon: <Calendar className="w-5 h-5" />,
-      label: 'Showtimes',
-    },
-    {
       to: '/admin/tickets',
       icon: <TicketIcon size={20} />,
       label: 'Tickets',

@@ -3,6 +3,7 @@ import { Seat } from '../../types/seat';
 import { Pencil, Trash2, Loader2, Link, AlertTriangle } from 'lucide-react';
 import { SeatType } from '../../types/seat';
 import { seatService } from '../../services/modules/seat.service';
+import toast from 'react-hot-toast';
 
 interface SeatMapProps {
     seats: Seat[];
@@ -241,10 +242,20 @@ const SeatMap: React.FC<SeatMapProps> = ({
             }
 
             if (dragAction === 'delete') {
-                const toDelete = selected
+                const toDeleteSeats = selected
                     .map(({row, number}) => findSeat(row, number))
-                    .filter(Boolean)
-                    .map(seat => seat!.seatId);
+                    .filter(Boolean) as Seat[];
+
+                if (toDeleteSeats.some(seat => seat.islinked)) {
+                    toast.error("Can't delete linked seat");
+                    setProcessing(false);
+                    setDragging(false);
+                    setStartCell(null);
+                    setEndCell(null);
+                    return;
+                }
+
+                const toDelete = toDeleteSeats.map(seat => seat.seatId);
                 if (toDelete.length > 0 && onBatchDelete) {
                     await onBatchDelete(toDelete);
                 } else {
@@ -382,6 +393,9 @@ const SeatMap: React.FC<SeatMapProps> = ({
                                                         if (editMode) {
                                                             e.preventDefault();
                                                             if (deleteMode && seat) {
+                                                                if (seat.islinked) {
+                                                                    return;
+                                                                }
                                                                 onSeatDelete(seat.seatId);
                                                             } else if (!deleteMode && !seat && selectedTypeId) {
                                                                 onBatchCreate?.([{ row, number, seattypeid: selectedTypeId }]);

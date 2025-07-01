@@ -1,3 +1,4 @@
+// movie.service.ts - Updated to handle file uploads properly
 import { axiosClient } from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiResponse } from '../types/response.types';
@@ -11,12 +12,18 @@ class MovieService {
     }
 
     async create(data: MovieRequest): Promise<ApiResponse<Movie>> {
-        const response = await axiosClient.post<ApiResponse<Movie>>(API_ENDPOINTS.MOVIE.CREATE, data);
+        const response = await axiosClient.post<ApiResponse<Movie>>(
+            API_ENDPOINTS.MOVIE.CREATE,
+            data // send as JSON, not FormData
+        );
         return response.data;
     }
 
     async update(id: string, data: MovieRequest): Promise<ApiResponse<Movie>> {
-        const response = await axiosClient.put<ApiResponse<Movie>>(API_ENDPOINTS.MOVIE.UPDATE, { ...data, id });
+        const response = await axiosClient.put<ApiResponse<Movie>>(
+            API_ENDPOINTS.MOVIE.UPDATE,
+            { id, ...data } // send as JSON, not FormData
+        );
         return response.data;
     }
 }

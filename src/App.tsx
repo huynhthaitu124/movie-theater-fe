@@ -28,10 +28,7 @@ import CinemaManagement from './pages/admin/cinemas/CinemaManagement';
 import ShowtimeManagement from './pages/admin/showtimes/ShowtimeManagement';
 import SeatTypeManagement from '../src/components/seatType/SeatTypeManagement';
 import SeatManagement from '../src/components/seatManagement/SeatManagement';
-
-
-
-
+import { Toaster } from 'react-hot-toast';
 
 const NotFound = () => {
   const location = useLocation();
@@ -52,6 +49,7 @@ const App: React.FC = () => {
       <Router>
         <ThemeProvider>
           <AuthProvider>
+            <Toaster />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />

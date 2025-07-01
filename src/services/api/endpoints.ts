@@ -124,6 +124,7 @@ export const API_ENDPOINTS = {
         CREATE: '/api/Room',
         UPDATE: '/api/Room',
         DELETE: '/api/Room',
+        GET_BY_CINEMA: '/api/Room/by-cinema',
     },
 
     // RoomType endpoints

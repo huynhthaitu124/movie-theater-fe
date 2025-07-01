@@ -33,10 +33,11 @@ const MovieList: React.FC = () => {
     }
   };
 
-  // Đổi filter sang movie.movieName (tìm kiếm theo tên phim)
-  const filteredMovies = movies.filter(movie =>
-    movie.movieName && movie.movieName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMovies = movies
+    .filter(movie => movie.status === 'ACTIVE')
+    .filter(movie =>
+      movie.movieName && movie.movieName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   const handleDelete = async (id: string) => {
     try {
@@ -93,7 +94,7 @@ const MovieList: React.FC = () => {
               <div key={movie.movieID} className="bg-secondary-800 rounded-lg overflow-hidden shadow-md">
                 <div className="aspect-[2/3] relative">
                   <img
-                    src={movie.imageUrl || '/images/placeholder.jpg'}
+                    src={movie.image || '/images/placeholder.jpg'}
                     alt={movie.movieName}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -119,12 +120,12 @@ const MovieList: React.FC = () => {
                     <p>Language: {movie.movieLanguage}</p>
                     <p>Release: {movie.createdAt ? new Date(movie.createdAt).toLocaleDateString() : ''}</p>
                     <div className="flex flex-wrap gap-1">
-                      {movie.movieTypes && movie.movieTypes.map((type, i) => (
+                      {movie.movieTypes && movie.movieTypes.split(',').map((type, i) => (
                         <span 
                           key={i}
                           className="px-2 py-1 bg-secondary-700 rounded-full text-xs"
                         >
-                          {type}
+                          {type.trim()}
                         </span>
                       ))}
                     </div>
