@@ -44,44 +44,37 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
       ${isSelected ? 'ring-2 ring-blue-500 shadow-blue-500/20' : 'hover:shadow-xl'}
     `}>
       {/* Cinema Header */}
-      <div className="relative">
-        <img 
-          src={cinema.image} 
-          alt={cinema.name}
-          className="w-full h-32 object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-white font-medium text-lg">{cinema.name}</h3>
-              <div className="flex items-center text-gray-300">
-                <MapPin size={14} className="mr-1" />
-                <span className="text-sm">{cinema.address}</span>
-              </div>
-            </div>
-            <div className="flex items-center bg-black/30 backdrop-blur-sm rounded-full px-2 py-1">
-              <Star size={14} className="text-yellow-400 mr-1" />
-              <span className="text-white text-sm font-medium">{cinema.rating}</span>
-            </div>
+      <div className="p-6 pb-0">
+        <h3 className="text-3xl font-extrabold text-primary-600 dark:text-primary-400 mb-3 tracking-tight">
+          {cinema.name}
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div className="flex items-center text-gray-700 dark:text-gray-300">
+            <MapPin size={18} className="mr-2 text-primary-500" />
+            <span className="truncate">{cinema.address}</span>
+          </div>
+          <div className="flex items-center text-gray-700 dark:text-gray-300">
+            <span className="font-medium mr-2">City:</span>
+            <span>{cinema.city}</span>
+          </div>
+          <div className="flex items-center text-gray-700 dark:text-gray-300">
+            <span className="font-medium mr-2">Phone:</span>
+            <span>{cinema.phone}</span>
+          </div>
+          <div className="flex items-center text-gray-700 dark:text-gray-300">
+            <Clock size={18} className="mr-2 text-primary-500" />
+            <span>
+              <span className="font-medium">Open:</span> {cinema.opentime || cinema.openTime}
+              <span className="mx-2">|</span>
+              <span className="font-medium">Close:</span> {cinema.closetime || cinema.closeTime}
+            </span>
           </div>
         </div>
+        <hr className="my-4 border-secondary-200 dark:border-secondary-700" />
       </div>
 
       {/* Cinema Details */}
-      <div className="p-4">        
-        {/* Amenities */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {cinema.facilities.map((facility, index) => (
-            <span 
-              key={index}
-              className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-            >
-              {facility}
-            </span>
-          ))}
-        </div>
-
+      <div className="p-4 pt-2">
         {/* Schedules */}
         <div className="space-y-3">
           <h4 className="font-semibold text-gray-900 dark:text-white">Available Times</h4>
@@ -105,16 +98,9 @@ const CinemaCard: React.FC<CinemaCardProps> = ({
                     <Clock size={16} className="text-gray-500" />
                     <span className="font-medium">{formatTime(schedule.startTime)}</span>
                   </div>
-                  <span className="font-bold text-lg">
-                    {new Intl.NumberFormat('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND'
-                    }).format(schedule.price)}
-                  </span>
                 </div>
-                
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Room: {schedule.room?.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{schedule.room?.name}</span>
                   <div className="flex items-center space-x-1">
                     <Users size={14} className={getAvailabilityColor(schedule.availableSeats, schedule.totalSeats)} />
                     <span className={`${getAvailabilityColor(schedule.availableSeats, schedule.totalSeats)} font-medium`}>

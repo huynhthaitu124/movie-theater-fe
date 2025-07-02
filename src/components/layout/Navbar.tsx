@@ -77,7 +77,6 @@ const Navbar: React.FC = () => {
                   <div className="absolute right-0 mt-2 w-48 bg-secondary-800 rounded-lg shadow-lg py-1 z-50">
                     <div className="px-4 py-2 border-b border-secondary-700">
                       <p className="text-sm font-medium text-white">{currentUser?.displayname}</p>
-                      <p className="text-xs text-secondary-400">{currentUser?.email}</p>
                     </div>
                     <Link
                       to="/profile/edit"

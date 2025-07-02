@@ -31,6 +31,8 @@ const EmployeeList: React.FC = () => {
       setError(null);
       const response = await staffService.getAll();
 
+      console.log('Fetched employees:', response.data);
+
       // Kiểm tra response và response.data
       if (!response?.data) {
         throw new Error('Failed to fetch employees');
@@ -236,8 +238,7 @@ const EmployeeList: React.FC = () => {
                 <tr>
                   <TableHeader field="displayName" label="Name" />
                   <TableHeader field="position" label="Position" />
-                  <TableHeader field="department" label="Department" />
-                  <TableHeader field="joinDate" label="Join Date" />
+                  <TableHeader field="hiredate" label="Hire Date" />
                   <TableHeader field="status" label="Status" />
                   <th className="px-6 py-3 text-left text-xs font-medium text-secondary-400 uppercase">
                     Actions
@@ -269,10 +270,7 @@ const EmployeeList: React.FC = () => {
                       {employee.position}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {employee.department}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {new Date(employee.joinDate).toLocaleDateString()}
+                      {new Date(employee.hiredate).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {renderStatusBadge(employee.status)}

@@ -197,7 +197,7 @@ const Movies: React.FC = () => {
                     </div>
 
                     <img
-                      src={movie.imageUrl}
+                      src={movie.image}
                       alt={movie.movieName}
                       className="w-full h-full object-cover"
                       onError={(e) => {

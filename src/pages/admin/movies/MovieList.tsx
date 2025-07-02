@@ -149,17 +149,6 @@ const MovieList: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Show current showtimes for this movie */}
-                  <div className="mt-4 pt-4 border-t border-secondary-700">
-                    <Button
-                      onClick={() => navigate(`/admin/showtimes?movieID=${movie.movieID}`)}
-                      variant="secondary"
-                      className="w-full flex items-center justify-center gap-2 bg-secondary-700 hover:bg-secondary-600"
-                    >
-                      <Calendar size={16} />
-                      Manage Showtimes
-                    </Button>
-                  </div>
                 </div>
               </div>
             ))}

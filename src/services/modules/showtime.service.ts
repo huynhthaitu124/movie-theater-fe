@@ -35,9 +35,11 @@ class ShowtimeService {
         return response.data;
     }
 
-    // Get movie schedule by movieId (path param)
+    // Get movie schedules by movieId (path param, matches your backend)
     async getMovieScheduleByMovieId(movieId: string): Promise<ApiResponse<Showtime[]>> {
-        const response = await axiosClient.get<ApiResponse<Showtime[]>>(`/api/MovieSchedule/movie/${movieId}`);
+        const response = await axiosClient.get<ApiResponse<Showtime[]>>(
+            `/api/MovieSchedule/GetMovieSchedule/${movieId}`
+        );
         return response.data;
     }
 
@@ -66,7 +68,7 @@ class ShowtimeService {
     async hardDeleteMovieSchedule(id: string): Promise<ApiResponse<void>> {
     const response = await axiosClient.delete<ApiResponse<void>>(
         `/api/MovieSchedule/HardDeleteMovieSchedule`, 
-        { params: { sheduleId: id } }
+        { params: { scheduleId: id } }
     );
     return response.data;
 }
@@ -78,6 +80,8 @@ class ShowtimeService {
     );
     return response.data;
     }
+
+    
 }
 
 export const showtimeService = new ShowtimeService();

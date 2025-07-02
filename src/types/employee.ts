@@ -5,14 +5,11 @@ import { UserRole } from './role';
 export interface Employee extends Omit<User, 'role'> {
     staffid: string;
     accountId: string;
-    firstName: string;
-    lastName: string;
     displayName: string;
     role: Extract<UserRole, 'Admin' | 'Staff'>;
-    department: string;
     position: string;
     salary: number;
-    joinDate: string;
+    hiredate: string;
     phone: string;
     address: string;
     dateOfBirth: string;

@@ -66,7 +66,7 @@ export const API_ENDPOINTS = {
     STAFF: {
         GET_ALL: '/api/Staff/GetAllStaff',
         CREATE: '/api/Staff/CreateStaffAdmin',
-        UPDATE: (id: string) => `/api/Staff/${id}`,
+        UPDATE_ADMIN: '/api/Staff/UpdateStaffAdmin',
         GET_BY_ID: (id: string) => `/api/Staff/${id}`,
         GET_BY_ACCOUNT_ID: (id: string) => `/api/Staff/Account/${id}`,
         DELETE: (id: string) => `/api/Staff/${id}`,

@@ -28,6 +28,8 @@ import CinemaManagement from './pages/admin/cinemas/CinemaManagement';
 import ShowtimeManagement from './pages/admin/showtimes/ShowtimeManagement';
 import SeatTypeManagement from '../src/components/seatType/SeatTypeManagement';
 import SeatManagement from '../src/components/seatManagement/SeatManagement';
+import PromotionManagement from './pages/admin/promotions/PromotionManagement';
+import MembershipManagement from './pages/admin/memberships/MembershipManagement';
 import { Toaster } from 'react-hot-toast';
 
 const NotFound = () => {
@@ -161,6 +163,15 @@ const App: React.FC = () => {
                 }
               />
               
+              {/* Membership Management Route */}
+              <Route
+                path="/admin/memberships"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <MembershipManagement />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Showtime Management Route */}
               <Route
@@ -168,6 +179,16 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <ShowtimeManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Promotion Management Route */}
+              <Route
+                path="/admin/promotions"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <PromotionManagement />
                   </ProtectedRoute>
                 }
               />
