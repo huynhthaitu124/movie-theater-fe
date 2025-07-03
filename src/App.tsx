@@ -30,6 +30,7 @@ import SeatTypeManagement from '../src/components/seatType/SeatTypeManagement';
 import SeatManagement from '../src/components/seatManagement/SeatManagement';
 import PromotionManagement from './pages/admin/promotions/PromotionManagement';
 import MembershipManagement from './pages/admin/memberships/MembershipManagement';
+import  ProductManagement  from './pages/admin/products/ProductManagement';
 import { Toaster } from 'react-hot-toast';
 
 const NotFound = () => {
@@ -189,6 +190,16 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <PromotionManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Product Management Route */}
+              <Route
+                path="/admin/products"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <ProductManagement />
                   </ProtectedRoute>
                 }
               />

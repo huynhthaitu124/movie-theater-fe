@@ -95,6 +95,18 @@
   overflow-y: visible !important;
 }
 
+::-webkit-scrollbar {
+  width: 8px;
+  background: #23272f;
+}
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .scrollbar-hide::-webkit-scrollbar {
   display: none !important;
