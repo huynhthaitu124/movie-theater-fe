@@ -11,7 +11,10 @@ import { BookingStep } from '../../types/booking';
 import { Movie } from '../../types/movie';
 import { Schedule } from '../../types/schedule';
 import { movieService } from '../../services/modules/movie.service';
-import { scheduleService } from '../../services/modules/schedule.service';
+import { showtimeService } from '../../services/modules/showtime.service';
+import { cinemaService } from '../../services/modules/cinema.service';
+import { seatService } from '../../services/modules/seat.service'; 
+import { seatTypeService } from '../../services/modules/seat.service';
 
 const BookTicket: React.FC = () => {
   const { movieId } = useParams();
@@ -26,6 +29,10 @@ const BookTicket: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [movie, setMovie] = useState<Movie | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [cinemas, setCinemas] = useState<any[]>([]);
+  const [scheduleSeats, setScheduleSeats] = useState<any[]>([]);
+  const [seatTypes, setSeatTypes] = useState<any[]>([]);
+  
 
   const steps: BookingStep[] = [
     { step: 1, title: 'Select Date', isCompleted: false },
@@ -65,47 +72,41 @@ const BookTicket: React.FC = () => {
       if (!movieId) return;
       try {
         setIsLoading(true);
-        const scheduleResponse = await scheduleService.getByMovie(movieId);
-        console.log('Fetched schedules:', scheduleResponse.data);
-        
-        // Convert API response to match Schedule type
-        const formattedSchedules: Schedule[] = scheduleResponse.data.map(schedule => ({
-          scheduleId: schedule.scheduleId,
-          movieId: movieId,
-          cinemaId: '1', // Default cinema ID
-          roomId: schedule.roomnumber.toString(),
+        const res = await showtimeService.getMovieScheduleByMovieId(movieId);
+        // Map API response to your Schedule type
+        const formattedSchedules: Schedule[] = res.data.map((schedule: any) => ({
+          scheduleId: schedule.scheduleid,
+          movieId: schedule.movieid,
+          cinemaId: schedule.room?.cinema?.cinemaid || '', // get from nested room.cinema
+          roomId: schedule.roomid,
           startTime: `${schedule.showdate}T${schedule.starttime}`,
+          endTime: schedule.endtime ? `${schedule.showdate}T${schedule.endtime}` : undefined,
           date: schedule.showdate,
-          price: 75000, // Default price in VND
-          availableSeats: 80, // Default available seats
-          totalSeats: 100, // Default total seats
-          movieName: schedule.moviename,
-          movieImageUrl: schedule.image,
-          status: 'scheduled',
+          availableSeats: schedule.room?.capacity || 80,
+          totalSeats: schedule.room?.capacity || 100,
+          movieName: schedule.movie?.moviename || '',
+          movieImageUrl: schedule.movie?.image || '',
+          status: schedule.status,
           room: {
-            id: schedule.roomnumber.toString(),
-            name: `Room ${schedule.roomnumber}`,
-            capacity: 100,
+            id: schedule.room?.roomid || '',
+            name: `Room ${schedule.room?.roomnumber || ''}`,
+            capacity: schedule.room?.capacity || 100,
             seats: [],
-            layout: {
-              rows: 10,
-              seatsPerRow: 10
-            },
+            rows: schedule.room?.rows || 10,
+            columns: schedule.room?.columns || 10,
             type: 'standard',
-            status: 'active',
+            status: schedule.room?.isactive ? 'active' : 'inactive',
             features: [],
-            cinemaId: '1',
+            cinemaId: schedule.room?.cinemaid || '',
             screenSize: '16m x 8m',
             audioSystem: 'Dolby Atmos',
-            createdAt: new Date(),
-            updatedAt: new Date()
+            createdAt: new Date(schedule.room?.createdat || Date.now()),
+            updatedAt: new Date(schedule.room?.updatedat || Date.now())
           }
         }));
 
-        // Filter schedules for selected date
-        setSchedules(formattedSchedules.filter(schedule => 
-          schedule.date === selectedDate
-        ));
+        setSchedules(formattedSchedules);
+        console.log('Fetched schedules:', formattedSchedules);
         setError(null);
       } catch (err) {
         console.error('Error fetching schedules:', err);
@@ -131,6 +132,32 @@ const BookTicket: React.FC = () => {
   useEffect(() => {
     setSelectedSeats([]);
   }, [selectedSchedule]);
+
+  // Fetch cinemas
+  useEffect(() => {
+    const fetchCinemas = async () => {
+      try {
+        const res = await cinemaService.getAll();
+        setCinemas(res.data);
+      } catch (err) {
+        setCinemas([]);
+      }
+    };
+    fetchCinemas();
+  }, []);
+
+  // Fetch seat types
+  useEffect(() => {
+  const fetchSeatTypes = async () => {
+    try {
+      const res = await seatTypeService.getAll();
+      setSeatTypes(res.data); // res.data is the array of seat types
+    } catch (err) {
+      setSeatTypes([]);
+    }
+  };
+  fetchSeatTypes();
+}, []);
 
   // Generate next 7 days
   const dates = Array.from({ length: 7 }, (_, index) => {
@@ -185,49 +212,51 @@ const BookTicket: React.FC = () => {
 
   // Get filtered schedules with proper sorting
   const getFilteredSchedules = () => {
-    return schedules.sort((a, b) => {
-      // First sort by cinema/room
+  return schedules
+    .filter(schedule => schedule.date === selectedDate)
+    .sort((a, b) => {
       if (a.cinemaId !== b.cinemaId) {
         return a.cinemaId.localeCompare(b.cinemaId);
       }
-      // Then sort by start time
       return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     });
-  };
+};
 
   // Get unique cinemas that have schedules for this movie on selected date
   const getAvailableCinemas = () => {
     const filteredSchedules = getFilteredSchedules();
     const cinemaIds = [...new Set(filteredSchedules.map(st => st.cinemaId))];
-    
-    // Create proper Cinema objects
-    return cinemaIds.map(id => ({
-      id,
-      name: `Cinema ${id}`,
-      image: '/images/cinema-default.jpg',
-      address: '123 Movie Street',
-      city: 'Ho Chi Minh City',
-      phone: '(+84) 123-456-789',
-      email: 'cinema@example.com',
-      rooms: [],
-      facilities: ['Parking', 'Food Court', 'Wheelchair Access'],
-      status: 'active' as const,
-      manager: 'John Doe',
-      rating: 4.5
-    }));
+    return cinemas
+      .filter(c => cinemaIds.includes(c.cinemaid))
+      .map(c => ({
+        id: c.cinemaid,
+        name: c.cinemaname,
+        address: c.address,
+        city: c.city,
+        phone: c.phone,
+        opentime: c.opentime,
+        closetime: c.closetime,
+        rooms: [],
+        status: c.status,
+        manager: c.manager || '',
+      }));
   };
 
   const getSelectedSchedule = () => {
     return schedules.find(st => st.scheduleId === selectedSchedule);
   };
 
-  const getSelectedCinema = () => {
-    return mockCinemas.find(c => c.id === selectedCinema);
-  };
+  const getSelectedCinema = () => cinemas.find(c => c.cinemaid === selectedCinema);
 
   const calculateTotal = () => {
-    const schedule = getSelectedSchedule();
-    return selectedSeats.length * (schedule?.price || 0);
+    return selectedSeats.reduce((sum, seatId) => {
+      const seat = scheduleSeats.find((s: any) => s.seatId === seatId);
+      if (!seat) return sum;
+      const seatType = seatTypes.find((t: any) =>
+        t.name.trim().toLowerCase() === seat.seatTypeName.trim().toLowerCase()
+      );
+      return sum + (seatType ? seatType.price : 0);
+    }, 0);
   };
 
   const handlePayment = async (paymentData: PaymentFormData) => {
@@ -277,14 +306,41 @@ const BookTicket: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  // Fetch seats when selectedSchedule changes
+  useEffect(() => {
+    const fetchSeats = async () => {
+      const schedule = getSelectedSchedule();
+      if (!schedule?.room?.id) {
+        setScheduleSeats([]);
+        return;
+      }
+      const res = await seatService.getByRoomId(schedule.room.id);
+      setScheduleSeats(res.data);
+    };
+    if (selectedSchedule) fetchSeats();
+  }, [selectedSchedule]);
+
+  // Update getSeatLabel to use scheduleSeats
+  const getSeatLabel = (seatId: string) => {
+    const seat = scheduleSeats.find((s: any) => s.seatId === seatId);
+    return seat ? `${seat.row}${seat.number}` : seatId;
+  };
+
+  if (!isLoading && movie && selectedDate && schedules.length === 0) {
     return (
       <Layout>
-        <div className="min-h-screen bg-secondary-900 p-8 flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-            <p className="mt-4 text-white">Loading movie details...</p>
-          </div>
+        <div className="min-h-screen bg-secondary-900 p-8 text-center">
+          <h2 className="text-2xl text-white mb-4">No schedule on this date</h2>
+          <button 
+            onClick={() => {
+              setCurrentStep(1);
+              setSelectedDate('');
+              setError(null);
+            }}
+            className="text-primary-500 hover:text-primary-400"
+          >
+            Back to select date
+          </button>
         </div>
       </Layout>
     );
@@ -296,10 +352,13 @@ const BookTicket: React.FC = () => {
         <div className="min-h-screen bg-secondary-900 p-8 text-center">
           <h2 className="text-2xl text-white mb-4">{error || 'Movie not found or not currently showing'}</h2>
           <button 
-            onClick={() => navigate('/movies')}
+            onClick={() => {
+              setCurrentStep(1);
+              setSelectedDate('');
+            }}
             className="text-primary-500 hover:text-primary-400"
           >
-            Back to Movies
+            Back to select date
           </button>
         </div>
       </Layout>
@@ -341,31 +400,54 @@ const BookTicket: React.FC = () => {
 
           {/* Movie Info */}
           <div className="bg-secondary-800 rounded-xl p-6 mb-8">
-            <div className="flex flex-col sm:flex-row">
-              <div className="w-full sm:w-1/4 mb-4 sm:mb-0">
+            <div className="flex flex-col md:flex-row items-start md:items-center">
+              <div className="w-full md:w-1/4 mb-4 md:mb-0 flex-shrink-0 flex justify-center">
                 <img
-                  src={movie.imageUrl}
+                  src={movie.image}
                   alt={movie.movieName}
-                  className="w-full h-auto rounded-lg"
+                  className="w-48 h-64 object-cover rounded-lg shadow-lg"
                 />
               </div>
-              <div className="w-full sm:w-3/4 sm:pl-6">
-                <h1 className="text-2xl font-bold mb-2">{movie.movieName}</h1>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="flex items-center text-secondary-400">
-                      <Clock size={16} className="mr-2" />
-                      <span>{movie.duration} min</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center text-secondary-400">
-                      <Film size={16} className="mr-2" />
-                      <span>{movie.movieTypes}</span>
-                    </div>
+              <div className="w-full md:w-3/4 md:pl-8">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                  <h1 className="text-3xl font-bold text-white mb-2">{movie.movieName}</h1>
+                  <div className="flex items-center space-x-4 text-secondary-400 text-sm mb-2 md:mb-0">
+                    <span className="flex items-center"><Clock size={16} className="mr-1" /> {movie.duration} min</span>
+                    <span className="flex items-center"><span className="mr-1">16+</span></span>
+                    <span className="flex items-center"><span className="mr-1">{movie.movieLanguage}</span></span>
                   </div>
                 </div>
-                <p className="text-secondary-300">{movie.description}</p>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
+                  <div className="flex flex-wrap gap-2 mb-2 md:mb-0">
+                    {movie.movieTypes?.split(',').map((type: string) => (
+                      <span
+                        key={type}
+                        className="bg-secondary-700 text-secondary-200 px-3 py-1 rounded-full text-xs font-medium"
+                      >
+                        {type.trim()}
+                      </span>
+                    ))}
+                  </div>
+                  <div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${movie.status === 'ACTIVE' ? 'bg-green-700 text-green-300' : 'bg-gray-700 text-gray-300'}`}>
+                      {movie.status === 'ACTIVE' ? 'Now Showing' : 'Coming Soon'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mb-2">
+                  <span className="font-semibold text-white">Overview</span>
+                  <div className="text-secondary-300">{movie.description}</div>
+                </div>
+                <div className="flex flex-col md:flex-row md:space-x-8 mt-4">
+                  <div className="mb-2 md:mb-0">
+                    <span className="font-semibold text-white">Director</span>
+                    <div className="text-secondary-200">{movie.director || 'Unknown'}</div>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-white">Production</span>
+                    <div className="text-secondary-200">{movie.productionCompany }</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -407,12 +489,6 @@ const BookTicket: React.FC = () => {
             <div className={currentStep === 2 ? 'block' : 'hidden'}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Choose Cinema & Time</h2>
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="text-primary-500 hover:text-primary-400"
-                >
-                  Change Date
-                </button>
               </div>
               <div className="space-y-4">
                 {getAvailableCinemas().map((cinema) => (
@@ -444,17 +520,12 @@ const BookTicket: React.FC = () => {
             <div className={currentStep === 3 ? 'block' : 'hidden'}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Select Your Seats</h2>
-                <button
-                  onClick={() => setCurrentStep(2)}
-                  className="text-primary-500 hover:text-primary-400"
-                >
-                  Change Cinema/Time
-                </button>
               </div>
               <SeatSelection
                 selectedSeats={selectedSeats}
                 onSeatSelect={handleSeatSelect}
                 showtime={getSelectedSchedule()}
+                seatTypes={seatTypes}
               />
               <div className="mt-6 flex justify-end space-x-4">
                 <Button variant="secondary" onClick={() => setCurrentStep(2)}>
@@ -473,12 +544,6 @@ const BookTicket: React.FC = () => {
             <div className={currentStep === 4 ? 'block' : 'hidden'}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Payment</h2>
-                <button
-                  onClick={() => setCurrentStep(3)}
-                  className="text-primary-500 hover:text-primary-400"
-                >
-                  Change Seats
-                </button>
               </div>
               
               {/* Booking Summary */}
@@ -491,21 +556,43 @@ const BookTicket: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Cinema:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{getSelectedCinema()?.name}</span>
+                    <span className="font-bold text-lg text-primary-500">{getSelectedCinema()?.cinemaname}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Date & Time:</span>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {formatDate(selectedDate).day}, {formatDate(selectedDate).month} {formatDate(selectedDate).date} at {new Date(getSelectedSchedule()?.startTime || '').toLocaleTimeString()}
+                      {formatDate(selectedDate).month} {formatDate(selectedDate).date} at {new Date(getSelectedSchedule()?.startTime || '').toLocaleTimeString()}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Seats:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{selectedSeats.join(', ')}</span>
+                  <div className="flex justify-between items-start">
+                    <span className="text-gray-600 dark:text-gray-400 mt-1">Seats:</span>
+                    <span className="font-medium text-gray-900 dark:text-white flex flex-col items-end">
+                      {selectedSeats.length > 0
+                        ? selectedSeats.map(seatId => {
+                            const seat = scheduleSeats.find((s: any) => s.seatId === seatId);
+                            const seatType = seatTypes.find((t: any) =>
+                              t.name.trim().toLowerCase() === seat?.seatTypeName.trim().toLowerCase()
+                            );
+                            const price = seatType ? seatType.price : 0;
+                            return (
+                              <span key={seatId}>
+                                {getSeatLabel(seatId)} - {seat?.seatTypeName} - {new Intl.NumberFormat('vi-VN', {
+                                  style: 'currency',
+                                  currency: 'VND',
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 0,
+                                }).format(price)}
+                              </span>
+                            );
+                          })
+                        : 'None'}
+                    </span>
                   </div>
                   <div className="flex justify-between pt-3 border-t border-secondary-700">
                     <span className="text-gray-600 dark:text-gray-400">Total:</span>
-                    <span className="font-semibold text-primary-500">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(calculateTotal())}</span>
+                    <span className="font-semibold text-primary-500">
+                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(calculateTotal())}
+                    </span>
                   </div>
                 </div>
               </div>

@@ -42,6 +42,13 @@ class RoomService {
     console.log('Delete room request:', roomId); // Add logging
     return response.data;
   }
+
+  async getByCinema(cinemaId: string): Promise<ApiResponse<RoomResponse[]>> {
+  const response = await axiosClient.get<ApiResponse<RoomResponse[]>>(
+    `${API_ENDPOINTS.ROOM.GET_BY_CINEMA}?cinemaId=${cinemaId}`
+  );
+  return response.data;
+  }
 }
 
 export const roomService = new RoomService();

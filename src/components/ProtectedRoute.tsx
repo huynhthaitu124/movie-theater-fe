@@ -29,11 +29,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   const userRole = currentUser?.role || '';
   
   // Debug logging
-  console.log('Protected Route - Authorization check:', {
-    currentUser,
-    userRole,
-    allowedRoles
-  });
+  // console.log('Protected Route - Authorization check:', {
+  //   currentUser,
+  //   userRole,
+  //   allowedRoles
+  // });
 
   // Direct role check (no case conversion needed since both are in Title Case)
   const hasRequiredRole = allowedRoles.length === 0 || 

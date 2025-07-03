@@ -33,16 +33,22 @@ const Movies: React.FC = () => {
   }, []);
 
   // Genres lấy từ dữ liệu thực tế
-  const genres = ['all', ...Array.from(new Set(movies.flatMap(movie => movie.categories || [])))];
+  const genres = ['all', ...Array.from(new Set(movies.flatMap(movie => movie.movieTypes || [])))];
 
-  const filteredMovies = movies.filter(movie => {
-    const matchesSearch =
-      searchQuery.trim() === '' ||
-      (movie.movieName && movie.movieName.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesGenre = selectedGenre === 'all' || (movie.categories && movie.categories.includes(selectedGenre));
-    const matchesStatus = selectedStatus === 'all' || movie.status === selectedStatus;
-    return matchesSearch && matchesGenre && matchesStatus;
-  });
+  const filteredMovies = movies
+    .filter(movie => movie.status !== 'INACTIVE') // Don't show INACTIVE movies
+    .filter(movie => {
+      const matchesSearch =
+        searchQuery.trim() === '' ||
+        (movie.movieName && movie.movieName.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesGenre = selectedGenre === 'all' || (movie.movieTypes && movie.movieTypes.includes(selectedGenre));
+      // Status filter: "now-showing" = ACTIVE, "coming-soon" = UPCOMING, "all" = all except INACTIVE
+      const matchesStatus =
+        selectedStatus === 'all' ||
+        (selectedStatus === 'now-showing' && movie.status === 'ACTIVE') ||
+        (selectedStatus === 'coming-soon' && movie.status === 'UPCOMING');
+      return matchesSearch && matchesGenre && matchesStatus;
+    });
 
   return (
     <Layout>
@@ -176,16 +182,22 @@ const Movies: React.FC = () => {
                     {/* Status Tag */}
                     <div className="absolute top-4 left-4 z-10">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        movie.status === 'ACTIVE' 
-                          ? 'bg-green-500/80 text-white' 
+                        movie.status === 'ACTIVE'
+                          ? 'bg-green-500/80 text-white'
+                          : movie.status === 'UPCOMING'
+                          ? 'bg-yellow-500/80 text-white'
                           : 'bg-blue-500/80 text-white'
                       }`}>
-                        {movie.status === 'ACTIVE' ? 'Now Showing' : 'Coming Soon'}
+                        {movie.status === 'ACTIVE'
+                          ? 'Now Showing'
+                          : movie.status === 'UPCOMING'
+                          ? 'Upcoming'
+                          : 'Complete'}
                       </span>
                     </div>
 
                     <img
-                      src={movie.imageUrl}
+                      src={movie.image}
                       alt={movie.movieName}
                       className="w-full h-full object-cover"
                       onError={(e) => {

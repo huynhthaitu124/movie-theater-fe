@@ -17,3 +17,54 @@ export interface Showtime {
   cinema?: Cinema;
   room?: Room;
 }
+
+
+
+export interface CinemaRoom {
+  id: string;
+  name: string;
+  capacity: number;
+  type: 'Standard' | 'IMAX' | 'VIP' | '4DX';
+  features: string[];
+}
+
+
+
+export interface Showtime {
+  id: string;
+  movieId: string;
+  roomId: string;
+  cinemaId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  price: number;
+  availableSeats: number;
+}
+
+export interface ShowtimeFormData {
+  movieId: string;
+  roomId: string;
+  cinemaId: string;
+  date: string;
+  startTime: string;
+  price: number;
+}
+
+export interface CalendarEvent {
+  id: string;
+  movieId: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  date: string;
+  roomId: string;
+  price: number;
+  color: string;
+}
+
+export interface TimeSlot {
+  hour: number;
+  minute: number;
+  label: string;
+}

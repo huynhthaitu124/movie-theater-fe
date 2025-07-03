@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TokenService from '../services/modules/token.service';
 import AuthService from '../services/modules/auth.service';
+import { userService } from '@/services/modules/user.service';
 import { User } from '../types/user';
 import { UserRole } from '../types/role';
 import { jwtDecode } from "jwt-decode";
@@ -83,7 +84,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const tokenPayload: any = jwtDecode(authResponse.data);
 
             console.log('Decoded token payload:', tokenPayload);
-            
+
+            // After login and token decode
+            const accountsRes = await userService.getAll(); // Call /api/Account
+            const accounts = accountsRes.data; // Adjust based on your API response structure
+
+            // Find the current user by email or accountId
+            const matchedAccount = accounts.find(
+            (acc: any) => acc.email === tokenPayload.email
+            // or: (acc: any) => acc.accountId === tokenPayload.sub
+            );
+
+            console.log('Matched account:', matchedAccount);
+
+
             // Ensure role is in correct format (Title Case)
             const normalizeRole = (role: string): UserRole => {
                 const normalizedRole = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
@@ -97,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const user: User = {
                 accountid: tokenPayload.sub,
                 email: tokenPayload.email,
-                displayname: tokenPayload.name,
+                displayname: matchedAccount ? matchedAccount.displayName : tokenPayload.name,
                 role: normalizeRole(tokenPayload.role || ''),
                 isactive: tokenPayload.EmailVerified || false,
             };

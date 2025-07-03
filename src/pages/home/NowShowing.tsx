@@ -22,7 +22,9 @@ const NowShowing: React.FC = () => {
       try {
         setIsLoading(true);
         const response = await movieService.getAll();
-        setMovies(response.data);
+        // Only show movies with status "ACTIVE"
+        const activeMovies = response.data.filter(movie => movie.status === 'ACTIVE');
+        setMovies(activeMovies);
       } catch (err) {
         setError('Failed to fetch movies');
         console.error('Error fetching movies:', err);
@@ -32,9 +34,6 @@ const NowShowing: React.FC = () => {
     };
     fetchMovies();
   }, []);
-  
-  const nowShowingMovies = movies.filter(movie => movie.status === 'ACTIVE');
-  console.log('Now showing movies:', movies);
 
   const handleMovieClick = (movieID: string) => {
     navigate(`/movies/${movieID}`);
@@ -116,7 +115,7 @@ const NowShowing: React.FC = () => {
             }}
             className="px-4 py-4"
           >
-            {nowShowingMovies.map((movie) => (
+            {movies.map((movie) => (
               <SwiperSlide key={movie.movieID}>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -128,7 +127,7 @@ const NowShowing: React.FC = () => {
                 >
                   <div className="relative aspect-[2/3]">
                     <img
-                      src={movie.imageUrl}
+                      src={movie.image}
                       alt={movie.movieName}
                       className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
                       onError={(e) => {
@@ -177,12 +176,12 @@ const NowShowing: React.FC = () => {
                       {movie.movieName}
                     </h3>
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {movie.movieTypes && movie.movieTypes.map((type, index) => (
+                      {movie.movieTypes && movie.movieTypes.split(',').map((type, index) => (
                         <span
                           key={index}
                           className="px-2 py-1 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-200"
                         >
-                          {type}
+                          {type.trim()}
                         </span>
                       ))}
                     </div>

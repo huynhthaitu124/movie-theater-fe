@@ -3,7 +3,6 @@ import { ArrowLeft, Plus, Settings, Users, MapPin, AlertCircle, CheckCircle2 } f
 import { useParams, useNavigate } from 'react-router-dom';
 import SeatMap from './SeatMap';
 import SeatModal from './SeatModal';
-import BulkSeatModal from './BulkSeatModal';
 import { Seat } from '../../types/seat';
 import { Room } from '../../types/cinema';
 import { seatService } from '../../services/modules/seat.service';
@@ -438,14 +437,6 @@ const SeatManagement: React.FC = () => {
                         seatTypes={seatTypes}
                         onSubmit={selectedSeat ? handleEditSeat : handleAddSeat}
                         onClose={closeModal}
-                        loading={loading}
-                    />
-                )}
-
-                {isBulkModalOpen && (
-                    <BulkSeatModal
-                        onSubmit={handleBulkCreate}
-                        onClose={() => setIsBulkModalOpen(false)}
                         loading={loading}
                     />
                 )}

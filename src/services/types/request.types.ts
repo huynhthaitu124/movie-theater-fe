@@ -1,7 +1,7 @@
 // services/types/request.types.ts
 import type { Movie } from '../../types/movie';
 
-type OmitAutoFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
+type OmitAutoFields<T> = Omit<T, 'movieID' | 'id' | 'createdAt' | 'updatedAt'>;
 
 export interface SendOtpRequest {
   email: string;

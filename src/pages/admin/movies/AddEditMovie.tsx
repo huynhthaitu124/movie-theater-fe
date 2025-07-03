@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Upload, AlertCircle, Save, X, Plus, Trash2, Eye } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
-import { mockMovies } from '../../../data/mockMovies';
+import { movieService } from '../../../services/modules/movie.service';
+import { cloudinaryService } from '../../../services/modules/cloudinary.service';
 
 interface MovieFormData {
-  title: string;
+  movieName: string;
   description: string;
-  duration: number;
-  releaseDate: string;
-  genre: string[];
-  status: 'now-showing' | 'coming-soon';
-  rating: number;
-  poster: File | null;
-  posterUrl: string;
-  backdrop: File | null;  // New
-  backdropUrl: string;    // New
+  actor: string;
   director: string;
-  cast: string[];
-  language: string;
-  trailerUrl: string;    // New
+  productionCompany: string;
+  duration: number;
+  image: File | null;
+  trailer: string;
+  minimumAge: number;
+  dubbing: boolean;
+  movieTypes: string;
+  subtitleID: string;
+  movieLanguage: string;
+  status: string;
 }
 
 const AddEditMovie: React.FC = () => {
@@ -29,399 +29,599 @@ const AddEditMovie: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [posterPreview, setPosterPreview] = useState<string | null>(null);
-  const [backdropPreview, setBackdropPreview] = useState<string | null>(null); // New
+  const [success, setSuccess] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [currentActor, setCurrentActor] = useState('');
+  const [currentGenre, setCurrentGenre] = useState('');
   const isEditMode = Boolean(id);
 
   const [formData, setFormData] = useState<MovieFormData>({
-    title: '',
+    movieName: '',
     description: '',
-    duration: 0,
-    releaseDate: '',
-    genre: [],
-    status: 'coming-soon',
-    rating: 0,
-    poster: null,
-    posterUrl: '',
-    backdrop: null,
-    backdropUrl: '',
+    actor: '',
     director: '',
-    cast: [],
-    language: '',
-    trailerUrl: ''    // New
+    productionCompany: '',
+    duration: 0,
+    image: null,
+    trailer: '',
+    minimumAge: 13,
+    dubbing: false,
+    movieTypes: '',
+    subtitleID: '',
+    movieLanguage: '',
+    status: 'INACTIVE'
   });
 
-  const genres = [
-      'Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 
-      'Documentary', 'Drama', 'Family', 'Fantasy', 'Horror',
-      'Mystery', 'Romance', 'Sci-Fi', 'Thriller'
-    ];
+  const commonGenres = [
+    'Action', 'Adventure', 'Animation', 'Comedy', 'Crime',
+    'Documentary', 'Drama', 'Family', 'Fantasy', 'Horror',
+    'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western'
+  ];
 
+  const languages = [
+    'English', 'Vietnamese', 'Chinese', 'Japanese', 'Korean',
+    'French', 'Spanish', 'German', 'Italian', 'Russian'
+  ];
+
+  const ageRatings = [
+    { value: 0, label: 'All Ages (G)' },
+    { value: 13, label: 'Teen 13+ (PG-13)' },
+    { value: 16, label: 'Mature 16+ (R)' },
+    { value: 18, label: 'Adults Only 18+ (NC-17)' }
+  ];
+
+  // Fetch movie data in edit mode
   useEffect(() => {
-    if (isEditMode) {
-      const movie = mockMovies.find(m => m.id === id);
-      if (movie) {
-        setFormData({
-          title: movie.title,
-          description: movie.description,
-          duration: movie.duration,
-          releaseDate: movie.releaseDate,
-          genre: movie.genre,
-          status: movie.status,
-          rating: movie.rating,
-          poster: null,
-          posterUrl: movie.posterUrl,
-          backdrop: null,
-          backdropUrl: movie.backdropUrl,
-          director: movie.director,
-          cast: movie.cast,
-          language: movie.language,
-          trailerUrl: movie.trailerUrl
-        });
-      } else {
-        setError('Movie not found');
-        navigate('/admin/movies');
+    const fetchMovie = async () => {
+      if (!isEditMode || !id) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        const res = await movieService.getAll();
+        const movie = res.data.find((m: any) => m.movieID === id);
+        
+        if (movie) {
+          setFormData({
+            movieName: movie.movieName || '',
+            description: movie.description || '',
+            actor: movie.actor || '',
+            director: movie.director || '',
+            productionCompany: movie.productionCompany || '',
+            duration: movie.duration || 0,
+            image: null,
+            trailer: movie.trailer || '',
+            minimumAge: movie.minimumAge || 13,
+            dubbing: movie.dubbing || false,
+            movieTypes: Array.isArray(movie.movieTypes) ? movie.movieTypes.join(',') : (movie.movieTypes || ''),
+            subtitleID: movie.subtitleID || '',
+            movieLanguage: movie.movieLanguage || '',
+            status: movie.status || 'INACTIVE'
+          });
+          setImagePreview(movie.image);
+        } else {
+          setError('Movie not found');
+          navigate('/admin/movies');
+        }
+      } catch (err) {
+        setError('Failed to fetch movie data');
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    fetchMovie();
   }, [id, isEditMode, navigate]);
 
-  const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData({ ...formData, poster: file });
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image file size must be less than 5MB');
+        return;
+      }
+
+      setFormData({ ...formData, image: file });
       const reader = new FileReader();
       reader.onload = () => {
-        setPosterPreview(reader.result as string);
+        setImagePreview(reader.result as string);
+        setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleBackdropChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, backdrop: file });
-      const reader = new FileReader();
-      reader.onload = () => {
-        setFormData(prev => ({
-          ...prev,
-          backdropUrl: reader.result as string
-        }));
-      };
-      reader.readAsDataURL(file);
+  const addActor = () => {
+    if (currentActor.trim()) {
+      const currentActors = formData.actor ? formData.actor.split(', ') : [];
+      if (!currentActors.includes(currentActor.trim())) {
+        setFormData({
+          ...formData,
+          actor: [...currentActors, currentActor.trim()].join(', ')
+        });
+      }
+      setCurrentActor('');
     }
   };
 
-  const handleGenreChange = (genre: string) => {
-    setFormData(prev => ({
-      ...prev,
-      genre: prev.genre.includes(genre)
-        ? prev.genre.filter(g => g !== genre)
-        : [...prev.genre, genre]
-    }));
+  const removeActor = (actorToRemove: string) => {
+    const actors = formData.actor.split(', ').filter(actor => actor !== actorToRemove);
+    setFormData({ ...formData, actor: actors.join(', ') });
   };
 
-  const handleCastChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const castList = e.target.value.split('\n').filter(Boolean);
-    setFormData(prev => ({
-      ...prev,
-      cast: castList
-    }));
+  const addGenre = () => {
+    if (currentGenre && !formData.movieTypes.includes(currentGenre)) {
+      const genres = formData.movieTypes ? formData.movieTypes.split(',') : [];
+      const updatedGenres = [...genres, currentGenre].filter(Boolean);
+      setFormData({
+        ...formData,
+        movieTypes: updatedGenres.join(',')
+      });
+      setCurrentGenre('');
+    }
+  };
+
+  const removeGenre = (genreToRemove: string) => {
+    setFormData({
+      ...formData,
+      movieTypes: formData.movieTypes
+        .split(',')
+        .filter(genre => genre !== genreToRemove)
+        .join(',')
+    });
+  };
+
+  const validateForm = () => {
+    if (!formData.movieName.trim()) return 'Movie name is required';
+    if (!formData.description.trim()) return 'Description is required';
+    if (!formData.director.trim()) return 'Director is required';
+    if (formData.duration <= 0) return 'Duration must be greater than 0';
+    if (formData.movieTypes.length === 0) return 'At least one genre is required';
+    if (!formData.movieLanguage) return 'Language is required';
+    
+    // Validate YouTube URL
+    if (formData.trailer && !formData.trailer.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/)) {
+      return 'Please enter a valid YouTube URL';
+    }
+    
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!formData.trailer.trim()) {
+      setError('Trailer URL is required');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      if (!formData.title || !formData.description || !formData.duration || !formData.posterUrl) {
-        throw new Error('Please fill in all required fields');
+      let imageUrl = imagePreview || '';
+      // If a new image file is selected, upload to Cloudinary
+      if (formData.image instanceof File && formData.image) {
+        const uploadRes = await cloudinaryService.upload(formData.image);
+        imageUrl = uploadRes.url;
       }
 
-      // Validate YouTube URL format
-      if (formData.trailerUrl && !formData.trailerUrl.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/)) {
-        throw new Error('Please enter a valid YouTube URL');
-      }
-
-      // Validate rating range
-      if (formData.rating < 0 || formData.rating > 10) {
-        throw new Error('Rating must be between 0 and 10');
-      }
-
-      const movieData = {
-        ...formData,
-        id: isEditMode ? id : Date.now().toString(),
-        // Add any other necessary transformations
+      // Build payload and omit subtitleID if empty/null
+      const payload: any = {
+        movieName: formData.movieName,
+        description: formData.description,
+        actor: formData.actor,
+        director: formData.director,
+        productionCompany: formData.productionCompany,
+        duration: Number(formData.duration),
+        image: imageUrl,
+        trailer: formData.trailer,
+        minimumAge: Number(formData.minimumAge),
+        dubbing: Boolean(formData.dubbing),
+        movieTypes: formData.movieTypes,
+        movieLanguage: formData.movieLanguage,
+        status: formData.status,
       };
+      if (formData.subtitleID && formData.subtitleID.trim() !== '') {
+        payload.subtitleID = formData.subtitleID;
+      }
 
-      // Your API call would go here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log(payload); // Debug: check the payload before sending
 
-      navigate('/admin/movies', {
-        state: { message: `Movie ${isEditMode ? 'updated' : 'added'} successfully` }
-      });
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to save movie');
+      if (isEditMode && id) {
+        await movieService.update(id, payload);
+        setSuccess('Movie updated successfully!');
+      } else {
+        await movieService.create(payload);
+        setSuccess('Movie created successfully!');
+      }
+
+      setTimeout(() => {
+        navigate('/admin/movies');
+      }, 2000);
+
+    } catch (error: any) {
+      setError(error.response?.data?.message || error.message || 'Failed to save movie');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getActorsList = () => {
+    return formData.actor ? formData.actor.split(', ').filter(Boolean) : [];
+  };
+
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-secondary-300 hover:text-white mr-4"
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <h1 className="text-2xl font-bold text-white">
-            {isEditMode ? 'Edit Movie' : 'Add New Movie'}
-          </h1>
-        </div>
-
-        {error && (
-          <div className="mb-6 p-4 bg-accent-900 text-accent-300 rounded-lg flex items-center">
-            <AlertCircle size={20} className="mr-2" />
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-secondary-800 rounded-lg p-6">
-            {/* Poster Upload */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-secondary-300 mb-2">
-                Movie Poster
-              </label>
-              <div className="flex items-center space-x-6">
-                <div className="w-48 h-72 rounded-lg overflow-hidden bg-secondary-700">
-                  {posterPreview ? (
-                    <img
-                      src={posterPreview}
-                      alt="Poster preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-secondary-400">
-                      <Upload size={24} />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePosterChange}
-                    className="hidden"
-                    id="poster-upload"
-                  />
-                  <label
-                    htmlFor="poster-upload"
-                    className="cursor-pointer inline-block px-4 py-2 border border-secondary-600 rounded-lg text-secondary-300 hover:border-primary-500 hover:text-primary-500"
-                  >
-                    Choose Poster
-                  </label>
-                  <p className="text-sm text-secondary-400">
-                    Recommended size: 500x750px
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Backdrop Upload */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-secondary-300 mb-2">
-                Movie Backdrop
-              </label>
-              <div className="flex items-center space-x-6">
-                <div className="w-full h-40 rounded-lg overflow-hidden bg-secondary-700">
-                  {formData.backdropUrl ? (
-                    <img
-                      src={formData.backdropUrl}
-                      alt="Backdrop preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-secondary-400">
-                      <Upload size={24} />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBackdropChange}
-                    className="hidden"
-                    id="backdrop-upload"
-                  />
-                  <label
-                    htmlFor="backdrop-upload"
-                    className="cursor-pointer inline-block px-4 py-2 border border-secondary-600 rounded-lg text-secondary-300 hover:border-primary-500 hover:text-primary-500"
-                  >
-                    Choose Backdrop
-                  </label>
-                  <p className="text-sm text-secondary-400">
-                    Recommended size: 1920x1080px
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Basic Information */}
-            <Input
-              label="Title"
-              name="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              required
-            />
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-secondary-300">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
-                className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label="Duration (minutes)"
-                type="number"
-                name="duration"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
-                required
-              />
-
-              <Input
-                label="Release Date"
-                type="date"
-                name="releaseDate"
-                value={formData.releaseDate}
-                onChange={(e) => setFormData({ ...formData, releaseDate: e.target.value })}
-                required
-              />
-            </div>
-
-            {/* Genres */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-secondary-300">
-                Genres
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {genres.map(genre => (
-                  <button
-                    key={genre}
-                    type="button"
-                    onClick={() => handleGenreChange(genre)}
-                    className={`px-3 py-1 rounded-full text-sm ${
-                      formData.genre.includes(genre)
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-secondary-700 text-secondary-300 hover:bg-secondary-600'
-                    }`}
-                  >
-                    {genre}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Status */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-secondary-300">
-                Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  status: e.target.value as 'now-showing' | 'coming-soon'
-                })}
-                className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-              >
-                <option value="coming-soon">Coming Soon</option>
-                <option value="now-showing">Now Showing</option>
-              </select>
-            </div>
-
-            {/* Additional Information */}
-            <Input
-              label="Director"
-              name="director"
-              value={formData.director}
-              onChange={(e) => setFormData({ ...formData, director: e.target.value })}
-            />
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-secondary-300">
-                Cast (one per line)
-              </label>
-              <textarea
-                value={formData.cast.join('\n')}
-                onChange={handleCastChange}
-                rows={4}
-                className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                placeholder="Enter cast members (one per line)"
-              />
-            </div>
-
-            <Input
-              label="Language"
-              name="language"
-              value={formData.language}
-              onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-            />
-
-            {/* Trailer URL */} {/* New */}
-            <Input
-              label="Trailer URL (YouTube)"
-              name="trailerUrl"
-              value={formData.trailerUrl}
-              onChange={(e) => setFormData({ ...formData, trailerUrl: e.target.value })}
-              placeholder="e.g., https://www.youtube.com/watch?v=..."
-            />
-
-            {/* Rating */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label="Rating"
-                type="number"
-                name="rating"
-                min="0"
-                max="10"
-                step="0.1"
-                value={formData.rating}
-                onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
-                placeholder="Enter rating (0-10)"
-              />
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-secondary-300 hover:text-white mr-4 p-2 rounded-lg hover:bg-secondary-700 transition-colors"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-white">
+                {isEditMode ? 'Edit Movie' : 'Add New Movie'}
+              </h1>
+              <p className="text-secondary-300 mt-1">
+                {isEditMode ? 'Update movie information' : 'Create a new movie entry'}
+              </p>
             </div>
           </div>
-
-          <div className="flex justify-end space-x-4">
+          
+          {/* Action Buttons */}
+          <div className="flex space-x-3">
             <Button
               variant="secondary"
               onClick={() => navigate(-1)}
               type="button"
             >
+              <X size={18} className="mr-2" />
               Cancel
             </Button>
-            <Button
-              type="submit"
-              isLoading={isLoading}
-            >
-              {isEditMode ? 'Update Movie' : 'Add Movie'}
-            </Button>
+          </div>
+        </div>
+
+        {/* Alerts */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-900/50 border border-red-500 text-red-300 rounded-lg flex items-center">
+            <AlertCircle size={20} className="mr-3 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 p-4 bg-green-900/50 border border-green-500 text-green-300 rounded-lg flex items-center">
+            <div className="w-5 h-5 mr-3 flex-shrink-0 rounded-full bg-green-500 flex items-center justify-center">
+              <div className="w-2 h-2 bg-white rounded-full"></div>
+            </div>
+            <span>{success}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Image Upload */}
+            <div className="lg:col-span-1">
+              <div className="bg-secondary-800 rounded-xl p-6 sticky top-4">
+                <h3 className="text-lg font-semibold text-white mb-4">Movie Poster</h3>
+                
+                <div className="space-y-4">
+                  <div className="aspect-[2/3] rounded-lg overflow-hidden bg-secondary-700 border-2 border-dashed border-secondary-600">
+                    {imagePreview ? (
+                      <div className="relative w-full h-full group">
+                        <img
+                          src={imagePreview}
+                          alt="Movie poster preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('image-upload')?.click()}
+                            className="text-white hover:text-primary-400"
+                          >
+                            <Eye size={24} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-secondary-400">
+                        <Upload size={32} className="mb-2" />
+                        <p className="text-sm text-center">Click to upload poster</p>
+                        <p className="text-xs text-center mt-1">PNG, JPG up to 5MB</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  
+                  <label
+                    htmlFor="image-upload"
+                    className="cursor-pointer w-full inline-flex items-center justify-center px-4 py-2 border border-secondary-600 rounded-lg text-secondary-300 hover:border-primary-500 hover:text-primary-400 transition-colors"
+                  >
+                    <Upload size={18} className="mr-2" />
+                    {imagePreview ? 'Change Poster' : 'Upload Poster'}
+                  </label>
+                  
+                  <p className="text-xs text-secondary-400">
+                    Recommended: 500×750px, Max: 5MB
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Form Fields */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Basic Information */}
+              <div className="bg-secondary-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-6">Basic Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <Input
+                      label="Movie Name *"
+                      name="movieName"
+                      value={formData.movieName}
+                      onChange={(e) => setFormData({ ...formData, movieName: e.target.value })}
+                      placeholder="Enter movie title"
+                      required
+                    />
+                  </div>
+                  
+                  <Input
+                    label="Director *"
+                    name="director"
+                    value={formData.director}
+                    onChange={(e) => setFormData({ ...formData, director: e.target.value })}
+                    placeholder="Enter director name"
+                    required
+                  />
+                  
+                  <Input
+                    label="Production Company"
+                    name="productionCompany"
+                    value={formData.productionCompany}
+                    onChange={(e) => setFormData({ ...formData, productionCompany: e.target.value })}
+                    placeholder="Enter production company"
+                  />
+                  
+                  <Input
+                    label="Duration (minutes) *"
+                    type="number"
+                    name="duration"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
+                    placeholder="Enter duration"
+                    min="1"
+                    required
+                  />
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-secondary-300">
+                      Language *
+                    </label>
+                    <select
+                      value={formData.movieLanguage}
+                      onChange={(e) => setFormData({ ...formData, movieLanguage: e.target.value })}
+                      className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      required
+                    >
+                      <option value="">Select language</option>
+                      {languages.map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-secondary-300">
+                      Age Rating
+                    </label>
+                    <select
+                      value={formData.minimumAge}
+                      onChange={(e) => setFormData({ ...formData, minimumAge: Number(e.target.value) })}
+                      className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    >
+                      {ageRatings.map(rating => (
+                        <option key={rating.value} value={rating.value}>
+                          {rating.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-sm font-medium text-secondary-300">
+                      Description *
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={4}
+                      className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500 resize-none"
+                      placeholder="Enter movie description..."
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Cast & Crew */}
+              <div className="bg-secondary-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-6">Cast & Crew</h3>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-secondary-300">
+                      Cast Members
+                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={currentActor}
+                        onChange={(e) => setCurrentActor(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addActor())}
+                        placeholder="Enter actor name"
+                        className="flex-1 px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={addActor}
+                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+                    
+                    {getActorsList().length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {getActorsList().map((actor, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-secondary-700 text-secondary-200"
+                          >
+                            {actor}
+                            <button
+                              type="button"
+                              onClick={() => removeActor(actor)}
+                              className="ml-2 text-secondary-400 hover:text-red-400"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Genres */}
+              <div className="bg-secondary-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-6">Genres *</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex space-x-2">
+                    <select
+                      value={currentGenre}
+                      onChange={(e) => setCurrentGenre(e.target.value)}
+                      className="flex-1 px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    >
+                      <option value="">Select a genre</option>
+                      {commonGenres
+                        .filter(genre => !formData.movieTypes.includes(genre))
+                        .map(genre => (
+                          <option key={genre} value={genre}>{genre}</option>
+                        ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={addGenre}
+                      disabled={!currentGenre}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-secondary-600 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                  
+                  {formData.movieTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.movieTypes.split(',').map((genre, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-600 text-white"
+                        >
+                          {genre}
+                          <button
+                            type="button"
+                            onClick={() => removeGenre(genre)}
+                            className="ml-2 text-primary-200 hover:text-white"
+                          >
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Settings */}
+              <div className="bg-secondary-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-6">Additional Settings</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Trailer URL (YouTube)"
+                    name="trailer"
+                    value={formData.trailer}
+                    onChange={(e) => setFormData({ ...formData, trailer: e.target.value })}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                  
+                  <Input
+                    label="Subtitle ID"
+                    name="subtitleID"
+                    value={formData.subtitleID}
+                    onChange={(e) => setFormData({ ...formData, subtitleID: e.target.value })}
+                    placeholder="Auto-generated if empty"
+                  />
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-secondary-300">
+                      Status
+                    </label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    >
+                      <option value="INACTIVE">Coming Soon</option>
+                      <option value="ACTIVE">Now Showing</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="dubbing"
+                      checked={formData.dubbing}
+                      onChange={(e) => setFormData({ ...formData, dubbing: e.target.checked })}
+                      className="w-4 h-4 text-primary-600 bg-secondary-700 border-secondary-600 rounded focus:ring-primary-500"
+                    />
+                    <label htmlFor="dubbing" className="text-sm font-medium text-secondary-300">
+                      Has Dubbing Available
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end space-x-4 pt-6">
+                <Button
+                  type="submit"
+                  isLoading={isLoading}
+                  className="px-8"
+                >
+                  <Save size={18} className="mr-2" />
+                  {isEditMode ? 'Update Movie' : 'Create Movie'}
+                </Button>
+              </div>
+            </div>
           </div>
         </form>
       </div>

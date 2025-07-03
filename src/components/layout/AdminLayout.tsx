@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Film, Users, Calendar, TicketIcon, Tag, Layout as LayoutIcon, 
-  LogOut, Menu, X, Home,
+  LogOut, Menu, X, Home, UserRoundCheck,
   User2, Settings, Bell, Search  // You can also remove Settings and Bell from here
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -155,14 +155,14 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       label: 'Members',
     },
     {
-      to: '/admin/cinemas', // Changed from '/admin/cinema-rooms'
-      icon: <LayoutIcon size={20} />,
-      label: 'Cinemas',
+      to: '/admin/memberships',
+      icon: <UserRoundCheck size={20} />,
+      label: 'Memberships',
     },
     {
-      to: '/admin/showtimes',
-      icon: <Calendar className="w-5 h-5" />,
-      label: 'Showtimes',
+      to: '/admin/cinemas',
+      icon: <LayoutIcon size={20} />,
+      label: 'Cinemas',
     },
     {
       to: '/admin/tickets',

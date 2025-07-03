@@ -21,12 +21,16 @@ const MovieDetails: React.FC = () => {
       if (!id) return;
       try {
         setIsLoading(true);
+        // Fetch all movies from API and find the one with matching ID
         const response = await movieService.getAll();
-        const foundMovie = response.data.find(m => m.movieID === id);
+        // Only allow ACTIVE or UPCOMING movies to be shown
+        const foundMovie = response.data.find(
+          m => m.movieID === id && m.status !== 'INACTIVE'
+        );
         if (foundMovie) {
           setMovie(foundMovie);
         } else {
-          setError('Movie not found');
+          setError('Movie not found or is inactive');
         }
       } catch (err) {
         setError('Failed to load movie details');
@@ -39,7 +43,7 @@ const MovieDetails: React.FC = () => {
   }, [id]);
 
   const handleTrailer = () => {
-    if (movie?.trailerUrl) {
+    if (movie?.trailer) {
       setShowTrailer(true);
     }
   };
@@ -88,7 +92,7 @@ const MovieDetails: React.FC = () => {
         {/* Hero Section with Backdrop */}
         <div 
           className="relative h-[60vh] bg-cover bg-center -mt-16"
-          style={{ backgroundImage: `url(${movie.imageUrl})` }}
+          style={{ backgroundImage: `url(${movie.image})` }}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/80 to-transparent" />
         </div>
@@ -99,7 +103,7 @@ const MovieDetails: React.FC = () => {
             {/* Movie Poster */}
             <div className="lg:w-1/3">
               <img 
-                src={movie.imageUrl} 
+                src={movie.image} 
                 alt={movie.movieName}
                 className="rounded-xl shadow-2xl w-full max-w-[300px] mx-auto"
               />
@@ -139,12 +143,12 @@ const MovieDetails: React.FC = () => {
                   <div>
                     <h2 className="text-xl font-semibold text-white mb-2">Genre</h2>
                     <div className="flex flex-wrap gap-2">
-                      {movie.movieTypes.map((type, index) => (
+                      {movie.movieTypes.split(',').map((type, index) => (
                         <span 
                           key={index}
                           className="px-3 py-1 bg-secondary-800 text-secondary-300 rounded-full text-sm"
                         >
-                          {type}
+                          {type.trim()}
                         </span>
                       ))}
                     </div>
@@ -153,12 +157,20 @@ const MovieDetails: React.FC = () => {
                 
                 <div>
                   <h2 className="text-xl font-semibold text-white mb-2">Status</h2>
-                  <span className={`px-3 py-1 rounded-full text-sm ${
-                    movie.status === 'ACTIVE' 
-                      ? 'bg-green-900 text-green-300' 
-                      : 'bg-blue-900 text-blue-300'
-                  }`}>
-                    {movie.status === 'ACTIVE' ? 'Now Showing' : 'Coming Soon'}
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      movie.status === 'ACTIVE'
+                        ? 'bg-green-900 text-green-300'
+                        : movie.status === 'UPCOMING'
+                        ? 'bg-yellow-900 text-yellow-300'
+                        : 'bg-blue-900 text-blue-300'
+                    }`}
+                  >
+                    {movie.status === 'ACTIVE'
+                      ? 'Now Showing'
+                      : movie.status === 'UPCOMING'
+                      ? 'Upcoming'
+                      : 'Complete'}
                   </span>
                 </div>
               </div>
@@ -188,7 +200,7 @@ const MovieDetails: React.FC = () => {
                     Book Tickets
                   </Button>
                 )}
-                {movie.trailerUrl && (
+                {movie.trailer && (
                   <Button
                     onClick={handleTrailer}
                     variant="secondary"
@@ -206,7 +218,7 @@ const MovieDetails: React.FC = () => {
 
         {/* Trailer Modal */}
         <AnimatePresence>
-          {showTrailer && movie.trailerUrl && (
+          {showTrailer && movie.trailer && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -228,7 +240,7 @@ const MovieDetails: React.FC = () => {
                 <div className="relative pt-[56.25%]">
                   {/* Extract video ID from various YouTube URL formats */}
                   <YouTube
-                    videoId={movie.trailerUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|v\/|embed\/)|\.be\/)([^"&?\s]{11})/)?.[1]}
+                    videoId={movie.trailer.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|v\/|embed\/)|\.be\/)([^"&?\s]{11})/)?.[1]}
                     opts={{
                       width: '100%',
                       height: '100%',

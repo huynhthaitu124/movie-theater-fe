@@ -15,8 +15,11 @@ class StaffService {
         return response.data;
     }
 
-    async update(id: string, data: Partial<StaffRequest>): Promise<ApiResponse<Employee>> {
-        const response = await axiosClient.put<ApiResponse<Employee>>(API_ENDPOINTS.STAFF.UPDATE(id), data);
+    async updateAdmin(data: any): Promise<ApiResponse<Employee>> {
+        const response = await axiosClient.put<ApiResponse<Employee>>(
+            API_ENDPOINTS.STAFF.UPDATE_ADMIN,
+            data
+        );
         return response.data;
     }
 

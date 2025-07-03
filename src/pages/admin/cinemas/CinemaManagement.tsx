@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Plus, Settings, MapPin, Edit, Trash, Grid as GridIcon, ChevronDown, ChevronRight, Settings2, Trash2 } from 'lucide-react';
+import { Building2, Plus, Settings, MapPin, Edit, Trash, Grid as GridIcon, ChevronDown, ChevronRight, Settings2, Trash2, Calendar } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 
 import {Cinema, Room, Location } from '../../../types/cinema';
@@ -10,12 +10,13 @@ import RoomManagementModal from '../../../components/modals/RoomManagementModal'
 import LocationManagementModal from '../../../components/modals/LocationManagementModal';
 import CinemaManagementModal from '../../../components/modals/CinemaManagementModal';
 import DeleteConfirmationModal from '../../../components/modals/DeleteConfirmationModal';
+import MovieCinemaManagementModal from '@/components/modals/MovieCinemaManagementModal';
 import { cinemaService } from '../../../services/modules/cinema.service';
 import { roomService } from '../../../services/modules/room.service';
 import { roomTypeService } from '../../../services/modules/roomtype.service';
 import { CinemaCreateDto, CinemaResponse, RoomCreateDto, RoomResponse, RoomTypeResponse } from '../../../services/types/request.types';
 import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom'; // Add this import if not present
+import { useNavigate } from 'react-router-dom'; // Already imported
 
 interface RoomManagementModalProps {
   cinema: Cinema;
@@ -207,10 +208,16 @@ const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack, on
       toast.success('Room deleted successfully');
       await updateCinemaTotalRooms(cinema.cinemaid);
       fetchRooms();
-      if (onCinemaUpdate) await onCinemaUpdate(); // <-- Add this line
-    } catch (error) {
+      if (onCinemaUpdate) await onCinemaUpdate();
+    } catch (error: any) {
       console.error('Error deleting room:', error);
-      toast.error('Failed to delete room');
+      // If backend returns 500, assume it's because the room still contains seats
+      if (error?.response?.status === 500) {
+        console.log('Room still contains seats, cannot delete');
+        toast.error('Room still contain seat');
+      } else {
+        toast.error('Failed to delete room');
+      }
     }
   };
 
@@ -387,10 +394,11 @@ const RoomManagement: React.FC<RoomManagementModalProps> = ({ cinema, onBack, on
 // Update the LocationDropdownProps interface
 interface LocationDropdownProps {
   location: Location;
-  cinemas: CinemaResponse[]; // Add this
+  cinemas: CinemaResponse[];
   onEditCinema: (cinema: Cinema) => void;
   onDeleteCinema: (locationId: string, cinemaId: string) => void;
   onManageRooms: (cinemaId: string) => void;
+  onAddMovie: (cinema: Cinema) => void; // <-- Add this line
 }
 
 // Update the LocationDropdown component
@@ -399,9 +407,11 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({
   cinemas,
   onEditCinema,
   onDeleteCinema,
-  onManageRooms 
+  onManageRooms,
+  onAddMovie
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate(); // Add this line
 
   return (
     <div className="mb-4">
@@ -449,7 +459,7 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="bg-secondary-800/30 rounded-lg p-4 hover:bg-secondary-800/50 transition-colors relative" // Added relative
+                  className="bg-secondary-800/30 rounded-lg p-4 hover:bg-secondary-800/50 transition-colors relative"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 mr-4">
@@ -486,6 +496,26 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({
                         className="p-2 bg-error-500/10 hover:bg-error-500/20 rounded-lg transition-colors group"
                       >
                         <Trash2 className="w-5 h-5 text-error-500" />
+                      </motion.button>
+                      {/* Add this button for movie management */}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => onAddMovie(cinema)}
+                        className="p-2 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors group"
+                        title="Manage Movies"
+                      >
+                        🎬
+                      </motion.button>
+                      {/* === Add Showtime Management Button Here === */}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => navigate(`/admin/showtimes?cinemaId=${cinema.cinemaid}`)}
+                        className="p-2 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg transition-colors group"
+                        title="Showtime Management"
+                      >
+                        <Calendar className="w-5 h-5 text-purple-400" />
                       </motion.button>
                     </div>
                   </div>
@@ -538,6 +568,8 @@ const CinemaManagement: React.FC = () => {
   const [cinemas, setCinemas] = useState<CinemaResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate(); // Add this line
+  const [isMovieModalOpen, setIsMovieModalOpen] = useState(false);
+  const [movieCinema, setMovieCinema] = useState<Cinema | null>(null);
 
   useEffect(() => {
     fetchCinemas();
@@ -770,6 +802,10 @@ const CinemaManagement: React.FC = () => {
                           onEditCinema={handleEditCinemaFromDropdown}
                           onDeleteCinema={handleDeleteCinema}
                           onManageRooms={(cinemaId) => setSelectedCinemaId(cinemaId)}
+                          onAddMovie={(cinema) => {
+                            setMovieCinema(cinema);
+                            setIsMovieModalOpen(true);
+                          }}
                         />
                       </div>
                       
@@ -821,6 +857,14 @@ const CinemaManagement: React.FC = () => {
           title="Delete Cinema"
           message="Are you sure you want to delete this cinema? This action cannot be undone."
         />
+
+        {isMovieModalOpen && movieCinema && (
+          <MovieCinemaManagementModal
+            cinema={movieCinema}
+            isOpen={isMovieModalOpen}
+            onClose={() => setIsMovieModalOpen(false)}
+          />
+        )}
       </div>
     </AdminLayout>
   );
