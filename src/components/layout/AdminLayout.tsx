@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Film, Users, Calendar, TicketIcon, Tag, Layout as LayoutIcon, 
-  LogOut, Menu, X, Home, UserRoundCheck, Crown,
+  LogOut, Menu, X, Home, UserRoundCheck, Crown, GlassWater,
   User2, Settings, Bell, Search  // You can also remove Settings and Bell from here
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -173,6 +173,11 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       to: '/admin/promotions',
       icon: <Tag size={20} />,
       label: 'Promotions',
+    },
+    {
+      to: '/admin/products',
+      icon: <GlassWater size={20} />,
+      label: 'Products',
     },
   ];
 
