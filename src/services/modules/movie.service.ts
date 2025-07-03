@@ -22,7 +22,7 @@ class MovieService {
     async update(id: string, data: MovieRequest): Promise<ApiResponse<Movie>> {
         const response = await axiosClient.put<ApiResponse<Movie>>(
             API_ENDPOINTS.MOVIE.UPDATE,
-            { id, ...data } // send as JSON, not FormData
+            { movieId: id, ...data } // <-- use movieId, not id
         );
         return response.data;
     }

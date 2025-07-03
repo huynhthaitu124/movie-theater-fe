@@ -14,6 +14,7 @@ const MovieList: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
   useEffect(() => {
     fetchMovies();
@@ -34,7 +35,10 @@ const MovieList: React.FC = () => {
   };
 
   const filteredMovies = movies
-    .filter(movie => movie.status === 'ACTIVE')
+    .filter(movie => {
+      if (statusFilter === 'ALL') return true;
+      return movie.status === statusFilter;
+    })
     .filter(movie =>
       movie.movieName && movie.movieName.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -66,15 +70,26 @@ const MovieList: React.FC = () => {
           </Button>
         </div>
 
-        <div className="flex items-center bg-secondary-800 rounded-lg px-4 py-2 w-full md:w-96">
-          <Search size={20} className="text-secondary-400" />
-          <input
-            type="text"
-            placeholder="Search movies..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent border-none focus:outline-none text-white ml-2 w-full"
-          />
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center bg-secondary-800 rounded-lg px-4 py-2 w-full md:w-96">
+            <Search size={20} className="text-secondary-400" />
+            <input
+              type="text"
+              placeholder="Search movies..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-none focus:outline-none text-white ml-2 w-full"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')}
+            className="bg-secondary-800 text-white rounded-lg px-4 py-2 border border-secondary-700 focus:outline-none"
+          >
+            <option value="ALL">All</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </select>
         </div>
 
         {error && (

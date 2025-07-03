@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Film, Users, Calendar, TicketIcon, Tag, Layout as LayoutIcon, 
-  LogOut, Menu, X, Home, UserRoundCheck,
+  LogOut, Menu, X, Home, UserRoundCheck, Crown,
   User2, Settings, Bell, Search  // You can also remove Settings and Bell from here
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -156,7 +156,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     },
     {
       to: '/admin/memberships',
-      icon: <UserRoundCheck size={20} />,
+      icon: <Crown size={20} />,
       label: 'Memberships',
     },
     {
