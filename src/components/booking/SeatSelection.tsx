@@ -8,6 +8,7 @@ interface SeatSelectionProps {
   onSeatSelect: (seatId: string) => void;
   showtime: Schedule | undefined;
   seatTypes: any[];
+  scheduleSeats?: any[]; // Seats with booking status
 }
 
 const SeatSelection: React.FC<SeatSelectionProps> = ({
@@ -15,11 +16,41 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
   onSeatSelect,
   showtime,
   seatTypes,
+  scheduleSeats = [], // Use the scheduleSeats prop with booking status
 }) => {
   const [seats, setSeats] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // If scheduleSeats is provided, use it directly (already includes status)
+    if (scheduleSeats && scheduleSeats.length > 0) {
+      console.log('SeatSelection received scheduleSeats:', scheduleSeats);
+      
+      // Enhanced debugging for booked seats with case-insensitive status check
+      const bookedSeats = scheduleSeats.filter(seat => 
+        seat.status && seat.status.toUpperCase() === 'BOOKED'
+      );
+      
+      // Add better logging for seat counts
+      const totalSeats = scheduleSeats.length;
+      const availableSeats = totalSeats - bookedSeats.length;
+      
+      console.log(`Total seats in room: ${totalSeats}`);
+      console.log(`BOOKED seats count: ${bookedSeats.length}`);
+      console.log(`Available seats count: ${availableSeats}`);
+      console.log('BOOKED seats details:', bookedSeats);
+      
+      // Log the first few seats to check their structure
+      if (scheduleSeats.length > 0) {
+        console.log('First seat example:', scheduleSeats[0]);
+        console.log('Seat properties:', Object.keys(scheduleSeats[0]));
+      }
+      
+      setSeats(scheduleSeats);
+      return;
+    }
+
+    // Otherwise fetch seats from room
     const fetchSeats = async () => {
       if (!showtime?.room?.id) return;
       setLoading(true);
@@ -32,7 +63,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
       setLoading(false);
     };
     fetchSeats();
-  }, [showtime?.room?.id]);
+  }, [showtime?.room?.id, scheduleSeats]);
 
   // Helper to get price by seatTypeName
   const getSeatPrice = (seatTypeName: string) => {
@@ -74,15 +105,16 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
   );
 
   // Always show all rows/columns based on room config
-  const maxRow = showtime?.room?.rows 
-  const maxCol = showtime?.room?.columns 
+  const maxRow = showtime?.room?.rows || 10; // Default to 10 if not specified 
+  const maxCol = showtime?.room?.columns || 12; // Default to 12 if not specified
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const rows = alphabet.slice(0, maxRow);
   const cols = Array.from({ length: maxCol }, (_, i) => (i + 1).toString());
 
   // Helper to find seat by row and number
-  const findSeat = (row: string, number: string) =>
-    seats.find(seat => seat.row === row && seat.number === number);
+  const findSeat = (row: string, number: string) => {
+    return seats.find(seat => seat.row === row && seat.number === number);
+  };
 
   const getSeatIcon = (type: 'vip' | 'couple' | 'standard') => {
     switch (type) {
@@ -95,9 +127,24 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
     }
   };
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
   const handleSeatClick = (seatId: string) => {
     const seat = seats.find(s => s.seatId === seatId);
     if (!seat) return;
+    
+    // Clear any previous error message
+    setErrorMessage(null);
+    
+    // Handle case insensitive status check
+    const isBooked = seat.status?.toUpperCase() === 'BOOKED';
+    
+    // Don't allow selection if seat is booked
+    if (isBooked) {
+      console.log(`Seat ${seatId} (${seat.row}${seat.number}) is already booked with status: ${seat.status}`);
+      setErrorMessage(`Seat ${seat.row}${seat.number} is already booked by someone else`);
+      return;
+    }
 
     // If seat is linked, also select/deselect the linked seat
     if (seat.islinked && seat.linkedto) {
@@ -129,6 +176,13 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
           <div className="w-3/4 h-2 bg-primary-500 mx-auto rounded-lg mb-4" />
           <div className="text-center text-sm text-secondary-400">Screen</div>
         </div>
+        
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="bg-error-500/20 border border-error-500/50 rounded-lg p-3 mb-6 text-center">
+            <p className="text-error-500 text-sm">{errorMessage}</p>
+          </div>
+        )}
 
         {/* Seats */}
         <div className="seat-map">
@@ -141,25 +195,36 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                 </div>
                 {/* Seats in Row */}
                 <div className="flex gap-2 justify-center">
-                  {cols.map(number => {
+                  {cols.map((number) => {
                     const seat = findSeat(row, number);
                     if (!seat) {
                       // Show empty spot (no seat)
                       return (
                         <div
-                          key={number}
+                          key={`${row}-${number}`}
                           className="w-12 h-12 rounded-lg border-2 border-slate-600/50 bg-slate-700/30 text-slate-500 flex items-center justify-center text-xs font-bold"
                           style={{ opacity: 0.3 }}
                         >
-                          {/* Optionally show "+" or leave blank */}
+                          ·
                         </div>
                       );
                     }
                     const isSelected = selectedSeats.includes(seat.seatId);
-                    const isDisabled = seat.status !== 'AVAILABLE' || !seat.isactive;
+                    // Enhanced debugging for seat status
+                    if (seat.row === "A" || seat.row === "B") {
+                      console.log(`Rendering seat ${seat.row}${seat.number} with status: ${seat.status}`);
+                    }
+                    
+                    // Check for booked status with case insensitivity
+                    const isBooked = seat.status?.toUpperCase() === 'BOOKED';
+                    const isDisabled = isBooked || !seat.isactive;
                     let colorClass = '';
-                    if (isDisabled) {
-                      colorClass = 'bg-error-500/20 border-error-500/50 text-error-400 cursor-not-allowed';
+                    
+                    if (isBooked) {
+                      // Make booked seats stand out more with stronger red color
+                      colorClass = 'bg-error-600 border-error-500 text-white cursor-not-allowed font-bold';
+                    } else if (isDisabled) {
+                      colorClass = 'bg-slate-500/20 border-slate-500/50 text-slate-400 cursor-not-allowed';
                     } else if (isSelected) {
                       colorClass = 'bg-primary-500 text-white border-primary-500';
                     } else if (seat.seatTypeName === 'Ghế VIP') {
@@ -177,7 +242,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                         className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center text-xs font-bold transition-all duration-200 ${colorClass}`}
                         title={`${seat.seatTypeName} - ${seat.row}${seat.number} (${seat.status})`}
                       >
-                        {seat.row}{seat.number}
+                        {isBooked ? <span>✕</span> : <span>{seat.row}{seat.number}</span>}
                       </button>
                     );
                   })}
@@ -188,26 +253,49 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
         </div>
 
         {/* Legend */}
-        <div className="mt-8 pt-6 border-t border-secondary-700 flex flex-wrap gap-6 justify-center">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-primary-500/20 border-2 border-primary-500/50 rounded-lg"></div>
-            <span className="text-secondary-400 text-sm">Standard</span>
+        <div className="mt-8 pt-6 border-t border-secondary-700">
+          {/* Seat Availability Summary */}
+          <div className="mb-4 bg-secondary-700/30 p-3 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-secondary-200 font-medium">Seat Availability</span>
+              <span className="text-primary-400 font-medium">
+                {seats.length - seats.filter(s => s.status?.toUpperCase() === 'BOOKED').length}/{seats.length} Available
+              </span>
+            </div>
+            <div className="w-full h-2 bg-secondary-600 mt-2 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary-500"
+                style={{ 
+                  width: `${seats.length ? ((seats.length - seats.filter(s => s.status?.toUpperCase() === 'BOOKED').length) / seats.length) * 100 : 0}%` 
+                }}
+              ></div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-yellow-500/20 border-2 border-yellow-500/50 rounded-lg"></div>
-            <span className="text-secondary-400 text-sm">VIP</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-pink-500/20 border-2 border-pink-500/50 rounded-lg"></div>
-            <span className="text-secondary-400 text-sm">Couple</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-error-500/20 border-2 border-error-500/50 rounded-lg"></div>
-            <span className="text-secondary-400 text-sm">Unavailable</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-primary-500 border-2 border-primary-500 rounded-lg"></div>
-            <span className="text-secondary-400 text-sm">Selected</span>
+          
+          {/* Seat Types Legend */}
+          <div className="flex flex-wrap gap-6 justify-center">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-primary-500/20 border-2 border-primary-500/50 rounded-lg"></div>
+              <span className="text-secondary-400 text-sm">Standard</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-yellow-500/20 border-2 border-yellow-500/50 rounded-lg"></div>
+              <span className="text-secondary-400 text-sm">VIP</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-pink-500/20 border-2 border-pink-500/50 rounded-lg"></div>
+              <span className="text-secondary-400 text-sm">Couple</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-error-500/70 border-2 border-error-500 rounded-lg flex items-center justify-center">
+                <span className="text-white text-xs">✕</span>
+              </div>
+              <span className="text-secondary-400 text-sm">Booked</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-primary-500 border-2 border-primary-500 rounded-lg"></div>
+              <span className="text-secondary-400 text-sm">Selected</span>
+            </div>
           </div>
         </div>
       </div>
@@ -249,6 +337,21 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                   style: 'currency',
                   currency: 'VND',
                 }).format(totalPrice)}
+              </span>
+            </div>
+          </div>
+          {/* Total and Available Seats Count */}
+          <div className="pt-4 border-t border-secondary-700">
+            <div className="flex justify-between text-secondary-300">
+              <span>Total Seats</span>
+              <span className="font-medium">
+                {seats.length}
+              </span>
+            </div>
+            <div className="flex justify-between text-secondary-300">
+              <span>Available Seats</span>
+              <span className="font-medium">
+                {seats.filter(seat => seat.status?.toUpperCase() !== 'BOOKED').length}
               </span>
             </div>
           </div>

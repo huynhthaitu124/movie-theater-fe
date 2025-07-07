@@ -14,6 +14,7 @@ import AddEmployee from './pages/admin/employees/AddEmployee';
 import EditEmployee from './pages/admin/employees/EditEmployee';
 import InactiveEmployees from './pages/admin/employees/InactiveEmployees';
 import BookTicket from './pages/booking/BookTicket';
+import PaymentReturn from './pages/booking/PaymentReturn';
 import Movies from './pages/movies/Movies';
 import Promotions from './pages/promotions/Promotions';
 import EditProfile from './pages/profile/EditProfile';
@@ -229,6 +230,11 @@ const App: React.FC = () => {
               <Route path="/book/:movieId" element={
                 <ProtectedRoute>
                   <BookTicket />
+                </ProtectedRoute>
+              } />
+              <Route path="/booking/payment-return" element={
+                <ProtectedRoute>
+                  <PaymentReturn />
                 </ProtectedRoute>
               } />
               
