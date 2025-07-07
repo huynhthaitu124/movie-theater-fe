@@ -166,3 +166,37 @@ export interface RoomTypeResponse {
   createdat: string;
   updatedat: string;
 }
+
+// Transaction and VNPay types
+export interface CreateTransactionRequest {
+  seatIds: string[];
+  accountId: string;
+  productItems?: { productId: string; quantity: number }[];
+  combos?: { comboId: string; quantity: number }[];
+  promotionId?: string;
+}
+
+export interface TransactionResponse {
+  status: number;
+  message: string;
+  data: {
+    transactionId: string;
+    accountId: string;
+    paymentmethod: string;
+    gatewayId: string;
+    transactiondate: string;
+    paymentdate: string | null;
+    paymentstatus: string;
+    invoiceId: string;
+    isactive: boolean;
+    createdat: string;
+    updatedat: string;
+    price: number;
+  }
+}
+
+export interface VNPayResponse {
+  status: number;
+  message: string;
+  data: string; // Payment URL
+}

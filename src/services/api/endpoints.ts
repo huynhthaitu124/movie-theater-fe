@@ -144,7 +144,6 @@ export const API_ENDPOINTS = {
         GET_BY_ROOM: (roomId: string) => `/api/Seat/room?roomId=${roomId}`,
     },
 
-
     // Movie Schedule endpoints
     MOVIE_SCHEDULE: {
         GET_ALL: '/api/MovieSchedule',
@@ -154,4 +153,22 @@ export const API_ENDPOINTS = {
         UPDATE: (id: string) => `/api/MovieSchedule/${id}`,
         DELETE: (id: string) => `/api/MovieSchedule/${id}`,
     },
+
+    // Transaction endpoints
+    TRANSACTION: {
+        CREATE: '/api/Transaction',
+        GET_BY_ID: (id: string) => `/api/Transaction/${id}`,
+        VALIDATE: '/api/Transaction/validate',
+    },
+
+    // VNPay endpoints
+    VNPAY: {
+        CREATE_PAYMENT_URL: '/api/VNPay/create-payment',
+        PAYMENT_RETURN: '/api/VNPay/payment-validation',
+    },
+    
+    // SeatSchedule endpoints
+    SEAT_SCHEDULE: {
+        GET_BY_SCHEDULE_ID: (scheduleId: string) => `/api/SeatSchedule/schedule/${scheduleId}`,
+    }
 };

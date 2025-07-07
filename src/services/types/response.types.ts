@@ -27,3 +27,30 @@ export interface GoogleResponse {
   picture?: string;
   dob?: string;
 }
+
+export interface TransactionResponseData {
+  transactionid: string;
+  accountId: string;
+  paymentmethod: string;
+  gatewayId: string;
+  transactiondate: string;
+  paymentdate: string | null;
+  paymentstatus: string;
+  invoiceId: string;
+  isactive: boolean;
+  createdat: string;
+  updatedat: string;
+  price: number;
+}
+
+export interface TransactionResponse {
+  status: number;
+  message: string;
+  data: TransactionResponseData;
+}
+
+export interface VNPayResponse {
+  status: number;
+  message: string;
+  data: string; // Payment URL
+}

@@ -1,29 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, Film, Loader2 } from 'lucide-react';
+import { MapPin, Clock, Users, Loader2 } from 'lucide-react';
+import { useAuth, AuthContextType } from '../../contexts/AuthContext';
+
+// Components
 import Layout from '../../components/layout/Layout';
+import { ProductSelection } from '../../components/booking/ProductSelection';
 import Button from '../../components/common/Button';
-import CinemaCard from '../../components/booking/CinemaCard';
 import SeatSelection from '../../components/booking/SeatSelection';
-import PaymentForm, { PaymentFormData } from '../../components/booking/PaymentForm';
-import { mockCinemas } from '../../data/mockCinemas';
-import { BookingStep } from '../../types/booking';
-import { Movie } from '../../types/movie';
-import { Schedule } from '../../types/schedule';
+
+// Services
+import { productService } from '../../services/modules/product.service';
 import { movieService } from '../../services/modules/movie.service';
 import { showtimeService } from '../../services/modules/showtime.service';
 import { cinemaService } from '../../services/modules/cinema.service';
-import { seatService } from '../../services/modules/seat.service'; 
-import { seatTypeService } from '../../services/modules/seat.service';
+import { seatService, seatTypeService } from '../../services/modules/seat.service';
+import { seatScheduleService } from '../../services/modules/seatSchedule.service';
+import { transactionService } from '../../services/modules/transaction.service';
+import { vnpayService } from '../../services/modules/vnpay.service';
+import { axiosClient } from '../../services/api/axiosClient';
+
+// Types
+import { Movie } from '../../types/movie';
+import { Schedule } from '../../types/schedule';
+import { Product } from '../../types/product';
+import { BookingStep } from '../../types/booking';
 
 const BookTicket: React.FC = () => {
   const { movieId } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedCinema, setSelectedCinema] = useState<string>('');
   const [selectedSchedule, setSelectedSchedule] = useState<string>('');
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<{ productId: string; quantity: number }[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,13 +45,16 @@ const BookTicket: React.FC = () => {
   const [cinemas, setCinemas] = useState<any[]>([]);
   const [scheduleSeats, setScheduleSeats] = useState<any[]>([]);
   const [seatTypes, setSeatTypes] = useState<any[]>([]);
-  
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
 
   const steps: BookingStep[] = [
     { step: 1, title: 'Select Date', isCompleted: false },
     { step: 2, title: 'Choose Cinema & Time', isCompleted: false },
     { step: 3, title: 'Pick Seats', isCompleted: false },
-    { step: 4, title: 'Payment', isCompleted: false },
+    { step: 4, title: 'Food & Beverages', isCompleted: false },
+    { step: 5, title: 'Payment', isCompleted: false },
   ];
 
   // Fetch movie details
@@ -73,28 +89,32 @@ const BookTicket: React.FC = () => {
       try {
         setIsLoading(true);
         const res = await showtimeService.getMovieScheduleByMovieId(movieId);
+        
         // Map API response to your Schedule type
         const formattedSchedules: Schedule[] = res.data.map((schedule: any) => ({
           scheduleId: schedule.scheduleid,
           movieId: schedule.movieid,
-          cinemaId: schedule.room?.cinema?.cinemaid || '', // get from nested room.cinema
+          cinemaId: schedule.room?.cinema?.cinemaid || '',
           roomId: schedule.roomid,
           startTime: `${schedule.showdate}T${schedule.starttime}`,
-          endTime: schedule.endtime ? `${schedule.showdate}T${schedule.endtime}` : undefined,
           date: schedule.showdate,
-          availableSeats: schedule.room?.capacity || 80,
-          totalSeats: schedule.room?.capacity || 100,
+          // Initially set available seats to 0, will update after counting actual seats
+          availableSeats: 0,
+          totalSeats: 0, // Will be updated with actual count from room seats
           movieName: schedule.movie?.moviename || '',
           movieImageUrl: schedule.movie?.image || '',
-          status: schedule.status,
+          status: schedule.status || 'scheduled',
+          price: schedule.price || 0,
           room: {
             id: schedule.room?.roomid || '',
+            roomtypeid: schedule.room?.roomtypeid || '',
+            cinemaname: schedule.room?.cinema?.cinemaname || '',
+            roomnumber: schedule.room?.roomnumber || 1,
             name: `Room ${schedule.room?.roomnumber || ''}`,
             capacity: schedule.room?.capacity || 100,
-            seats: [],
-            rows: schedule.room?.rows || 10,
-            columns: schedule.room?.columns || 10,
-            type: 'standard',
+            isactive: true,
+            createdat: schedule.room?.createdat || new Date().toISOString(),
+            updatedat: schedule.room?.updatedat || new Date().toISOString(),
             status: schedule.room?.isactive ? 'active' : 'inactive',
             features: [],
             cinemaId: schedule.room?.cinemaid || '',
@@ -133,6 +153,57 @@ const BookTicket: React.FC = () => {
     setSelectedSeats([]);
   }, [selectedSchedule]);
 
+  // Update available seats count for all schedules when schedules are loaded
+  useEffect(() => {
+    const updateAllScheduleSeats = async () => {
+      if (!schedules.length) return;
+      
+      // Create a copy of schedules to update
+      const updatedSchedules = [...schedules];
+      
+      // Process each schedule to get actual available seats
+      for (let i = 0; i < updatedSchedules.length; i++) {
+        const schedule = updatedSchedules[i];
+        try {
+          // First fetch all room seats to get the actual total seat count
+          if (!schedule.room?.id) continue;
+          
+          // Fetch all seats in the room
+          const roomSeatsRes = await seatService.getByRoomId(schedule.room.id);
+          const roomSeats = roomSeatsRes.data || [];
+          
+          // Total seats is the actual count of seats in the room
+          const totalSeats = roomSeats.length;
+          
+          // Fetch seat schedule data to determine booked seats
+          const scheduleResponse = await seatScheduleService.getByScheduleId(schedule.scheduleId);
+          const seatSchedules = scheduleResponse.data || [];
+          
+          // Count booked seats
+          const bookedSeatsCount = seatSchedules.filter((seat: any) => 
+            seat.status?.toUpperCase() === 'BOOKED').length;
+          
+          // Update available and total seats count
+          updatedSchedules[i] = {
+            ...schedule,
+            totalSeats: totalSeats,
+            availableSeats: totalSeats - bookedSeatsCount
+          };
+          
+          console.log(`Schedule ${schedule.scheduleId}: ${updatedSchedules[i].availableSeats}/${totalSeats} seats available (${bookedSeatsCount} booked)`);
+        } catch (error) {
+          console.error(`Error updating seats for schedule ${schedule.scheduleId}:`, error);
+        }
+      }
+      
+      // Update schedules state with actual available seats counts
+      setSchedules(updatedSchedules);
+      console.log('All schedules updated with actual available seats count');
+    };
+    
+    updateAllScheduleSeats();
+  }, [schedules.length]); // Only run when the number of schedules changes
+
   // Fetch cinemas
   useEffect(() => {
     const fetchCinemas = async () => {
@@ -158,6 +229,27 @@ const BookTicket: React.FC = () => {
   };
   fetchSeatTypes();
 }, []);
+
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setProductsLoading(true);
+      setProductsError(null);
+      try {
+        const res = await productService.getAll();
+        setProducts(res.filter(p => p.isactive && p.status === 'AVAILABLE'));
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setProductsError('Failed to load food & beverages. Please try again.');
+        setProducts([]);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+    if (currentStep === 4) {
+      fetchProducts();
+    }
+  }, [currentStep]);
 
   // Generate next 7 days
   const dates = Array.from({ length: 7 }, (_, index) => {
@@ -194,33 +286,60 @@ const BookTicket: React.FC = () => {
 
   const handleScheduleSelect = (scheduleId: string) => {
     setSelectedSchedule(scheduleId);
+    localStorage.setItem('booking_scheduleId', scheduleId);
   };
 
   const handleSeatSelect = (seatId: string) => {
+    // Get seat object to check its status
+    const seat = scheduleSeats.find((s: any) => s.seatId === seatId);
+    
+    // Don't allow selection if seat is already booked
+    if (seat && seat.status === 'BOOKED') {
+      return; // Seat is already booked
+    }
+    
+    // Don't allow more than 10 seats
     const schedule = getSelectedSchedule();
     if (schedule && selectedSeats.length >= 10 && !selectedSeats.includes(seatId)) {
       return; // Max 10 seats per booking
     }
     
     setSelectedSeats(prev => {
-      if (prev.includes(seatId)) {
-        return prev.filter(id => id !== seatId);
+      const newSelectedSeats = prev.includes(seatId)
+        ? prev.filter(id => id !== seatId)
+        : [...prev, seatId];
+      
+      // Store the updated selected seats in localStorage
+      localStorage.setItem('booking_selectedSeats', JSON.stringify(newSelectedSeats));
+      
+      return newSelectedSeats;
+    });
+  };
+
+  const handleProductSelect = (productId: string, quantity: number) => {
+    setSelectedProducts(prev => {
+      if (quantity === 0) {
+        return prev.filter(p => p.productId !== productId);
       }
-      return [...prev, seatId];
+      const existing = prev.find(p => p.productId === productId);
+      if (existing) {
+        return prev.map(p => p.productId === productId ? { ...p, quantity } : p);
+      }
+      return [...prev, { productId, quantity }];
     });
   };
 
   // Get filtered schedules with proper sorting
   const getFilteredSchedules = () => {
-  return schedules
-    .filter(schedule => schedule.date === selectedDate)
-    .sort((a, b) => {
-      if (a.cinemaId !== b.cinemaId) {
-        return a.cinemaId.localeCompare(b.cinemaId);
-      }
-      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-    });
-};
+    return schedules
+      .filter(schedule => schedule.date === selectedDate)
+      .sort((a, b) => {
+        if (a.cinemaId !== b.cinemaId) {
+          return a.cinemaId.localeCompare(b.cinemaId);
+        }
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      });
+  };
 
   // Get unique cinemas that have schedules for this movie on selected date
   const getAvailableCinemas = () => {
@@ -228,18 +347,7 @@ const BookTicket: React.FC = () => {
     const cinemaIds = [...new Set(filteredSchedules.map(st => st.cinemaId))];
     return cinemas
       .filter(c => cinemaIds.includes(c.cinemaid))
-      .map(c => ({
-        id: c.cinemaid,
-        name: c.cinemaname,
-        address: c.address,
-        city: c.city,
-        phone: c.phone,
-        opentime: c.opentime,
-        closetime: c.closetime,
-        rooms: [],
-        status: c.status,
-        manager: c.manager || '',
-      }));
+      .map(c => c);
   };
 
   const getSelectedSchedule = () => {
@@ -249,7 +357,8 @@ const BookTicket: React.FC = () => {
   const getSelectedCinema = () => cinemas.find(c => c.cinemaid === selectedCinema);
 
   const calculateTotal = () => {
-    return selectedSeats.reduce((sum, seatId) => {
+    // Calculate seats total
+    const seatsTotal = selectedSeats.reduce((sum, seatId) => {
       const seat = scheduleSeats.find((s: any) => s.seatId === seatId);
       if (!seat) return sum;
       const seatType = seatTypes.find((t: any) =>
@@ -257,41 +366,91 @@ const BookTicket: React.FC = () => {
       );
       return sum + (seatType ? seatType.price : 0);
     }, 0);
+
+    // Calculate products total
+    const productsTotal = selectedProducts.reduce((sum, { productId, quantity }) => {
+      const product = products.find(p => p.productId === productId);
+      return sum + (product ? product.price * quantity : 0);
+    }, 0);
+
+    // No booking fee
+    return seatsTotal + productsTotal;
   };
 
-  const handlePayment = async (paymentData: PaymentFormData) => {
+  const handleConfirmPayment = async () => {
     if (!movie) return;
+    
+    // Check if payment was already successful
+    if (paymentSuccess) {
+      alert('Your payment was already processed successfully!');
+      return;
+    }
     
     setIsProcessing(true);
     try {
-      // TODO: Replace with actual payment API integration
-      console.log('Processing payment with:', {
-        cardNumber: paymentData.cardNumber,
-        cardHolder: paymentData.cardHolder,
-        expiryDate: paymentData.expiryDate,
-        amount: calculateTotal(),
-      });
+      if (!currentUser) {
+        alert('You need to be logged in to complete this booking.');
+        navigate('/login');
+        return;
+      }
+
+      // Get the current logged-in user's accountId from the auth context
+      const accountId = currentUser.accountid;
+
+      // Debug: Log selected seats before creating transaction
+      console.log('Selected seats count:', selectedSeats.length);
+      console.log('Selected seats:', selectedSeats);
       
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulated payment processing
+      // Create transaction with the booking details
+      // Ensure accountId is not undefined
+      if (!accountId) {
+        alert('Your account information is missing. Please log in again.');
+        navigate('/login');
+        return;
+      }
       
-      const schedule = getSelectedSchedule();
-      const cinema = getSelectedCinema();
+      const transactionData = {
+        accountId: accountId, // This ensures it's a string, not possibly undefined
+        seatIds: selectedSeats,
+        productItems: selectedProducts.length > 0 ? selectedProducts : undefined
+      };
       
-      navigate('/booking/success', {
-        state: {
-          movieTitle: movie.movieName,
-          cinemaName: cinema?.name,
-          screenName: schedule?.room?.name,
-          date: selectedDate,
-          time: schedule?.startTime,
-          seats: selectedSeats,
-          totalAmount: calculateTotal(),
-          confirmationCode: `BK${Math.random().toString(36).substr(2, 9).toUpperCase()}`
-        }
-      });
-    } catch (error) {
-      console.error('Payment failed:', error);
-      // TODO: Show error message to user
+      // Debug: Log transaction data
+      console.log('Transaction data being sent:', JSON.stringify(transactionData));
+      
+      // Call the transaction API
+      const transactionResponse = await transactionService.createTransaction(transactionData);
+      console.log('Transaction created:', transactionResponse.data);
+      
+      // Extract the transactionId from the response
+      const transactionId = transactionResponse.data.transactionid;
+      
+      // Make sure the selected seats are stored in localStorage before redirecting
+      localStorage.setItem('booking_selectedSeats', JSON.stringify(selectedSeats));
+      localStorage.setItem('booking_scheduleId', selectedSchedule);
+      
+      // Use the transactionId to create a VNPay payment URL
+      const paymentUrl = await vnpayService.createPaymentUrl(transactionId);
+      
+      // Redirect to the VNPay payment URL
+      window.location.href = paymentUrl;
+      
+    } catch (error: any) {
+      console.error('Payment initialization failed:', error);
+      
+      // Display more detailed error messages based on which part failed
+      if (error.response?.status === 400) {
+        alert(`Invalid request: ${error.response?.data?.message || 'Please check your booking details.'}`);
+      } else if (error.response?.status === 401) {
+        alert('Authentication error. Please log in again.');
+        navigate('/login');
+      } else if (error.message?.includes('transaction')) {
+        alert('Failed to create transaction. Please try again or contact support.');
+      } else if (error.message?.includes('payment')) {
+        alert('Payment service is currently unavailable. Please try again later.');
+      } else {
+        alert('Failed to initialize payment. Please try again.');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -302,6 +461,7 @@ const BookTicket: React.FC = () => {
       case 2: return selectedDate;
       case 3: return selectedDate && selectedCinema && selectedSchedule;
       case 4: return selectedDate && selectedCinema && selectedSchedule && selectedSeats.length > 0;
+      case 5: return selectedDate && selectedCinema && selectedSchedule && selectedSeats.length > 0;
       default: return true;
     }
   };
@@ -314,9 +474,123 @@ const BookTicket: React.FC = () => {
         setScheduleSeats([]);
         return;
       }
-      const res = await seatService.getByRoomId(schedule.room.id);
-      setScheduleSeats(res.data);
+      
+      try {
+        // Fetch all seats in the room first
+        const roomSeatsRes = await seatService.getByRoomId(schedule.room.id);
+        const roomSeats = roomSeatsRes.data;
+        
+        // Update the total seats count in the selected schedule
+        if (schedule) {
+          // Update the schedule with the actual number of seats
+          const updatedSchedule = {
+            ...schedule,
+            totalSeats: roomSeats.length
+          };
+          
+          // Update the schedules state with the correct total seats
+          setSchedules(prevSchedules => 
+            prevSchedules.map(s => 
+              s.scheduleId === selectedSchedule ? updatedSchedule : s
+            )
+          );
+        }
+        
+        try {
+          // Use the service instead of direct API call for better error handling and data formatting
+          console.log(`Fetching seat schedule for scheduleId: ${selectedSchedule}`);
+          const scheduleResponse = await seatScheduleService.getByScheduleId(selectedSchedule);
+          console.log('Seat schedule response:', scheduleResponse);
+          
+          // Get the seat schedules from our properly formatted response
+          const seatSchedules = scheduleResponse.data || [];
+          console.log('Seat schedules array:', seatSchedules);
+          console.log(`Total room seats: ${roomSeats.length}, Seat schedules: ${seatSchedules.length}`);
+          
+          // Let's check what properties are available on the first seat schedule if any
+          if (seatSchedules && seatSchedules.length > 0) {
+            console.log('First seat schedule object keys:', Object.keys(seatSchedules[0]));
+            console.log('First seat schedule full object:', seatSchedules[0]);
+          }
+          
+          // Combine room seats with booking status
+          const seatsWithStatus = roomSeats.map((seat: any) => {
+            // Log to check each seat for debugging
+            console.log(`Checking room seat ${seat.row}${seat.number}, seatId: ${seat.seatId}`);
+            
+            // First try to find matching seat schedule by seatId with proper case handling
+            let foundSchedule = null;
+            
+            // Attempt to match by seatId considering all possible property names and case variations
+            for (const ss of seatSchedules) {
+              // Check all possible fields that might contain seatId with case insensitive comparison
+              // Using optional chaining and accessing properties safely
+              const seatIdMatch = 
+                (ss.seatId && ss.seatId.toLowerCase() === seat.seatId.toLowerCase()) || 
+                // Use bracket notation to access potential lowercase property name
+                (ss['seatid'] && ss['seatid'].toLowerCase() === seat.seatId.toLowerCase()) ||
+                (ss.seatScheduleId && ss.seatScheduleId.toLowerCase() === seat.seatId.toLowerCase());
+                
+              if (seatIdMatch) {
+                console.log(`MATCH FOUND by ID for ${seat.row}${seat.number} with status ${ss.status}`);
+                foundSchedule = ss;
+                break;
+              }
+            }
+            
+            // If no match by ID, try matching by row and number (these are more reliable)
+            if (!foundSchedule) {
+              foundSchedule = seatSchedules.find((ss: any) => 
+                ss.row && ss.number && 
+                ss.row.toLowerCase() === seat.row.toLowerCase() && 
+                ss.number.toLowerCase() === seat.number.toLowerCase());
+              
+              if (foundSchedule) {
+                console.log(`MATCH FOUND by row/number for ${seat.row}${seat.number} with status ${foundSchedule.status}`);
+              }
+            }
+            
+            // Extra debug for specific seats to help troubleshoot
+            if (seat.row === "A" && (seat.number === "1" || seat.number === "2" || seat.number === "6" || seat.number === "7")) {
+              console.log(`SPECIAL CHECK: Seat ${seat.row}${seat.number} with id ${seat.seatId}`);
+              console.log('Found schedule?', !!foundSchedule);
+              if (foundSchedule) {
+                console.log('Schedule data:', JSON.stringify(foundSchedule));
+                console.log('Status from schedule:', foundSchedule.status);
+              }
+            }
+            
+            // Make sure we handle case-insensitive status comparison
+            const isBooked = foundSchedule && 
+              (foundSchedule.status?.toUpperCase() === "BOOKED" || 
+              foundSchedule.status?.toUpperCase() === "UNAVAILABLE");
+              
+            return {
+              ...seat,
+              // Status comes from the seatSchedule object, not the seat object
+              status: isBooked ? "BOOKED" : "AVAILABLE"
+            };
+          });
+          
+          console.log('Seats with status mapped:', seatsWithStatus);
+          setScheduleSeats(seatsWithStatus);
+        } catch (scheduleError) {
+          console.error('Error fetching seat schedules:', scheduleError);
+          console.log('Falling back to default seat status');
+          // If seat schedule fetch fails, just use the room seats without status
+          // Show an alert to the user about the issue
+          alert('Could not retrieve current seat booking information. Some seats might already be booked.');
+          setScheduleSeats(roomSeats.map((seat: any) => ({
+            ...seat,
+            status: 'AVAILABLE' // Default all to available if we can't get booking status
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching seats:', error);
+        setScheduleSeats([]);
+      }
     };
+    
     if (selectedSchedule) fetchSeats();
   }, [selectedSchedule]);
 
@@ -325,6 +599,28 @@ const BookTicket: React.FC = () => {
     const seat = scheduleSeats.find((s: any) => s.seatId === seatId);
     return seat ? `${seat.row}${seat.number}` : seatId;
   };
+
+  // Check for successful payment status when component mounts
+  useEffect(() => {
+    const paymentStatus = localStorage.getItem('booking_payment_success');
+    const storedScheduleId = localStorage.getItem('booking_scheduleId');
+    
+    // If there's a successful payment status and it matches the current schedule
+    if (paymentStatus === 'true' && storedScheduleId === selectedSchedule) {
+      setPaymentSuccess(true);
+    }
+    
+    // Listen for URL parameters that might indicate payment success
+    const urlParams = new URLSearchParams(window.location.search);
+    const vnpResponseCode = urlParams.get('vnp_ResponseCode');
+    
+    // VNPay returns '00' for successful payments
+    if (vnpResponseCode === '00') {
+      setPaymentSuccess(true);
+      localStorage.setItem('booking_payment_success', 'true');
+      
+    }
+  }, [selectedSchedule]);
 
   if (!isLoading && movie && selectedDate && schedules.length === 0) {
     return (
@@ -336,6 +632,9 @@ const BookTicket: React.FC = () => {
               setCurrentStep(1);
               setSelectedDate('');
               setError(null);
+              // Reset payment success state
+              localStorage.removeItem('booking_payment_success');
+              setPaymentSuccess(false);
             }}
             className="text-primary-500 hover:text-primary-400"
           >
@@ -355,6 +654,9 @@ const BookTicket: React.FC = () => {
             onClick={() => {
               setCurrentStep(1);
               setSelectedDate('');
+              // Reset payment success state
+              localStorage.removeItem('booking_payment_success');
+              setPaymentSuccess(false);
             }}
             className="text-primary-500 hover:text-primary-400"
           >
@@ -461,7 +763,12 @@ const BookTicket: React.FC = () => {
                 {dates.map((date) => (
                   <button
                     key={date}
-                    onClick={() => setSelectedDate(date)}
+                    onClick={() => {
+                      setSelectedDate(date);
+                      // Reset payment success state when starting a new booking flow
+                      localStorage.removeItem('booking_payment_success');
+                      setPaymentSuccess(false);
+                    }}
                     className={`
                       p-4 rounded-xl text-center transition-all
                       ${selectedDate === date 
@@ -487,22 +794,102 @@ const BookTicket: React.FC = () => {
 
             {/* Step 2: Cinema & Schedule Selection */}
             <div className={currentStep === 2 ? 'block' : 'hidden'}>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Choose Cinema & Time</h2>
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold text-white">Choose Cinema & Time</h2>
               </div>
-              <div className="space-y-4">
+
+              {/* Cinema List */}
+              <div className="space-y-6">
                 {getAvailableCinemas().map((cinema) => (
-                  <CinemaCard
-                    key={cinema.id}
-                    cinema={cinema}
-                    schedules={getFilteredSchedules().filter(st => st.cinemaId === cinema.id)}
-                    selectedCinema={selectedCinema}
-                    selectedSchedule={selectedSchedule}
-                    onCinemaSelect={handleCinemaSelect}
-                    onScheduleSelect={handleScheduleSelect}
-                  />
+                  <div 
+                    key={cinema.cinemaid} 
+                    className={`
+                      bg-secondary-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300
+                      ${selectedCinema === cinema.cinemaid ? 'ring-2 ring-primary-500' : 'hover:bg-secondary-700/50'}
+                    `}
+                  >
+                    {/* Cinema Header */}
+                    <div className="p-6">
+                      <h3 className="text-2xl font-bold text-white mb-3">
+                        {cinema.cinemaname}
+                      </h3>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-secondary-400">
+                        {/* Address */}
+                        <div className="flex items-center">
+                          <MapPin size={18} className="mr-2 text-primary-500" />
+                          <span>{cinema.address}</span>
+                        </div>
+                        {/* Operating Hours */}
+                        <div className="flex items-center">
+                          <Clock size={18} className="mr-2 text-primary-500" />
+                          <span>{cinema.opentime.slice(0,5)} - {cinema.closetime.slice(0,5)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Schedule Grid */}
+                    <div className="bg-secondary-900/50 p-6 border-t border-secondary-700">
+                      <h4 className="text-lg font-semibold text-white mb-4">Available Times</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        {getFilteredSchedules()
+                          .filter(schedule => schedule.cinemaId === cinema.cinemaid)
+                          .map((schedule) => {
+                            // Calculate availability percentage with safety check to avoid division by zero
+                            const seatsPercentage = schedule.totalSeats > 0 
+                              ? (schedule.availableSeats / schedule.totalSeats) * 100 
+                              : 0;
+                            
+                            const availability = seatsPercentage > 50 ? 'high' : seatsPercentage > 20 ? 'medium' : 'low';
+                            const availabilityColor = {
+                              high: 'text-success-500',
+                              medium: 'text-warning-500',
+                              low: 'text-error-500'
+                            }[availability];
+
+                            return (
+                              <button
+                                key={schedule.scheduleId}
+                                onClick={() => {
+                                  handleCinemaSelect(cinema.cinemaid);
+                                  handleScheduleSelect(schedule.scheduleId);
+                                }}
+                                className={`
+                                  p-4 rounded-lg transition-all duration-200 text-left space-y-2
+                                  ${selectedSchedule === schedule.scheduleId 
+                                    ? 'bg-primary-500/20 border-2 border-primary-500 text-white' 
+                                    : 'bg-secondary-800 border border-secondary-600 hover:border-primary-500 hover:bg-secondary-700 text-secondary-400'
+                                  }
+                                `}
+                              >
+                                {/* Time */}
+                                <div className="text-lg font-semibold">
+                                  {new Date(schedule.startTime).toLocaleTimeString('en-US', {
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true
+                                  })}
+                                </div>
+
+                                {/* Seat Availability */}
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center space-x-1">
+                                    <Users size={14} className={availabilityColor} />
+                                    <span className={availabilityColor}>
+                                      {schedule.availableSeats}/{schedule.totalSeats}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs opacity-75">{schedule.room?.name}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
+              {/* Navigation Buttons */}
               <div className="mt-6 flex justify-end space-x-4">
                 <Button variant="secondary" onClick={() => setCurrentStep(1)}>
                   Back
@@ -526,6 +913,7 @@ const BookTicket: React.FC = () => {
                 onSeatSelect={handleSeatSelect}
                 showtime={getSelectedSchedule()}
                 seatTypes={seatTypes}
+                scheduleSeats={scheduleSeats}
               />
               <div className="mt-6 flex justify-end space-x-4">
                 <Button variant="secondary" onClick={() => setCurrentStep(2)}>
@@ -540,8 +928,45 @@ const BookTicket: React.FC = () => {
               </div>
             </div>
 
-            {/* Step 4: Payment */}
+            {/* Step 4: Product Selection */}
             <div className={currentStep === 4 ? 'block' : 'hidden'}>
+              {productsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="animate-spin h-8 w-8 text-primary-500" />
+                </div>
+              ) : productsError ? (
+                <div className="text-center py-8">
+                  <h3 className="text-lg font-semibold text-red-500 mb-2">{productsError}</h3>
+                  <Button variant="secondary" onClick={() => setCurrentStep(3)}>
+                    Back
+                  </Button>
+                </div>
+              ) : (
+                <>              <ProductSelection
+                products={products}
+                selectedProducts={selectedProducts}
+                onProductSelect={handleProductSelect}
+                isLoading={productsLoading}
+                error={productsError}
+              />
+                  
+                  <div className="mt-6 flex justify-end space-x-4">
+                    <Button variant="secondary" onClick={() => setCurrentStep(3)}>
+                      Back
+                    </Button>
+                    <Button
+                      disabled={!canProceedToStep(5)}
+                      onClick={() => setCurrentStep(5)}
+                    >
+                      Continue to Payment
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Step 5: Payment */}
+            <div className={currentStep === 5 ? 'block' : 'hidden'}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Payment</h2>
               </div>
@@ -588,6 +1013,26 @@ const BookTicket: React.FC = () => {
                         : 'None'}
                     </span>
                   </div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-gray-600 dark:text-gray-400 mt-1">Products:</span>
+                    <span className="font-medium text-gray-900 dark:text-white flex flex-col items-end">
+                      {selectedProducts.length > 0
+                        ? selectedProducts.map(({ productId, quantity }) => {
+                            const product = products.find(p => p.productId === productId);
+                            return (
+                              <span key={productId}>
+                                {product?.name} x {quantity} - {new Intl.NumberFormat('vi-VN', {
+                                  style: 'currency',
+                                  currency: 'VND',
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 0,
+                                }).format(product ? product.price * quantity : 0)}
+                              </span>
+                            );
+                          })
+                        : 'None'}
+                    </span>
+                  </div>
                   <div className="flex justify-between pt-3 border-t border-secondary-700">
                     <span className="text-gray-600 dark:text-gray-400">Total:</span>
                     <span className="font-semibold text-primary-500">
@@ -597,15 +1042,34 @@ const BookTicket: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment Form */}
-              <PaymentForm
-                onSubmit={handlePayment}
-                isProcessing={isProcessing}
-                amount={calculateTotal()}
-              />
+              {/* Payment Action */}
+              <div className="bg-secondary-800 rounded-lg p-6">
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-semibold text-white">Complete Your Payment</h3>
+                  <p className="text-secondary-400 mt-2">
+                    After confirming, you will be redirected to VNPay to complete your payment securely.
+                  </p>
+                </div>
+                <div className="flex justify-center mt-6">
+                  <Button
+                    onClick={handleConfirmPayment}
+                    disabled={isProcessing}
+                    className="px-8 py-3 text-lg"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Confirm and Pay'
+                    )}
+                  </Button>
+                </div>
+              </div>
 
               <div className="mt-6 flex justify-end space-x-4">
-                <Button variant="secondary" onClick={() => setCurrentStep(3)}>
+                <Button variant="secondary" onClick={() => setCurrentStep(4)}>
                   Back
                 </Button>
               </div>
