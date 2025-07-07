@@ -251,6 +251,14 @@ const BookTicket: React.FC = () => {
     }
   }, [currentStep]);
 
+  // Check for payment success in localStorage when component mounts
+  useEffect(() => {
+    const savedPaymentSuccess = localStorage.getItem('booking_payment_success');
+    if (savedPaymentSuccess === 'true') {
+      setPaymentSuccess(true);
+    }
+  }, []);
+
   // Generate next 7 days
   const dates = Array.from({ length: 7 }, (_, index) => {
     const date = new Date();
@@ -428,6 +436,7 @@ const BookTicket: React.FC = () => {
       // Make sure the selected seats are stored in localStorage before redirecting
       localStorage.setItem('booking_selectedSeats', JSON.stringify(selectedSeats));
       localStorage.setItem('booking_scheduleId', selectedSchedule);
+      localStorage.setItem('booking_transactionId', transactionId);
       
       // Use the transactionId to create a VNPay payment URL
       const paymentUrl = await vnpayService.createPaymentUrl(transactionId);
@@ -891,8 +900,14 @@ const BookTicket: React.FC = () => {
               </div>
               {/* Navigation Buttons */}
               <div className="mt-6 flex justify-end space-x-4">
-                <Button variant="secondary" onClick={() => setCurrentStep(1)}>
-                  Back
+                <Button variant="secondary" onClick={() => {
+                  setCurrentStep(1);
+                  setSelectedDate('');
+                  // Reset payment success state
+                  localStorage.removeItem('booking_payment_success');
+                  setPaymentSuccess(false);
+                }}>
+                  Back to select date
                 </Button>
                 <Button
                   disabled={!canProceedToStep(3)}
@@ -970,6 +985,24 @@ const BookTicket: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Payment</h2>
               </div>
+
+              {/* Display payment success message if already paid */}
+              {paymentSuccess && (
+                <div className="bg-green-900/30 border border-green-500 text-green-300 rounded-xl p-6 mb-6">
+                  <div className="flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-center text-green-500 mb-2">Payment Successfully Completed</h3>
+                  <p className="text-center mb-4">Your booking has been confirmed and tickets have been reserved.</p>
+                  <div className="flex justify-center">
+                    <Button onClick={() => navigate('/profile/bookings')} className="bg-green-600 hover:bg-green-700">
+                      View My Bookings
+                    </Button>
+                  </div>
+                </div>
+              )}
               
               {/* Booking Summary */}
               <div className="bg-secondary-800 rounded-xl p-6 mb-6">
@@ -1043,35 +1076,48 @@ const BookTicket: React.FC = () => {
               </div>
 
               {/* Payment Action */}
-              <div className="bg-secondary-800 rounded-lg p-6">
-                <div className="text-center mb-4">
-                  <h3 className="text-xl font-semibold text-white">Complete Your Payment</h3>
-                  <p className="text-secondary-400 mt-2">
-                    After confirming, you will be redirected to VNPay to complete your payment securely.
-                  </p>
+              {!paymentSuccess && (
+                <div className="bg-secondary-800 rounded-lg p-6">
+                  <div className="text-center mb-4">
+                    <h3 className="text-xl font-semibold text-white">Complete Your Payment</h3>
+                    <p className="text-secondary-400 mt-2">
+                      After confirming, you will be redirected to VNPay to complete your payment securely.
+                    </p>
+                  </div>
+                  <div className="flex justify-center mt-6">
+                    <Button
+                      onClick={handleConfirmPayment}
+                      disabled={isProcessing}
+                      className="px-8 py-3 text-lg"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Confirm and Pay'
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex justify-center mt-6">
-                  <Button
-                    onClick={handleConfirmPayment}
-                    disabled={isProcessing}
-                    className="px-8 py-3 text-lg"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      'Confirm and Pay'
-                    )}
-                  </Button>
-                </div>
-              </div>
+              )}
 
               <div className="mt-6 flex justify-end space-x-4">
                 <Button variant="secondary" onClick={() => setCurrentStep(4)}>
                   Back
                 </Button>
+                {paymentSuccess && (
+                  <Button variant="primary" onClick={() => {
+                    setCurrentStep(1);
+                    setSelectedDate('');
+                    // Reset payment success state to start a new booking
+                    localStorage.removeItem('booking_payment_success');
+                    setPaymentSuccess(false);
+                  }}>
+                    Book Another Ticket
+                  </Button>
+                )}
               </div>
             </div>
           </div>

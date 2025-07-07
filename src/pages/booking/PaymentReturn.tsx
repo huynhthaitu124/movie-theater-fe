@@ -106,11 +106,15 @@ const PaymentReturn: React.FC = () => {
                 currency: 'VND' 
               }).format(amount)} was completed successfully.`);
               
-              // Clear all booking-related data from localStorage as it's no longer needed
+              // Set payment success state in localStorage
+              localStorage.setItem('booking_payment_success', 'true');
+              
+              // Clear all booking-related data from localStorage except payment success flag
               localStorage.removeItem('booking_scheduleId');
               localStorage.removeItem('booking_selectedSeats');
               localStorage.removeItem('booking_selectedProducts');
               localStorage.removeItem('booking_selectedCombos');
+              localStorage.removeItem('booking_transactionId');
             } else {
               setStatus('error');
               setMessage(transactionResponse.message || 'Transaction validation failed. Please contact support.');
@@ -157,6 +161,9 @@ const PaymentReturn: React.FC = () => {
         style: 'currency', 
         currency: 'VND' 
       }).format(amount)} was completed successfully.`);
+      
+      // Set payment success state in localStorage
+      localStorage.setItem('booking_payment_success', 'true');
     } else {
       setStatus('error');
       
