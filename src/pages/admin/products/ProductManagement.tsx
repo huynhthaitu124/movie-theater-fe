@@ -20,8 +20,17 @@ const ProductManagement: React.FC = () => {
     setLoading(true);
     try {
       const res = await productService.getAll();
-      console.log('Fetched products:', res);
-      setProducts(res || []);
+      // Map status based on stock and isactive
+      const mappedProducts = (res || []).map(product => {
+        if (product.stock === 0) {
+          return { ...product, status: 'UNAVAILABLE' }; // Out of stock
+        }
+        if (product.isactive === false) {
+          return { ...product, status: 'SUSPENDED' }; // Inactive
+        }
+        return { ...product, status: 'AVAILABLE' };
+      });
+      setProducts(mappedProducts);
     } catch (err) {
       // handle error
     } finally {
@@ -111,9 +120,8 @@ const ProductManagement: React.FC = () => {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                    Cinema Manager
+                    Product Management
                   </h1>
-                  <p className="text-gray-400">Product Management System</p>
                 </div>
               </div>
             </div>

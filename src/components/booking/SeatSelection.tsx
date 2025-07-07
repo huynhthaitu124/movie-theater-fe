@@ -212,7 +212,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                     const isSelected = selectedSeats.includes(seat.seatId);
                     // Enhanced debugging for seat status
                     if (seat.row === "A" || seat.row === "B") {
-                      console.log(`Rendering seat ${seat.row}${seat.number} with status: ${seat.status}`);
+                      // console.log(`Rendering seat ${seat.row}${seat.number} with status: ${seat.status}`);
                     }
                     
                     // Check for booked status with case insensitivity

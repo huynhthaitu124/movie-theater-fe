@@ -27,20 +27,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDel
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'AVAILABLE':
+        return 'Available';
+      case 'UNAVAILABLE':
+        return 'Out of Stock';
+      case 'SUSPENDED':
+        return 'Inactive';
+      default:
+        return status;
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'AVAILABLE':
         return 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50';
-      case 'OUT_OF_STOCK':
+      case 'UNAVAILABLE':
         return 'bg-red-900/50 text-red-300 border-red-700/50';
-      case 'DISCONTINUED':
+      case 'SUSPENDED':
         return 'bg-gray-800/50 text-gray-400 border-gray-600/50';
       default:
         return 'bg-gray-800/50 text-gray-400 border-gray-600/50';
     }
   };
 
-  const isLowStock = product.stock <= 10;
+  const isLowStock = product.stock <= 20 && product.stock > 0;
 
   return (
     <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-300 p-6 border border-gray-700/50 hover:border-blue-500/30 group">
@@ -79,10 +92,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDel
         <div className="flex items-center space-x-2">
           <Package className="w-4 h-4 text-gray-500" />
           <span className="text-sm text-gray-400">Stock:</span>
-          <span className={`font-semibold ${isLowStock ? 'text-red-400' : 'text-white'}`}>
+          <span className={`font-semibold ${isLowStock ? 'text-yellow-400' : product.stock == 0 ? 'text-red-400' : 'text-white'}`}>
             {product.stock}
           </span>
-          {isLowStock && <AlertTriangle className="w-4 h-4 text-red-400" />}
+          {isLowStock &&  <AlertTriangle className="w-4 h-4 text-yellow-400" />}
         </div>
         <div className="flex items-center space-x-2">
           <DollarSign className="w-4 h-4 text-gray-500" />
@@ -95,10 +108,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDel
 
       <div className="flex justify-between items-center">
         <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(product.status)}`}>
-          {product.status}
+          {getStatusLabel(product.status)}
         </span>
-        {/* Reactivate button for UNAVAILABLE products */}
-        {product.status === 'UNAVAILABLE' && (
+        {/* Reactivate button only for SUSPENDED products */}
+        {product.status === 'SUSPENDED' && (
           <button
             onClick={handleReactivate}
             disabled={reactivating}

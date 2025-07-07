@@ -14,7 +14,7 @@ const MovieList: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | 'UPCOMING'>('ALL');
 
   useEffect(() => {
     fetchMovies();
@@ -83,11 +83,12 @@ const MovieList: React.FC = () => {
           </div>
           <select
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')}
+            onChange={e => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE' | 'UPCOMING')}
             className="bg-secondary-800 text-white rounded-lg px-4 py-2 border border-secondary-700 focus:outline-none"
           >
             <option value="ALL">All</option>
-            <option value="ACTIVE">Active</option>
+            <option value="ACTIVE">Now Showing</option>
+            <option value="UPCOMING">Upcoming</option>
             <option value="INACTIVE">Inactive</option>
           </select>
         </div>
@@ -118,11 +119,17 @@ const MovieList: React.FC = () => {
                   />
                   <div className="absolute top-2 right-2">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      movie.status === 'ACTIVE' 
-                        ? 'bg-success-500 text-white' 
+                      movie.status === 'ACTIVE'
+                        ? 'bg-success-500 text-white'
+                        : movie.status === 'UPCOMING'
+                        ? 'bg-yellow-500 text-white'
                         : 'bg-primary-500 text-white'
                     }`}>
-                      {movie.status === 'ACTIVE' ? 'Now Showing' : 'Coming Soon'}
+                      {movie.status === 'ACTIVE'
+                        ? 'Now Showing'
+                        : movie.status === 'UPCOMING'
+                        ? 'Upcoming'
+                        : 'Inactive'}
                     </span>
                   </div>
                 </div>

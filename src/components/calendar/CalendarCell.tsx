@@ -212,10 +212,6 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
               
               {!isSmall && position.height > 80 && (
                 <div className="flex items-center justify-between text-xs opacity-90 mt-1 pt-1 border-t border-white/20">
-                  <span className="flex items-center">
-                    <DollarSign size={10} className="mr-1" />
-                    ${event.price}
-                  </span>
                   <span className="text-xs opacity-75">
                     {Math.round((timeToMinutes(event.endTime) - timeToMinutes(event.startTime)))}min
                   </span>
