@@ -5,6 +5,7 @@ import { TransactionResponse } from '../types/response.types';
 
 interface ValidateTransactionRequest {
   accountId: string;
+  invoiceId: string
   scheduleId: string;
   gatewayId: string; // vnp_TxnRef
   seatIds: string[]; // Array of seat IDs the user selected
@@ -21,6 +22,11 @@ export interface ValidateTransactionResponse {
 }
 
 export const transactionService = {
+  getAll: async () => {
+    const response = await axiosClient.get('/api/Transaction');
+    return response.data;
+  },
+
   createTransaction: async (data: CreateTransactionRequest): Promise<TransactionResponse> => {
     // Debug: Log the request data before sending
     console.log('Transaction request data:', JSON.stringify(data));
@@ -36,6 +42,16 @@ export const transactionService = {
   
   getTransactionById: async (id: string): Promise<TransactionResponse> => {
     const response = await axiosClient.get<TransactionResponse>(API_ENDPOINTS.TRANSACTION.GET_BY_ID(id));
+    return response.data;
+  },
+
+  async getByAccountId(accountId: string): Promise<ApiResponse<Transaction[]>> {
+    const response = await axiosClient.get<ApiResponse<Transaction[]>>(`/api/Transaction/account/${accountId}`);
+    return response.data;
+  },
+
+  getTransactionByInvoiceId: async (id: string): Promise<TransactionResponse> => {
+    const response = await axiosClient.get<TransactionResponse>(`/api/Transaction/invoice/${id}`);
     return response.data;
   },
   

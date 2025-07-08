@@ -32,6 +32,9 @@ import SeatManagement from '../src/components/seatManagement/SeatManagement';
 import PromotionManagement from './pages/admin/promotions/PromotionManagement';
 import MembershipManagement from './pages/admin/memberships/MembershipManagement';
 import  ProductManagement  from './pages/admin/products/ProductManagement';
+import UserDashboard from './components/userDashboard/Dashboard';
+import InvoiceSection from '../src/components/userDashboard/InvoiceSection';
+
 import { Toaster } from 'react-hot-toast';
 
 const NotFound = () => {
@@ -242,6 +245,16 @@ const App: React.FC = () => {
               <Route path="/movies" element={<Movies />} />
               <Route path="/movies/:id" element={<MovieDetails />} />
               <Route path="/promotions" element={<Promotions />} />
+
+              {/* User Dashboard Route */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <UserDashboard />
+                  </ProtectedRoute>
+                }
+              />
               
               {/* Protected Profile Route */}
               <Route 
@@ -252,6 +265,10 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 } 
               />
+              
+              <Route
+               path="/invoice/:transactionid" 
+               element={<InvoiceSection />} />
               
               {/* Not Found Route - must be last */}
               <Route path="*" element={<NotFound />} />

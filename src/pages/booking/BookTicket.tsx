@@ -449,9 +449,10 @@ const BookTicket: React.FC = () => {
       
       // Use the transactionId to create a VNPay payment URL
       const paymentUrl = await vnpayService.createPaymentUrl(transactionId);
+
       
       // Redirect to the VNPay payment URL
-      window.location.href = paymentUrl;
+      // window.location.href = paymentUrl;
       
     } catch (error: any) {
       console.error('Payment initialization failed:', error);

@@ -27,6 +27,8 @@ const getUserFromLocalStorage = (): User | null => {
 
 export interface AuthContextType {
     currentUser: User | null;
+    setCurrentUser: (user: User | null) => void;
+    updateCurrentUser?: (user: User | null) => void; // Add this line
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
@@ -232,8 +234,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const updateCurrentUser = (user: User) => {
+        setCurrentUser(user);
+        saveUserToLocalStorage(user);
+    };
+
     const value = {
         currentUser,
+        setCurrentUser,
+        updateCurrentUser,
         isAuthenticated,
         isLoading,
         login,
@@ -242,10 +251,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle
     };
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    
+    return (
+        <AuthContext.Provider value={value}>
+            {isLoading ? <Login /> : children}
+            
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => {
+    
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -11,6 +11,9 @@ import {
   DollarSign
 } from 'lucide-react';
 import AdminLayout from '../layout/AdminLayout';
+import { movieService } from '../../services/modules/movie.service';
+import { staffService } from '../../services/modules/staff.service';
+import { transactionService } from '../../services/modules/transaction.service';
 
 interface StatCardProps {
   title: string;
@@ -79,6 +82,35 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, description, icon,
 );
 
 const Dashboard: React.FC = () => {
+  const [movieCount, setMovieCount] = useState<number>(0);
+  const [staffCount, setStaffCount] = useState<number>(0);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [totalBookings, setTotalBookings] = useState<number>(0);
+
+  useEffect(() => {
+    // Fetch total movies (active only)
+    movieService.getAll().then(res => {
+      const activeMovies = (res.data || []).filter((movie: any) => movie.status !== 'INACTIVE');
+      setMovieCount(activeMovies.length || 0);
+    });
+    // Fetch total staff
+    staffService.getAll().then(res => {
+      setStaffCount(res.data?.length || 0);
+    });
+    // Fetch transactions for revenue and booking count
+    transactionService.getAll?.().then(res => {
+      const transactions = res.data || [];
+      setTotalBookings(transactions.length);
+      // Sum up all price fields (assume price is a number)
+      const revenue = transactions.reduce((sum: number, t: any) => sum + (t.price || 0), 0);
+      setTotalRevenue(revenue);
+    });
+  }, []);
+
+  // Format revenue as VND
+  const formatVND = (amount: number) =>
+    amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+
   return (
     <AdminLayout>
       <div className="p-6 space-y-6">
@@ -117,28 +149,28 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Bookings"
-            value="1,248"
+            value={totalBookings.toString()}
             icon={<TicketIcon size={24} className="text-primary-400" />}
             change="+12% vs. last month"
             changeType="increase"
           />
           <StatCard
             title="Revenue"
-            value="$24,350"
+            value={formatVND(totalRevenue)}
             icon={<DollarSign size={24} className="text-green-400" />}
             change="+8.5% vs. last month"
             changeType="increase"
           />
           <StatCard
             title="Active Movies"
-            value="14"
+            value={movieCount.toString()}
             icon={<Film size={24} className="text-purple-400" />}
             change="2 new releases"
             changeType="neutral"
           />
           <StatCard
             title="Employees"
-            value="32"
+            value={staffCount.toString()}
             icon={<Users size={24} className="text-blue-400" />}
             change="-1 since last month"
             changeType="decrease"

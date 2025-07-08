@@ -188,12 +188,12 @@ const PaymentReturn: React.FC = () => {
   };
 
   const handleReturnHome = () => {
-    navigate('/');
+    navigate('/'); // Home page
   };
 
   const handleViewTicket = () => {
-    // Navigate to ticket details page
-    navigate('/profile/tickets');
+    // Navigate to dashboard with booking history tab active
+    navigate('/dashboard?tab=history');
   };
 
   return (
