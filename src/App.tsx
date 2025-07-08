@@ -267,7 +267,7 @@ const App: React.FC = () => {
               />
               
               <Route
-               path="/invoice/:transactionid" 
+               path="/invoice/:invoiceid" 
                element={<InvoiceSection />} />
               
               {/* Not Found Route - must be last */}

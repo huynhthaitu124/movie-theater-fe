@@ -452,7 +452,7 @@ const BookTicket: React.FC = () => {
 
       
       // Redirect to the VNPay payment URL
-      // window.location.href = paymentUrl;
+      window.location.href = paymentUrl;
       
     } catch (error: any) {
       console.error('Payment initialization failed:', error);

@@ -24,6 +24,11 @@ interface BookingHistoryProps {
 const BookingHistory: React.FC<BookingHistoryProps> = ({ transactions }) => {
   const navigate = useNavigate();
 
+  // Only show completed transactions
+  const completedTransactions = transactions.filter(
+    (transaction) => transaction.paymentstatus === 'COMPLETED'
+  );
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'COMPLETED':
@@ -77,7 +82,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ transactions }) => {
       </div>
 
       <div className="p-6">
-        {transactions.length === 0 ? (
+        {completedTransactions.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">No bookings yet</h3>
@@ -85,7 +90,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ transactions }) => {
           </div>
         ) : (
           <div className="space-y-4">
-            {transactions.map((transaction) => (
+            {completedTransactions.map((transaction) => (
               <div
                 key={transaction.transactionid}
                 className="border border-gray-600 rounded-lg p-6 hover:border-gray-500 transition-colors bg-gray-700/50"
@@ -148,7 +153,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ transactions }) => {
                       <span>Download Invoice</span>
                     </button>
                     <button
-                      onClick={() => navigate(`/invoice/${transaction.transactionid}`)}
+                      onClick={() => navigate(`/invoice/${transaction.invoiceid}`)}
                       className="flex items-center space-x-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors text-sm"
                     >
                       <ExternalLink className="w-4 h-4" />
