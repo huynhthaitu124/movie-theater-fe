@@ -13,6 +13,7 @@ import Modal from '../../../components/ui/Modal';
 import { membershipService } from '../../../services/modules/membership.service';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import AdminLayout from '../../../components/layout/AdminLayout';
 
 const MembershipManagement: React.FC = () => {
   const [memberships, setMemberships] = useState<Membership[]>([]);
@@ -194,18 +195,8 @@ const MembershipManagement: React.FC = () => {
   }
 
   return (
+    <AdminLayout>
     <div className="space-y-6 bg-secondary-900 min-h-screen p-6">
-      {/* Back to Dashboard Button */}
-      <div className="mb-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/admin/dashboard')}
-          className="flex items-center space-x-2"
-        >
-          <ArrowLeft className="mr-2" size={18} />
-          <span>Back to Dashboard</span>
-        </Button>
-      </div>
       {/* Header */}
       <div className="bg-gradient-to-r from-secondary-800 to-secondary-700 rounded-xl p-6 border border-secondary-600">
         <div className="flex items-center justify-between">
@@ -525,6 +516,7 @@ const MembershipManagement: React.FC = () => {
         }}
       />
     </div>
+    </AdminLayout>
   );
 };
 

@@ -31,7 +31,14 @@ import SeatTypeManagement from '../src/components/seatType/SeatTypeManagement';
 import SeatManagement from '../src/components/seatManagement/SeatManagement';
 import PromotionManagement from './pages/admin/promotions/PromotionManagement';
 import MembershipManagement from './pages/admin/memberships/MembershipManagement';
-import  ProductManagement  from './pages/admin/products/ProductManagement';
+import ProductManagement  from './pages/admin/products/ProductManagement';
+
+//Staff Dashboard imports
+import StaffDashboard from './components/staff/StaffDashboard';
+import StaffMovieList from './pages/staff/movies/StaffMovieList';
+import StaffShowtimeList from './pages/staff/showtime/StaffShowtimeList';
+
+//User Dashboard 
 import UserDashboard from './components/userDashboard/Dashboard';
 import InvoiceSection from '../src/components/userDashboard/InvoiceSection';
 
@@ -224,6 +231,34 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <SeatManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Staff Routes */}
+              <Route
+                path="/staff/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['Staff']}>
+                    <StaffDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/movies"
+                element={
+                  <ProtectedRoute allowedRoles={['Staff']}>
+                    <StaffMovieList />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/showtimes"
+                element={
+                  <ProtectedRoute allowedRoles={['Staff']}>
+                    <StaffShowtimeList />
                   </ProtectedRoute>
                 }
               />

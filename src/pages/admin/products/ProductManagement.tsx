@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft} from 'lucide-react';
+import { ArrowLeft, GlassWater } from 'lucide-react';
 import { Film, Package } from 'lucide-react';
 import { ProductList } from '../../../components/product/ProductList';
 import { ProductForm } from '../../../components/product/ProductForm';
@@ -7,6 +7,7 @@ import { Product, ProductFormData } from '../../../types/product';
 import { productService } from '../../../services/modules/product.service';
 import Button from '../../../components/ui/Button';
 import { useNavigate } from 'react-router-dom';
+import AdminLayout from '../../../components/layout/AdminLayout';
 
 const ProductManagement: React.FC = () => {
     const navigate = useNavigate();
@@ -95,28 +96,18 @@ const ProductManagement: React.FC = () => {
   const totalRevenue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
 
   return (
+    <AdminLayout>
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
        
       {/* Header */}
       <div className="bg-gray-900/80 backdrop-blur-sm shadow-2xl border-b border-gray-700/50">
-       {/* Back to Dashboard Button */}
-      <div className="mb-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/admin/dashboard')}
-          className="flex items-center space-x-2"
-        >
-          <ArrowLeft className="mr-2" size={18} />
-          <span>Back to Dashboard</span>
-        </Button>
-      </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
-                  <Film className="w-8 h-8 text-white" />
+                  <GlassWater className="w-8 h-8 text-white" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
@@ -183,6 +174,7 @@ const ProductManagement: React.FC = () => {
         />
       )}
     </div>
+    </AdminLayout>
   );
 };
 
