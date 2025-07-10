@@ -6,11 +6,15 @@ export interface Promotion {
   startTime: string;
   endTime: string;
   image: string;
+  imageUrl?: string;
   status: string;
   code: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  discountType?: string;
+  discountLevel?: number;
+  minCondition?: number;
 }
 
 export interface PromotionType {
