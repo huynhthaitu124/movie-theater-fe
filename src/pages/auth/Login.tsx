@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import { set } from 'lodash';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -20,6 +21,7 @@ const Login: React.FC = () => {
   // Get the redirect path and success message from location state
   const from = (location.state as { from?: string })?.from || '/';
   const message = (location.state as { message?: string })?.message;
+  
 
   // Set success message from location state
   React.useEffect(() => {
@@ -28,15 +30,38 @@ const Login: React.FC = () => {
     }
   }, [message]);
 
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
+    // Email required
+    if (!email) {
+      setError('Please fill out this field.');
+      return;
+    }
+
+    // Password required
+    if (!password) {
+      setError('Please fill out this field.');
+      return;
+    }
+
+    // Email format validation
+    if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     try {
       await login(email, password);
       navigate(from, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to login');
+      
+    } catch (err: any) {
+      
+      setError(err.message || 'Login failed');
     }
   };
 
@@ -94,7 +119,7 @@ const Login: React.FC = () => {
             className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
           >
             <div className="bg-white/90 dark:bg-secondary-800/90 py-8 px-4 shadow-xl shadow-secondary-200/20 dark:shadow-secondary-900/30 sm:rounded-2xl sm:px-10 backdrop-blur-md">
-              {error && (
+              {error  && (
                 <motion.div 
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}

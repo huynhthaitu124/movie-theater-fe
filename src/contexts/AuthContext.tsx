@@ -27,6 +27,8 @@ const getUserFromLocalStorage = (): User | null => {
 
 export interface AuthContextType {
     currentUser: User | null;
+    setCurrentUser: (user: User | null) => void;
+    updateCurrentUser?: (user: User | null) => void; // Add this line
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
@@ -57,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     localStorage.removeItem('user');
                     setCurrentUser(null);
                     setIsAuthenticated(false);
+
                     navigate('/login');
                 }
             } else {
@@ -122,9 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             saveUserToLocalStorage(user);
             setCurrentUser(user);
             setIsAuthenticated(true);
+
             navigate('/');
         } catch (error: any) {
-            console.error('Login error:', error);
+            // console.error('Login error:', error);
             // Clear any existing tokens on error
             TokenService.clearTokens();
             localStorage.removeItem('user');
@@ -232,8 +236,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const updateCurrentUser = (user: User) => {
+        setCurrentUser(user);
+        saveUserToLocalStorage(user);
+    };
+
     const value = {
         currentUser,
+        setCurrentUser,
+        updateCurrentUser,
         isAuthenticated,
         isLoading,
         login,
@@ -242,10 +253,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle
     };
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    
+    return (
+    <AuthContext.Provider value={value}>
+        {children}
+        {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="text-white text-lg">Loading...</div>
+        </div>
+        )}
+    </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => {
+    
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
