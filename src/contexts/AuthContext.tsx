@@ -59,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     localStorage.removeItem('user');
                     setCurrentUser(null);
                     setIsAuthenticated(false);
+
                     navigate('/login');
                 }
             } else {
@@ -124,9 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             saveUserToLocalStorage(user);
             setCurrentUser(user);
             setIsAuthenticated(true);
+
             navigate('/');
         } catch (error: any) {
-            console.error('Login error:', error);
+            // console.error('Login error:', error);
             // Clear any existing tokens on error
             TokenService.clearTokens();
             localStorage.removeItem('user');
@@ -253,10 +255,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     
     return (
-        <AuthContext.Provider value={value}>
-            {isLoading ? <Login /> : children}
-            
-        </AuthContext.Provider>
+    <AuthContext.Provider value={value}>
+        {children}
+        {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="text-white text-lg">Loading...</div>
+        </div>
+        )}
+    </AuthContext.Provider>
     );
 };
 

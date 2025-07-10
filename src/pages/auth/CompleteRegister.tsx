@@ -25,7 +25,8 @@ const CompleteRegister: React.FC = () => {
         preferredlanguage: 'vi',
         avatar: '',
         gender: '',
-        identityCard: ''
+        identityCard: '',
+        termsAccepted: false,
     });
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -84,8 +85,57 @@ const CompleteRegister: React.FC = () => {
         e.preventDefault();
         setError(null);
 
+        // Required fields
+        if (!formData.displayname || !formData.phonenumber || !formData.password || !formData.confirmPassword || !formData.address || !formData.dateofbirth || !formData.identityCard) {
+            setError('Please fill in all required fields');
+            return;
+        }
+
+        // Email format
+        if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) {
+            setError('Invalid email format');
+            return;
+        }
+
+        // Password match
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords do not match');
+            return;
+        }
+
+        // Password length
+        if (formData.password.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
+        // Phone number validation (digits only, 9-12 digits)
+        if (!/^\d{9,12}$/.test(formData.phonenumber)) {
+            setError('Invalid phone number');
+            return;
+        }
+
+        // Identity card validation (digits only, 9-12 digits)
+        if (!/^\d{9,12}$/.test(formData.identityCard)) {
+            setError('Invalid identity card number');
+            return;
+        }
+
+        // Date of birth in the past
+        if (new Date(formData.dateofbirth) > new Date()) {
+            setError('Date of birth must be in the past');
+            return;
+        }
+
+        // Preferred language validation (only allow 'vi' or 'en')
+        if (!['vi', 'en'].includes(formData.preferredlanguage)) {
+            setError('Invalid language code');
+            return;
+        }
+
+        // Terms of Service
+        if (!formData.termsAccepted) {
+            setError('You must agree to the Terms of Service');
             return;
         }
 
@@ -261,6 +311,24 @@ const CompleteRegister: React.FC = () => {
                                     onChange={(e) => setFormData({ ...formData, preferredlanguage: e.target.value })}
                                     leftIcon={<Languages size={20} className="text-secondary-400" />}
                                 />
+
+                                <div className="flex items-center">
+                                    <input
+                                        id="terms"
+                                        name="terms"
+                                        type="checkbox"
+                                        checked={formData.termsAccepted || false}
+                                        onChange={e => setFormData({ ...formData, termsAccepted: e.target.checked })}
+                                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                                        required
+                                    />
+                                    <label htmlFor="terms" className="ml-2 block text-sm text-secondary-700 dark:text-secondary-300">
+                                        I agree to the{' '}
+                                        <a href="#" className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400">
+                                          Terms of Service
+                                        </a>
+                                    </label>
+                                </div>
 
                                 <Button
                                     type="submit"
