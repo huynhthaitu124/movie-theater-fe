@@ -701,6 +701,7 @@ const BookTicket: React.FC = () => {
         accountId: accountId, // This ensures it's a string, not possibly undefined
         seatIds: selectedSeats,
         productIds: selectedProducts.map(p => p.productid),
+        code: appliedPromotion ? appliedPromotion.code : undefined
         // comboIds: selectedCombos.map(c => c.comboid), // if you have combos
         // code: discountCode, // if you have a code
       };
