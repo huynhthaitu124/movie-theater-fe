@@ -18,12 +18,14 @@ import { seatService, seatTypeService } from '../../services/modules/seat.servic
 import { seatScheduleService } from '../../services/modules/seatSchedule.service';
 import { transactionService } from '../../services/modules/transaction.service';
 import { vnpayService } from '../../services/modules/vnpay.service';
+import { promotionService } from '../../services/modules/promotion.service';
 import { axiosClient } from '../../services/api/axiosClient';
 
 // Types
 import { Movie } from '../../types/movie';
 import { Schedule } from '../../types/schedule';
 import { Product } from '../../types/product';
+import { Promotion } from '../../types/promotion';
 import { BookingStep } from '../../types/booking';
 
 const BookTicket: React.FC = () => {
@@ -48,6 +50,11 @@ const BookTicket: React.FC = () => {
   const [productsLoading, setProductsLoading] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [promotionsLoading, setPromotionsLoading] = useState(false);
+  const [promotionCode, setPromotionCode] = useState<string>('');
+  const [appliedPromotion, setAppliedPromotion] = useState<Promotion | null>(null);
+  const [promotionError, setPromotionError] = useState<string | null>(null);
 
   const steps: BookingStep[] = [
     { step: 1, title: 'Select Date', isCompleted: false },
@@ -146,6 +153,9 @@ const BookTicket: React.FC = () => {
     setSelectedCinema('');
     setSelectedSchedule('');
     setSelectedSeats([]);
+    setPromotionCode('');
+    setAppliedPromotion(null);
+    setPromotionError(null);
   }, [selectedDate]);
 
   // Reset seat selection when schedule changes
@@ -250,6 +260,83 @@ const BookTicket: React.FC = () => {
       fetchProducts();
     }
   }, [currentStep]);
+  
+  // Fetch promotions
+  useEffect(() => {
+    const fetchPromotions = async () => {
+      setPromotionsLoading(true);
+      setPromotionError(null);
+      // Reset any applied promotions when changing steps
+      setAppliedPromotion(null);
+      setPromotionCode('');
+      
+      try {
+        const res = await promotionService.getAll();
+        console.log('Fetched promotions:', res);
+        // Filter active promotions with valid dates
+        const currentDate = new Date();
+        const activePromotions = res.data.filter(p => 
+          p.isactive === true && 
+          p.status === 'ACTIVE' && 
+          new Date(p.starttime) <= currentDate &&
+          new Date(p.endtime) > currentDate
+        );
+
+        console.log('Active promotions:', activePromotions.length);
+        setPromotions(activePromotions);
+        
+        // Ensure no promotion is automatically applied
+        setAppliedPromotion(null);
+        setPromotionCode('');
+      } catch (err) {
+        console.error('Error fetching promotions:', err);
+        setPromotionError('Failed to load promotions. You can still proceed without a promotion code.');
+        setPromotions([]);
+      } finally {
+        setPromotionsLoading(false);
+      }
+    };
+    if (currentStep === 5) {
+      fetchPromotions();
+    }
+  }, [currentStep]);
+  
+  // Ensure no promotion is automatically applied when promotions are loaded
+  useEffect(() => {
+    if (currentStep === 5) {
+      // Always reset promotion state when promotions data changes
+      setAppliedPromotion(null);
+      setPromotionCode('');
+    }
+  }, [promotions, currentStep]);
+  
+  // Check if current applied promotion still meets requirements after changes to the order
+  // Also force a re-render of promotion cards when subtotal changes to update eligibility
+  useEffect(() => {
+    // Calculate current subtotal
+    const subtotal = calculateSubtotal();
+    
+    // Check if currently applied promotion is still eligible
+    if (appliedPromotion?.mincondition) {
+      if (subtotal < appliedPromotion.mincondition) {
+        console.log('Applied promotion no longer meets minimum spend requirement');
+        // Remove the promotion since it's no longer valid with current order
+        setAppliedPromotion(null);
+        setPromotionCode('');
+        setPromotionError(`The promotion "${appliedPromotion.title}" has been removed as it requires a minimum spend of ${new Intl.NumberFormat('vi-VN', { 
+          style: 'currency', 
+          currency: 'VND',
+          minimumFractionDigits: 0 
+        }).format(appliedPromotion.mincondition)}.`);
+      }
+    }
+    
+    // Force promotions list to refresh when on step 5 (to update eligibility status)
+    if (currentStep === 5) {
+      // This will cause the component to re-evaluate which promotions meet minimum requirements
+      setPromotions(prev => [...prev]);
+    }
+  }, [selectedSeats, selectedProducts, currentStep]);
 
   // Check for payment success in localStorage when component mounts
   useEffect(() => {
@@ -336,6 +423,162 @@ const BookTicket: React.FC = () => {
       return [...prev, { productId, quantity }];
     });
   };
+  
+  // Function to apply promotion code
+  const handleApplyPromotion = () => {
+    setPromotionError(null);
+
+    // Check if the entered promotion code exists
+    const promotion = promotions.find(
+      (p) => p.code.toLowerCase() === promotionCode.toLowerCase()
+    );
+
+    if (!promotion) {
+      setPromotionError("Invalid promotion code. Please try again.");
+      return;
+    }
+
+    // Check if promotion is still valid
+    const currentDate = new Date();
+    const startDate = new Date(promotion.startTime);
+    const endDate = new Date(promotion.endTime);
+
+    if (currentDate < startDate) {
+      setPromotionError(`This promotion will be active from ${startDate.toLocaleDateString()}.`);
+      return;
+    }
+
+    if (currentDate > endDate) {
+      setPromotionError(`This promotion expired on ${endDate.toLocaleDateString()}.`);
+      return;
+    }
+
+    // Check if promotion is active
+    if (!promotion.isActive || promotion.status !== 'ACTIVE') {
+      setPromotionError("This promotion is currently unavailable.");
+      return;
+    }
+
+    // Check if there's a minimum purchase requirement
+    if (promotion.mincondition) {
+      const subtotal = calculateSubtotal();
+      if (subtotal < promotion.mincondition) {
+        setPromotionError(`This promotion requires a minimum order of ${new Intl.NumberFormat('vi-VN', { 
+          style: 'currency', 
+          currency: 'VND',
+          minimumFractionDigits: 0 
+        }).format(promotion.mincondition)}.`);
+        return;
+      }
+    }
+
+    // Apply the promotion
+    setAppliedPromotion(promotion);
+    setPromotionCode(promotion.code);
+    setPromotionError(null);
+  };
+
+  // Function to select a promotion from the card
+  const handleSelectPromotion = (promotion: Promotion) => {
+    // Clear any previous errors
+    setPromotionError(null);
+    
+    // If clicking on the already applied promotion, remove it (toggle behavior)
+    if (appliedPromotion?.promotionid === promotion.promotionid) {
+      console.log('Removing previously applied promotion');
+      setAppliedPromotion(null);
+      setPromotionCode('');
+      return;
+    }
+    
+    // Double-check if the promotion meets minimum spending requirement
+    if (promotion.mincondition) {
+      const subtotal = calculateSubtotal();
+      if (subtotal < promotion.mincondition) {
+        // Special handling for ineligible promotions - show error but don't block the UI
+        const shortfall = promotion.mincondition - subtotal;
+        setPromotionError(`Promotion "${promotion.title}" is not available yet. You need to spend at least ${new Intl.NumberFormat('vi-VN', { 
+          style: 'currency', 
+          currency: 'VND',
+          minimumFractionDigits: 0 
+        }).format(promotion.mincondition)} to use this promotion. Add ${new Intl.NumberFormat('vi-VN', { 
+          style: 'currency', 
+          currency: 'VND',
+          minimumFractionDigits: 0 
+        }).format(shortfall)} more to qualify.`);
+        return;
+      }
+    }
+    
+    // Log explicit promotion selection
+    console.log(`User explicitly selected promotion: ${promotion.code}`);
+    
+    // Check if promotion is still valid
+    const currentDate = new Date();
+    const startDate = new Date(promotion.starttime);
+    const endDate = new Date(promotion.endtime);
+
+    if (currentDate < startDate) {
+      setPromotionError(`This promotion will be active from ${startDate.toLocaleDateString()}.`);
+      return;
+    }
+
+    if (currentDate > endDate) {
+      setPromotionError(`This promotion expired on ${endDate.toLocaleDateString()}.`);
+      return;
+    }
+
+    // Check if promotion is active
+    if (!promotion.isactive || promotion.status !== 'ACTIVE') {
+      setPromotionError("This promotion is currently unavailable.");
+      return;
+    }
+    
+    // Apply the new promotion
+    setPromotionCode(promotion.code);
+    
+    // Check if there's a minimum purchase requirement
+    if (promotion.mincondition) {
+      const subtotal = calculateSubtotal();
+      if (subtotal < promotion.mincondition) {
+        const shortfall = promotion.mincondition - subtotal;
+        setPromotionError(`This promotion requires a minimum order of ${new Intl.NumberFormat('vi-VN', { 
+          style: 'currency', 
+          currency: 'VND',
+          minimumFractionDigits: 0 
+        }).format(promotion.mincondition)}. Add ${new Intl.NumberFormat('vi-VN', { 
+          style: 'currency', 
+          currency: 'VND',
+          minimumFractionDigits: 0 
+        }).format(shortfall)} more to your order to qualify.`);
+        return;
+      }
+    }
+    
+    // Apply the promotion
+    setAppliedPromotion(promotion);
+  };
+  
+  // Helper function to calculate subtotal without discount
+  const calculateSubtotal = () => {
+    // Calculate seats total
+    const seatsTotal = selectedSeats.reduce((sum, seatId) => {
+      const seat = scheduleSeats.find((s: any) => s.seatId === seatId);
+      if (!seat) return sum;
+      const seatType = seatTypes.find((t: any) =>
+        t.name?.trim().toLowerCase() === seat.seatTypeName?.trim().toLowerCase()
+      );
+      return sum + (seatType ? seatType.price : 0);
+    }, 0);
+
+    // Calculate products total
+    const productsTotal = selectedProducts.reduce((sum, { productId, quantity }) => {
+      const product = products.find(p => p.productId === productId);
+      return sum + (product ? product.price * quantity : 0);
+    }, 0);
+
+    return seatsTotal + productsTotal;
+  };
 
   // Get filtered schedules with proper sorting
   const getFilteredSchedules = () => {
@@ -381,8 +624,38 @@ const BookTicket: React.FC = () => {
       return sum + (product ? product.price * quantity : 0);
     }, 0);
 
-    // No booking fee
-    return seatsTotal + productsTotal;
+    // Calculate subtotal
+    const subtotal = seatsTotal + productsTotal;
+    
+    // Apply discount if a valid promotion is applied
+    if (appliedPromotion) {
+      // Use the discount level from the API if available, otherwise try to parse from detail
+      let discountPercentage = appliedPromotion.discountlevel || 10; // Default to 10% if not specified
+      
+      // Only try to parse from detail if we don't have a discountlevel already
+      if (!appliedPromotion.discountlevel && appliedPromotion.detail) {
+        const discountMatch = appliedPromotion.detail.match(/(\d+)%/);
+        if (discountMatch && discountMatch[1]) {
+          discountPercentage = parseInt(discountMatch[1]);
+        }
+      }
+      
+      // Check if discount type is percentage
+      if (appliedPromotion.discounttype === 'PERCENTAGE') {
+        const discountAmount = (subtotal * discountPercentage) / 100;
+        return subtotal - discountAmount;
+      } else if (appliedPromotion.discounttype === 'FIXED') {
+        // Apply fixed amount discount
+        return subtotal - discountPercentage;
+      } else {
+        // Default behavior if no discount type specified
+        const discountAmount = (subtotal * discountPercentage) / 100;
+        return subtotal - discountAmount;
+      }
+    }
+    
+    // No promotion applied
+    return subtotal;
   };
 
   const handleConfirmPayment = async () => {
@@ -420,7 +693,8 @@ const BookTicket: React.FC = () => {
       const transactionData = {
         accountId: accountId, // This ensures it's a string, not possibly undefined
         seatIds: selectedSeats,
-        productItems: selectedProducts.length > 0 ? selectedProducts : undefined
+        productItems: selectedProducts.length > 0 ? selectedProducts : undefined,
+        code: appliedPromotion ? appliedPromotion.code : undefined // Include promotion code if applied
       };
       
       // Debug: Log transaction data
@@ -971,7 +1245,12 @@ const BookTicket: React.FC = () => {
                     </Button>
                     <Button
                       disabled={!canProceedToStep(5)}
-                      onClick={() => setCurrentStep(5)}
+                      onClick={() => {
+                        // Ensure no promotion is automatically applied when moving to step 5
+                        setAppliedPromotion(null);
+                        setPromotionCode('');
+                        setCurrentStep(5);
+                      }}
                     >
                       Continue to Payment
                     </Button>
@@ -1001,6 +1280,308 @@ const BookTicket: React.FC = () => {
                       View My Bookings
                     </Button>
                   </div>
+                </div>
+              )}
+              
+              {/* Promotion Section - Only show when not paid yet */}
+              {!paymentSuccess && (
+                <div className="bg-secondary-800 rounded-xl p-6 mb-6">
+                  {/* Promotion Application Status Banner */}
+                  {appliedPromotion ? (
+                    <div className="bg-green-800/30 border border-green-600/30 rounded-lg p-3 mb-4 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="font-medium text-green-400">Promotion Applied</p>
+                        <p className="text-xs text-green-500/80">
+                          {appliedPromotion.title} - {appliedPromotion.detail}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setAppliedPromotion(null);
+                          setPromotionCode('');
+                        }}
+                        className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-blue-800/20 border border-blue-600/20 rounded-lg p-3 mb-4 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="font-medium text-blue-400">No Promotion Selected</p>
+                        <p className="text-xs text-blue-500/80">
+                          Select a promotion card below to apply a discount
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Informational banner about promotions */}
+                  <div className="bg-secondary-800/50 border border-secondary-700/50 rounded-lg p-3 mb-4">
+                    <div className="flex items-start">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary-400 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm text-primary-300 font-medium">How promotions work:</p>
+                        <ul className="text-xs text-secondary-300 mt-1 list-disc list-inside space-y-1">
+                          <li>Promotions are not automatically applied</li>
+                          <li>Click on an available promotion card to select it</li>
+                          <li><span className="text-secondary-500">Darker cards</span> cannot be selected until you meet the minimum spending requirement</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">Available Promotions</h3>
+                      <p className="text-xs text-secondary-400 mt-1">
+                        Click on a promotion card to apply it
+                      </p>
+                      {promotions.some(p => p.mincondition) && (
+                        <p className="text-xs text-secondary-500 mt-1 italic">
+                          Promotions with "Not Available" label will become available when you spend more
+                        </p>
+                      )}
+                    </div>
+                    {appliedPromotion ? (
+                      <span className="text-sm text-green-400 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Promotion applied
+                      </span>
+                    ) : (
+                      <span className="text-sm text-secondary-400">
+                        No promotion selected
+                      </span>
+                    )}
+                  </div>
+                  
+                  {promotionsLoading ? (
+                    <div className="flex justify-center items-center py-4">
+                      <Loader2 className="animate-spin h-6 w-6 text-primary-500 mr-2" />
+                      <span>Loading promotions...</span>
+                    </div>
+                  ) : promotionError ? (
+                    <div className="text-red-400 mb-4">{promotionError}</div>
+                  ) : (
+                    <>
+                      {/* Manual Promotion Code Entry */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
+                        <div className="w-full sm:flex-1">
+                          <input
+                            type="text"
+                            placeholder="Enter promotion code"
+                            value={promotionCode}
+                            onChange={(e) => setPromotionCode(e.target.value)}
+                            className="w-full px-4 py-3 rounded-lg bg-secondary-700 border border-secondary-600 text-white placeholder-secondary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <button
+                          onClick={handleApplyPromotion}
+                          disabled={!promotionCode.trim()}
+                          className={`px-6 py-3 rounded-lg ${
+                            !promotionCode.trim()
+                              ? 'bg-secondary-700 text-secondary-500 cursor-not-allowed'
+                              : 'bg-primary-600 hover:bg-primary-700 text-white'
+                          } transition-all`}
+                        >
+                          Apply Code
+                        </button>
+                      </div>
+
+                      {/* Promotion Cards */}
+                      {promotions.length === 0 ? (
+                        <div className="text-center py-6 text-secondary-400">
+                          No promotions available at the moment.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {promotions.map((promotion) => {
+                            const isApplied = appliedPromotion?.promotionid === promotion.promotionid;
+                            const endDate = new Date(promotion.endtime);
+                            const isExpiringSoon = 
+                              (endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) < 3; // less than 3 days
+                            
+                            // Check if the current subtotal meets the minimum condition
+                            const currentSubtotal = calculateSubtotal();
+                            const meetsMinCondition = !promotion.mincondition || currentSubtotal >= promotion.mincondition;
+                            
+                            return (
+                              <div 
+                                key={promotion.promotionid} 
+                                onClick={() => meetsMinCondition ? handleSelectPromotion(promotion) : null}
+                                className={`p-4 rounded-lg border transition-all relative ${
+                                  isApplied 
+                                    ? 'bg-primary-900/30 border-primary-500 ring-2 ring-primary-500 shadow-lg shadow-primary-900/20 cursor-pointer hover:scale-[1.02]' 
+                                    : meetsMinCondition
+                                      ? 'bg-secondary-700 border-secondary-600 hover:border-primary-500/70 hover:shadow-md cursor-pointer hover:scale-[1.02]'
+                                      : 'bg-secondary-900/80 border-secondary-800 text-secondary-500 opacity-75 cursor-not-allowed'
+                                }`}
+                              >
+                                {/* Ineligible banner and overlay (only shows on ineligible promotions) */}
+                                {!meetsMinCondition && (
+                                  <>
+                                    <div className="absolute inset-0 bg-secondary-900/40 z-5 rounded-lg"></div>
+                                    <div className="absolute top-2 left-2 transform -rotate-12 z-10">
+                                      <div className="bg-secondary-800 border border-secondary-700 text-secondary-500 px-2 py-0.5 text-xs font-semibold rounded">
+                                        Not Available
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                                
+                                {/* Selection indicator */}
+                                {!isApplied && meetsMinCondition && (
+                                  <div className="absolute top-0 right-0 m-2 p-1 rounded-full bg-blue-500/20">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                                    </svg>
+                                  </div>
+                                )}
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex-1">
+                                    <h4 className={`font-medium text-lg ${!meetsMinCondition ? 'text-secondary-400' : 'text-white'}`}>{promotion.title}</h4>
+                                    <p className={`text-sm line-clamp-2 ${!meetsMinCondition ? 'text-secondary-500' : 'text-secondary-300'}`}>{promotion.detail}</p>
+                                    {promotion.mincondition && !meetsMinCondition && (
+                                      <div className="mt-2">
+                                        <div className="flex items-center">
+                                          <span className="inline-block px-2 py-1 rounded bg-secondary-800 text-xs text-secondary-400 border border-secondary-700">
+                                            Min. spend: {new Intl.NumberFormat('vi-VN', {
+                                              style: 'currency',
+                                              currency: 'VND',
+                                              minimumFractionDigits: 0,
+                                            }).format(promotion.mincondition)}
+                                          </span>
+                                        </div>
+                                        <div className="mt-2 flex flex-col">
+                                          <div className="flex justify-between text-xs text-secondary-500">
+                                            <span>Current subtotal:</span>
+                                            <span>{new Intl.NumberFormat('vi-VN', {
+                                              style: 'currency',
+                                              currency: 'VND',
+                                              minimumFractionDigits: 0,
+                                            }).format(calculateSubtotal())}</span>
+                                          </div>
+                                          <div className="flex justify-between text-xs text-secondary-500">
+                                            <span>Still needed:</span>
+                                            <span>{new Intl.NumberFormat('vi-VN', {
+                                              style: 'currency',
+                                              currency: 'VND',
+                                              minimumFractionDigits: 0,
+                                            }).format(promotion.mincondition - calculateSubtotal())}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="ml-3">
+                                    {promotion.discounttype === 'PERCENTAGE' && promotion.discountlevel && (
+                                      <span className={`px-2 py-1 rounded font-bold ${
+                                        !meetsMinCondition 
+                                          ? 'bg-secondary-800 text-secondary-500' 
+                                          : 'bg-primary-500/20 text-primary-400'
+                                      }`}>
+                                        {promotion.discountlevel}% OFF
+                                      </span>
+                                    )}
+                                    {promotion.discounttype === 'FIXED' && promotion.discountlevel && (
+                                      <span className={`px-2 py-1 rounded font-bold ${
+                                        !meetsMinCondition 
+                                          ? 'bg-secondary-800 text-secondary-500' 
+                                          : 'bg-primary-500/20 text-primary-400'
+                                      }`}>
+                                        {new Intl.NumberFormat('vi-VN', {
+                                          style: 'currency',
+                                          currency: 'VND',
+                                          minimumFractionDigits: 0,
+                                        }).format(promotion.discountlevel)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                <div className="flex justify-between items-center mt-3">
+                                  <div className="text-xs">
+                                    <span className={
+                                      !meetsMinCondition 
+                                        ? 'text-secondary-500' 
+                                        : isExpiringSoon 
+                                          ? 'text-yellow-400' 
+                                          : 'text-secondary-400'
+                                    }>
+                                      {isExpiringSoon 
+                                        ? 'Expires soon!' 
+                                        : `Valid until ${endDate.toLocaleDateString()}`}
+                                    </span>
+                                  </div>
+                                  <div className={`px-2 py-1 rounded text-xs font-mono ${
+                                    !meetsMinCondition 
+                                      ? 'bg-secondary-900 text-secondary-600' 
+                                      : 'bg-secondary-800 text-secondary-300'
+                                  }`}>
+                                    {promotion.code}
+                                  </div>
+                                </div>
+
+                                <div className="mt-3 flex justify-end">
+                                  {isApplied ? (
+                                    <div className="bg-green-800/30 text-green-400 text-xs py-1 px-3 rounded flex items-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      Applied
+                                    </div>
+                                  ) : !meetsMinCondition ? (
+                                    <div className="text-xs bg-secondary-800 text-secondary-500 py-1 px-3 rounded flex items-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                      </svg>
+                                      Need to spend more
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs bg-primary-700/50 hover:bg-primary-700/70 text-primary-300 py-1 px-3 rounded flex items-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+                                      </svg>
+                                      Click to select
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Applied Promotion Info */}
+                      {appliedPromotion && (
+                        <div className="flex justify-end mt-4">
+                          <button
+                            onClick={() => {
+                              setAppliedPromotion(null);
+                              setPromotionCode('');
+                              setPromotionError(null);
+                            }}
+                            className="text-sm text-red-500 hover:text-red-400"
+                          >
+                            Remove promotion
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
               
@@ -1066,6 +1647,44 @@ const BookTicket: React.FC = () => {
                         : 'None'}
                     </span>
                   </div>
+                  {appliedPromotion && (
+                    <div className="flex justify-between text-green-400">
+                      <span>Discount ({appliedPromotion.title}):</span>
+                      <span>
+                        {(() => {
+                          // Calculate subtotal without discount
+                          const subtotal = selectedSeats.reduce((sum, seatId) => {
+                            const seat = scheduleSeats.find((s: any) => s.seatId === seatId);
+                            if (!seat) return sum;
+                            const seatType = seatTypes.find((t: any) =>
+                              t.name.trim().toLowerCase() === seat.seatTypeName.trim().toLowerCase()
+                            );
+                            return sum + (seatType ? seatType.price : 0);
+                          }, 0) + selectedProducts.reduce((sum, { productId, quantity }) => {
+                            const product = products.find(p => p.productId === productId);
+                            return sum + (product ? product.price * quantity : 0);
+                          }, 0);
+                          
+                          // Calculate discount amount (total difference)
+                          const discountAmount = subtotal - calculateTotal();
+                          
+                          // Display discount info based on type
+                          let discountText = '';
+                          if (appliedPromotion.discounttype === 'PERCENTAGE' && appliedPromotion.discountlevel) {
+                            discountText = `${appliedPromotion.discountlevel}% = `;
+                          }
+                          
+                          return `${discountText}-${new Intl.NumberFormat('vi-VN', { 
+                            style: 'currency', 
+                            currency: 'VND',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                          }).format(discountAmount)}`;
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between pt-3 border-t border-secondary-700">
                     <span className="text-gray-600 dark:text-gray-400">Total:</span>
                     <span className="font-semibold text-primary-500">
@@ -1075,6 +1694,7 @@ const BookTicket: React.FC = () => {
                 </div>
               </div>
 
+              
               {/* Payment Action */}
               {!paymentSuccess && (
                 <div className="bg-secondary-800 rounded-lg p-6">
@@ -1114,6 +1734,10 @@ const BookTicket: React.FC = () => {
                     // Reset payment success state to start a new booking
                     localStorage.removeItem('booking_payment_success');
                     setPaymentSuccess(false);
+                    // Reset promotion related states
+                    setPromotionCode('');
+                    setAppliedPromotion(null);
+                    setPromotionError(null);
                   }}>
                     Book Another Ticket
                   </Button>
