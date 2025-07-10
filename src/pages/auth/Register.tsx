@@ -24,6 +24,13 @@ const Register: React.FC = () => {
     };
 
     try {
+    // 1. Check if email exists
+    const checkRes = await AuthService.checkEmailExist(otpRequest);
+    if (checkRes.data) {
+      setError('Email already exist');
+      return;
+    }
+
       console.log('Sending OTP to:', otpRequest);
       const response = await AuthService.sendOtpRegister(otpRequest);
       console.log('Response:', response);
