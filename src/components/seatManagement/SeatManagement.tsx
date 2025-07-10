@@ -52,10 +52,15 @@ const SeatManagement: React.FC = () => {
         setLoading(true);
         setApiError(null);
         try {
-            const res = await seatService.getAll(); // Make sure this calls GET /api/Seat
+            const res = await seatService.getAll();
+            // If no seat data, do nothing
+            if (!res || !res.data || res.data.length === 0) {
+                setSeats([]);
+                setLoading(false);
+                return;
+            }
             // Filter seats by roomId from URL
-            console.log('Fetching seats for roomId:', res);
-            const filteredSeats = (res as { data: Seat[] }).data.filter((seat: Seat) => seat.roomId === roomId);
+            const filteredSeats = res.data.filter((seat: Seat) => seat.roomId === roomId);
             setSeats(filteredSeats);
         } catch (error) {
             setApiError('Failed to load seats');

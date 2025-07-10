@@ -45,7 +45,7 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onEdit, onDe
 
   const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
   const lowStockCount = products.filter(product => product.stock <= 10).length;
-  const outOfStockCount = products.filter(product => product.status === 'OUT_OF_STOCK').length;
+  const outOfStockCount = products.filter(product => product.status === 'UNAVAILABLE').length;
 
   return (
     <div className="space-y-6">
@@ -91,8 +91,8 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onEdit, onDe
             >
               <option value="all">All Status</option>
               <option value="AVAILABLE">Available</option>
-              <option value="OUT_OF_STOCK">Out of Stock</option>
-              <option value="UNAVAILABLE">Unavailable</option>
+              <option value="UNAVAILABLE">Out of Stock</option>
+              <option value="SUSPENDED">Unavailable</option>
             </select>
 
             <select

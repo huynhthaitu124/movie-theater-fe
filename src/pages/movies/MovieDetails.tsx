@@ -170,7 +170,7 @@ const MovieDetails: React.FC = () => {
                       ? 'Now Showing'
                       : movie.status === 'UPCOMING'
                       ? 'Upcoming'
-                      : 'Complete'}
+                      : 'Inactive'}
                   </span>
                 </div>
               </div>

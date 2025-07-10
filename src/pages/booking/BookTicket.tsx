@@ -37,7 +37,7 @@ const BookTicket: React.FC = () => {
   const [selectedCinema, setSelectedCinema] = useState<string>('');
   const [selectedSchedule, setSelectedSchedule] = useState<string>('');
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<{ productId: string; quantity: number }[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<{ productid: string; quantity: number }[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -248,6 +248,7 @@ const BookTicket: React.FC = () => {
       try {
         const res = await productService.getAll();
         setProducts(res.filter(p => p.isactive && p.status === 'AVAILABLE'));
+        // console.log('Fetched products:', res);
       } catch (err) {
         console.error('Error fetching products:', err);
         setProductsError('Failed to load food & beverages. Please try again.');
@@ -411,16 +412,17 @@ const BookTicket: React.FC = () => {
     });
   };
 
-  const handleProductSelect = (productId: string, quantity: number) => {
+  const handleProductSelect = (productid: string, quantity: number) => {
+    console.log('Selected product:', productid, 'Quantity:', quantity);
     setSelectedProducts(prev => {
       if (quantity === 0) {
-        return prev.filter(p => p.productId !== productId);
+        return prev.filter(p => p.productid !== productid);
       }
-      const existing = prev.find(p => p.productId === productId);
+      const existing = prev.find(p => p.productid === productid);
       if (existing) {
-        return prev.map(p => p.productId === productId ? { ...p, quantity } : p);
+        return prev.map(p => p.productid === productid ? { ...p, quantity } : p);
       }
-      return [...prev, { productId, quantity }];
+      return [...prev, { productid, quantity }];
     });
   };
   
@@ -619,8 +621,8 @@ const BookTicket: React.FC = () => {
     }, 0);
 
     // Calculate products total
-    const productsTotal = selectedProducts.reduce((sum, { productId, quantity }) => {
-      const product = products.find(p => p.productId === productId);
+    const productsTotal = selectedProducts.reduce((sum, { productid, quantity }) => {
+      const product = products.find(p => p.productid === productid);
       return sum + (product ? product.price * quantity : 0);
     }, 0);
 
@@ -659,6 +661,11 @@ const BookTicket: React.FC = () => {
   };
 
   const handleConfirmPayment = async () => {
+    // console.log('Confirming payment with selected seats:', selectedSeats);
+    // console.log('Selected schedule:', selectedSchedule);
+    // console.log('Selected products:', selectedProducts);
+    // console.log('Current user:', currentUser);
+    //==================================================================
     if (!movie) return;
     
     // Check if payment was already successful
@@ -693,8 +700,10 @@ const BookTicket: React.FC = () => {
       const transactionData = {
         accountId: accountId, // This ensures it's a string, not possibly undefined
         seatIds: selectedSeats,
-        productItems: selectedProducts.length > 0 ? selectedProducts : undefined,
-        code: appliedPromotion ? appliedPromotion.code : undefined // Include promotion code if applied
+        productIds: selectedProducts.map(p => p.productid),
+        code: appliedPromotion ? appliedPromotion.code : undefined
+        // comboIds: selectedCombos.map(c => c.comboid), // if you have combos
+        // code: discountCode, // if you have a code
       };
       
       // Debug: Log transaction data
@@ -1631,10 +1640,10 @@ const BookTicket: React.FC = () => {
                     <span className="text-gray-600 dark:text-gray-400 mt-1">Products:</span>
                     <span className="font-medium text-gray-900 dark:text-white flex flex-col items-end">
                       {selectedProducts.length > 0
-                        ? selectedProducts.map(({ productId, quantity }) => {
-                            const product = products.find(p => p.productId === productId);
+                        ? selectedProducts.map(({ productid, quantity }) => {
+                            const product = products.find(p => p.productid === productid);
                             return (
-                              <span key={productId}>
+                              <span key={productid}>
                                 {product?.name} x {quantity} - {new Intl.NumberFormat('vi-VN', {
                                   style: 'currency',
                                   currency: 'VND',

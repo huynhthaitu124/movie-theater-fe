@@ -1,11 +1,11 @@
 export interface Product {
-  productId: string;
+  productid: string;
   name: string;
   stock: number;
   price: number;
   image: string | null;
   description: string;
-  status: 'AVAILABLE' | 'OUT_OF_STOCK' | 'UNAVAILABLE';
+  status: 'AVAILABLE' | 'UNAVAILABLE' | 'SUSPENDED';
   isactive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -17,6 +17,6 @@ export interface ProductFormData {
   price: number;
   image: string | null;
   description: string;
-  status: 'AVAILABLE' | 'OUT_OF_STOCK' | 'UNAVAILABLE';
+  status: 'AVAILABLE' | 'UNAVAILABLE' | 'SUSPENDED';
   isActive: boolean;
 }

@@ -590,8 +590,9 @@ const AddEditMovie: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                       className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                     >
-                      <option value="INACTIVE">Coming Soon</option>
+                      <option value="INACTIVE">Inactive</option>
                       <option value="ACTIVE">Now Showing</option>
+                      <option value="UPCOMING">Upcoming</option>
                     </select>
                   </div>
                   

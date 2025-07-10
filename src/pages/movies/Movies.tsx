@@ -93,17 +93,6 @@ const Movies: React.FC = () => {
 
               {/* Desktop Filters */}
               <div className="hidden lg:flex gap-4">
-                <select
-                  value={selectedGenre}
-                  onChange={(e) => setSelectedGenre(e.target.value)}
-                  className="px-4 py-3 bg-secondary-800/50 backdrop-blur-sm border border-secondary-700 rounded-xl text-white focus:ring-2 focus:ring-primary-500 transition-all"
-                >
-                  {genres.map(genre => (
-                    <option key={genre} value={genre.toLowerCase()}>
-                      {genre.charAt(0).toUpperCase() + genre.slice(1)}
-                    </option>
-                  ))}
-                </select>
 
                 <select
                   value={selectedStatus}
@@ -112,7 +101,7 @@ const Movies: React.FC = () => {
                 >
                   <option value="all">All Status</option>
                   <option value="now-showing">Now Showing</option>
-                  <option value="coming-soon">Coming Soon</option>
+                  <option value="coming-soon">Upcoming</option>
                 </select>
               </div>
             </div>
@@ -126,17 +115,6 @@ const Movies: React.FC = () => {
                   exit={{ height: 0, opacity: 0 }}
                   className="lg:hidden space-y-4 overflow-hidden"
                 >
-                  <select
-                    value={selectedGenre}
-                    onChange={(e) => setSelectedGenre(e.target.value)}
-                    className="w-full px-4 py-3 bg-secondary-800/50 backdrop-blur-sm border border-secondary-700 rounded-xl text-white"
-                  >
-                    {genres.map(genre => (
-                      <option key={genre} value={genre.toLowerCase()}>
-                        {genre.charAt(0).toUpperCase() + genre.slice(1)}
-                      </option>
-                    ))}
-                  </select>
 
                   <select
                     value={selectedStatus}
@@ -145,7 +123,7 @@ const Movies: React.FC = () => {
                   >
                     <option value="all">All Status</option>
                     <option value="now-showing">Now Showing</option>
-                    <option value="coming-soon">Coming Soon</option>
+                    <option value="coming-soon">Upcoming</option>
                   </select>
                 </motion.div>
               )}
@@ -192,7 +170,7 @@ const Movies: React.FC = () => {
                           ? 'Now Showing'
                           : movie.status === 'UPCOMING'
                           ? 'Upcoming'
-                          : 'Complete'}
+                          : 'Inactive'}
                       </span>
                     </div>
 
