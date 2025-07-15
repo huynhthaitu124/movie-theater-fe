@@ -86,6 +86,14 @@ const Dashboard: React.FC = () => {
   const [staffCount, setStaffCount] = useState<number>(0);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [totalBookings, setTotalBookings] = useState<number>(0);
+  
+  // Comparison data for last month
+  const [lastMonthRevenue, setLastMonthRevenue] = useState<number>(0);
+  const [lastMonthBookings, setLastMonthBookings] = useState<number>(0);
+  const [revenueChange, setRevenueChange] = useState<string>('');
+  const [bookingChange, setBookingChange] = useState<string>('');
+  const [revenueChangeType, setRevenueChangeType] = useState<'increase' | 'decrease' | 'neutral'>('neutral');
+  const [bookingChangeType, setBookingChangeType] = useState<'increase' | 'decrease' | 'neutral'>('neutral');
 
   useEffect(() => {
     // Fetch total movies (active only)
@@ -100,16 +108,162 @@ const Dashboard: React.FC = () => {
     // Fetch transactions for revenue and booking count
     transactionService.getAll?.().then(res => {
       const transactions = res.data || [];
+      
+      // Calculate current month data
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      // Calculate last month data
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+      
+      // Filter transactions for current month
+      const currentMonthTransactions = transactions.filter((t: any) => {
+        if (!t.paymentdate) return false;
+        const date = new Date(t.paymentdate);
+        return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      });
+      
+      // Filter transactions for last month
+      const lastMonthTransactions = transactions.filter((t: any) => {
+        if (!t.paymentdate) return false;
+        const date = new Date(t.paymentdate);
+        return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
+      });
+      
+      // Calculate current month metrics
+      const currentMonthBookings = currentMonthTransactions.length;
+      const currentMonthRevenue = currentMonthTransactions.reduce((sum: number, t: any) => sum + (t.price || 0), 0);
+      
+      // Calculate last month metrics
+      const lastMonthBookingsCount = lastMonthTransactions.length;
+      const lastMonthRevenueAmount = lastMonthTransactions.reduce((sum: number, t: any) => sum + (t.price || 0), 0);
+      
+      // Set total values (all transactions)
       setTotalBookings(transactions.length);
-      // Sum up all price fields (assume price is a number)
-      const revenue = transactions.reduce((sum: number, t: any) => sum + (t.price || 0), 0);
-      setTotalRevenue(revenue);
+      const totalRevenueAmount = transactions.reduce((sum: number, t: any) => sum + (t.price || 0), 0);
+      setTotalRevenue(totalRevenueAmount);
+      
+      // Set last month values
+      setLastMonthBookings(lastMonthBookingsCount);
+      setLastMonthRevenue(lastMonthRevenueAmount);
+      
+      // Calculate percentage changes
+      const revenuePercentChange = lastMonthRevenueAmount > 0 
+        ? ((currentMonthRevenue - lastMonthRevenueAmount) / lastMonthRevenueAmount * 100)
+        : (currentMonthRevenue > 0 ? 100 : 0);
+      
+      const bookingPercentChange = lastMonthBookingsCount > 0 
+        ? ((currentMonthBookings - lastMonthBookingsCount) / lastMonthBookingsCount * 100)
+        : (currentMonthBookings > 0 ? 100 : 0);
+      
+      // Set revenue change
+      if (Math.abs(revenuePercentChange) < 0.1) {
+        setRevenueChange('No change vs. last month');
+        setRevenueChangeType('neutral');
+      } else {
+        setRevenueChange(`${revenuePercentChange >= 0 ? '+' : ''}${revenuePercentChange.toFixed(1)}% vs. last month`);
+        setRevenueChangeType(revenuePercentChange >= 0 ? 'increase' : 'decrease');
+      }
+      
+      // Set booking change
+      if (Math.abs(bookingPercentChange) < 0.1) {
+        setBookingChange('No change vs. last month');
+        setBookingChangeType('neutral');
+      } else {
+        setBookingChange(`${bookingPercentChange >= 0 ? '+' : ''}${bookingPercentChange.toFixed(1)}% vs. last month`);
+        setBookingChangeType(bookingPercentChange >= 0 ? 'increase' : 'decrease');
+      }
+      
+      // Calculate monthly revenue
+      const monthlyData = calculateMonthlyRevenue(transactions);
+      setMonthlyRevenue(monthlyData);
+      
+      // Calculate weekly revenue
+      const weeklyData = calculateWeeklyRevenue(transactions);
+      setWeeklyRevenue(weeklyData);
     });
   }, []);
+
+  // Calculate weekly revenue from transactions
+  const calculateWeeklyRevenue = (transactions: any[]) => {
+    const now = new Date();
+    const thisWeekData: { [key: string]: number } = {};
+    const lastWeekData: { [key: string]: number } = {};
+    
+    // Get start of this week (Monday)
+    const thisWeekStart = new Date(now);
+    thisWeekStart.setDate(now.getDate() - now.getDay() + 1);
+    thisWeekStart.setHours(0, 0, 0, 0);
+    
+    // Get start of last week
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+    
+    const lastWeekEnd = new Date(thisWeekStart);
+    lastWeekEnd.setTime(thisWeekStart.getTime() - 1);
+
+    transactions.forEach((transaction: any) => {
+      if (transaction.paymentdate && transaction.price) {
+        const date = new Date(transaction.paymentdate);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        
+        // Check if transaction is in this week
+        if (date >= thisWeekStart && date <= now) {
+          thisWeekData[dayName] = (thisWeekData[dayName] || 0) + (transaction.price || 0);
+        }
+        // Check if transaction is in last week
+        else if (date >= lastWeekStart && date <= lastWeekEnd) {
+          lastWeekData[dayName] = (lastWeekData[dayName] || 0) + (transaction.price || 0);
+        }
+      }
+    });
+
+    // Create week data for Mon-Sun
+    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return weekDays.map(day => ({
+      day,
+      revenue: thisWeekData[day] || 0,
+      lastWeek: lastWeekData[day] || 0
+    }));
+  };
+
+  // Monthly and weekly revenue data
+  const [monthlyRevenue, setMonthlyRevenue] = useState<{ month: string; revenue: number }[]>([]);
+  const [weeklyRevenue, setWeeklyRevenue] = useState<{ day: string; revenue: number; lastWeek: number }[]>([]);
 
   // Format revenue as VND
   const formatVND = (amount: number) =>
     amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+
+  // Calculate monthly revenue from transactions
+  const calculateMonthlyRevenue = (transactions: any[]) => {
+    const monthlyData: { [key: string]: number } = {};
+    
+    transactions.forEach((transaction: any) => {
+      if (transaction.paymentdate && transaction.price) {
+        const date = new Date(transaction.paymentdate);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthlyData[monthKey] = (monthlyData[monthKey] || 0) + (transaction.price || 0);
+      }
+    });
+
+    // Get last 6 months
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      months.push({
+        month: monthName,
+        revenue: monthlyData[monthKey] || 0
+      });
+    }
+    
+    return months;
+  };
 
   return (
     <AdminLayout>
@@ -151,29 +305,29 @@ const Dashboard: React.FC = () => {
             title="Total Bookings"
             value={totalBookings.toString()}
             icon={<TicketIcon size={24} className="text-primary-400" />}
-            change="+12% vs. last month"
-            changeType="increase"
+            change={bookingChange}
+            changeType={bookingChangeType}
           />
           <StatCard
             title="Revenue"
             value={formatVND(totalRevenue)}
             icon={<DollarSign size={24} className="text-green-400" />}
-            change="+8.5% vs. last month"
-            changeType="increase"
+            change={revenueChange}
+            changeType={revenueChangeType}
           />
           <StatCard
             title="Active Movies"
             value={movieCount.toString()}
             icon={<Film size={24} className="text-purple-400" />}
-            change="2 new releases"
+            // change="Updated from API"
             changeType="neutral"
           />
           <StatCard
             title="Employees"
             value={staffCount.toString()}
             icon={<Users size={24} className="text-blue-400" />}
-            change="-1 since last month"
-            changeType="decrease"
+            // change="Updated from API"
+            changeType="neutral"
           />
         </div>
 
@@ -193,22 +347,33 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             
-            <div className="h-64 flex items-end justify-between">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
-                <div key={day} className="flex flex-col items-center space-y-2">
-                  <div className="relative w-10">
-                    <div 
-                      className="w-4 bg-secondary-600 rounded-t-sm mx-auto" 
-                      style={{ height: `${30 + Math.random() * 70}px` }}
-                    ></div>
-                    <div 
-                      className="w-4 bg-primary-500 rounded-t-sm absolute bottom-0 left-0 right-0 mx-auto" 
-                      style={{ height: `${20 + Math.random() * 100}px` }}
-                    ></div>
+            <div className="h-64 flex items-end justify-between space-x-2">
+              {weeklyRevenue.map((dayData, i) => {
+                const maxRevenue = Math.max(...weeklyRevenue.map(d => Math.max(d.revenue, d.lastWeek)));
+                const thisWeekHeight = maxRevenue > 0 ? (dayData.revenue / maxRevenue) * 200 : 20;
+                const lastWeekHeight = maxRevenue > 0 ? (dayData.lastWeek / maxRevenue) * 200 : 20;
+                
+                return (
+                  <div key={dayData.day} className="flex flex-col items-center space-y-2 flex-1">
+                    <div className="relative w-full max-w-10 h-52 flex items-end justify-center space-x-1">
+                      <div 
+                        className="w-4 bg-secondary-600 rounded-t-sm transition-all duration-300 hover:opacity-80" 
+                        style={{ height: `${Math.max(lastWeekHeight, 10)}px` }}
+                        title={`Last Week: ${formatVND(dayData.lastWeek)}`}
+                      ></div>
+                      <div 
+                        className="w-4 bg-primary-500 rounded-t-sm transition-all duration-300 hover:opacity-80" 
+                        style={{ height: `${Math.max(thisWeekHeight, 10)}px` }}
+                        title={`This Week: ${formatVND(dayData.revenue)}`}
+                      ></div>
+                    </div>
+                    <span className="text-xs text-secondary-400">{dayData.day}</span>
+                    <span className="text-xs text-primary-400 font-medium">
+                      {dayData.revenue > 0 ? formatVND(dayData.revenue).replace('₫', '').replace(',', 'K') : '0'}
+                    </span>
                   </div>
-                  <span className="text-xs text-secondary-400">{day}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           
@@ -239,6 +404,42 @@ const Dashboard: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Monthly Revenue Chart */}
+        <div className="bg-secondary-800 rounded-lg p-6 shadow-md">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-white">Monthly Revenue Trend</h2>
+            <span className="text-xs px-2 py-1 bg-secondary-700 rounded-full text-secondary-300">Last 6 Months</span>
+          </div>
+          
+          <div className="h-64 flex items-end justify-between space-x-4">
+            {monthlyRevenue.map((monthData, i) => {
+              const maxRevenue = Math.max(...monthlyRevenue.map(d => d.revenue));
+              const height = maxRevenue > 0 ? (monthData.revenue / maxRevenue) * 200 : 20;
+              
+              return (
+                <div key={monthData.month} className="flex flex-col items-center space-y-2 flex-1">
+                  <div className="w-full max-w-16 h-52 flex items-end justify-center">
+                    <div 
+                      className="w-8 bg-gradient-to-t from-primary-600 to-primary-400 rounded-t-lg transition-all duration-500 hover:opacity-80 cursor-pointer" 
+                      style={{ height: `${Math.max(height, 10)}px` }}
+                      title={`${monthData.month}: ${formatVND(monthData.revenue)}`}
+                    ></div>
+                  </div>
+                  <span className="text-xs text-secondary-400 font-medium">{monthData.month}</span>
+                  <span className="text-xs text-primary-400 font-semibold">
+                    {monthData.revenue > 0 ? 
+                      (monthData.revenue >= 1000000 ? 
+                        `${(monthData.revenue / 1000000).toFixed(1)}M` : 
+                        `${(monthData.revenue / 1000).toFixed(0)}K`
+                      ) : '0'
+                    }
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 

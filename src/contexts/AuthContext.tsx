@@ -114,6 +114,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const user: User = {
                 accountid: tokenPayload.sub,
                 email: tokenPayload.email,
+                avatar: matchedAccount ? matchedAccount.avatar : '',
+                gender: matchedAccount ? matchedAccount.gender : '',
+                phonenumber: matchedAccount ? matchedAccount.phoneNumber : '',
+                address: matchedAccount ? matchedAccount.address : '',
+                dateofbirth: matchedAccount ? matchedAccount.dateOfBirth : '',
+                identityCard: matchedAccount ? matchedAccount.identityCard : '',
                 displayname: matchedAccount ? matchedAccount.displayName : tokenPayload.name,
                 role: normalizeRole(tokenPayload.role || ''),
                 isactive: tokenPayload.EmailVerified || false,
