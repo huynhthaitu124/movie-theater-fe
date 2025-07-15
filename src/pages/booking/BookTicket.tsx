@@ -18,7 +18,7 @@ import { seatService, seatTypeService } from '../../services/modules/seat.servic
 import { seatScheduleService } from '../../services/modules/seatSchedule.service';
 import { transactionService } from '../../services/modules/transaction.service';
 import { vnpayService } from '../../services/modules/vnpay.service';
-import { promotionService } from '../../services/modules/promotion.service';
+import { promotionService } from '../../services/modules/promotion.Service';
 import { axiosClient } from '../../services/api/axiosClient';
 
 // Types

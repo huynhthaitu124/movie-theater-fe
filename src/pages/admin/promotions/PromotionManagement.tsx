@@ -9,7 +9,7 @@ import { Promotion, PromotionType, PromotionFormData, PromotionFilters } from '.
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Modal from '../../../components/ui/Modal';
-import { promotionService } from '../../../services/modules/promotion.service';
+import { promotionService } from '../../../services/modules/promotion.Service';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../../components/layout/AdminLayout';
 
