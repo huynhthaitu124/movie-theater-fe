@@ -95,7 +95,7 @@ const Navbar: React.FC = () => {
                     >
                       Profile
                     </Link>
-                    {currentUser?.role === 'Admin' || currentUser?.role === 'Staff' && (
+                    {(currentUser?.role === 'Admin' || currentUser?.role === 'Staff') && (
                     <button
                       onClick={handleDashboardClick}
                       className="block w-full text-left px-4 py-2 text-sm text-secondary-200 hover:bg-secondary-700"
