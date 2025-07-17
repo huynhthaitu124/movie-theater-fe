@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { AlertCircle, Plus, Search, Edit, Trash } from 'lucide-react';
+import { AlertCircle, Plus, Search, Edit, Trash, User2 } from 'lucide-react';
 import Button from '@/components/common/Button';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { memberService } from '@/services/modules/member.service';
@@ -152,7 +152,10 @@ const MemberList: React.FC = () => {
     <AdminLayout>
       <div className="space-y-6 p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-bold text-white">Member Management</h1>
+          <div className="flex items-center space-x-2">
+            <User2 className="h-6 w-6 text-primary-400" />
+            <h1 className="text-2xl font-bold text-white">Member Management</h1>
+          </div>
           <div className="flex gap-4">
             <Button
               variant="secondary"

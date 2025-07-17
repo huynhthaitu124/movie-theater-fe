@@ -500,7 +500,9 @@ const MembershipManagement: React.FC = () => {
             // Create new membership
             try {
               setLoading(true);
+              console.log('Creating membership:', membershipData);
               await membershipService.create(membershipData as any);
+              
               // Refresh list
               const res = await membershipService.getAll();
               setMemberships(res.data || []);

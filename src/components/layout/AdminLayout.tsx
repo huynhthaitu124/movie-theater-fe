@@ -278,15 +278,15 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </button>
               <div className="hidden md:flex items-center space-x-2">
                 <h1 className="text-lg font-medium">
-                  {navItems.find(item => isActive(item.to))?.label || 'Dashboard'}
+                  {/* {navItems.find(item => isActive(item.to))?.label || 'Dashboard'} */}
                 </h1>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 ">
               <Link 
                 to="/" 
-                className="text-sm px-4 py-2 rounded-lg text-primary-400 hover:text-primary-300 hover:bg-primary-500/10 transition-colors"
+                className="bg-primary-600 text-sm px-4 py-2 rounded-lg text-primary-100 hover:text-primary-300 hover:bg-primary-500/10 transition-colors"
               >
                 View Site
               </Link>

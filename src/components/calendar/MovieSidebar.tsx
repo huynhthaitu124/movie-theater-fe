@@ -3,12 +3,15 @@ import { motion } from 'framer-motion';
 import { Clock, Star, Grip, Film } from 'lucide-react';
 import { Movie } from '../../types';
 import { formatDuration } from '../../utils/timeUtils';
+import { useMoviesWithColor } from '../../utils/moviesWithColor';
 
 interface MovieSidebarProps {
   movies: Movie[];
 }
 
 const MovieSidebar: React.FC<MovieSidebarProps> = ({ movies }) => {
+  const moviesWithColor = useMoviesWithColor(movies);
+
   const handleDragStart = (e: React.DragEvent, movie: Movie) => {
     // Set the data transfer with proper format
     e.dataTransfer.setData('application/json', JSON.stringify(movie));
@@ -70,75 +73,56 @@ const MovieSidebar: React.FC<MovieSidebarProps> = ({ movies }) => {
             <p className="text-xs text-secondary-400">Drag to schedule showtimes</p>
           </div>
         </div>
-        <div className="text-xs text-secondary-500 bg-secondary-700/50 rounded-lg p-2">
+        {/* <div className="text-xs text-secondary-500 bg-secondary-700/50 rounded-lg p-2">
           💡 Tip: Movies automatically snap to 5-minute intervals when dropped
-        </div>
+        </div> */}
       </div>
       
       {/* Movies List */}
-      <div className="p-4 space-y-3">
-        {movies.map((movie, index) => (
-          <motion.div
-            key={movie.movieID}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
-            draggable
-            onDragStart={(e) => handleDragStart(e, movie)}
-            className="group relative bg-secondary-700/50 border border-secondary-600 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:shadow-xl hover:shadow-black/20 transition-all duration-300 hover:border-primary-500/50 hover:bg-secondary-700 hover:-translate-y-1 select-none"
-            style={{ borderLeftColor: movie.color, borderLeftWidth: '4px' }}
-          >
-            <div className="flex items-start space-x-3">
-              <div className="relative flex-shrink-0">
+      <div className="p-4">
+        <div className="grid grid-cols-2 gap-3">
+          {moviesWithColor.map((movie, index) => (
+            <motion.div
+              key={movie.movieID}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              draggable
+              onDragStart={(e) => handleDragStart(e, movie)}
+              className="group relative bg-secondary-700/50 border border-secondary-600 rounded-xl p-2 cursor-grab active:cursor-grabbing hover:shadow-xl hover:shadow-black/20 transition-all duration-300 hover:border-primary-500/50 hover:bg-secondary-700 hover:-translate-y-1 select-none flex flex-col"
+              style={{ borderLeftColor: movie.color, borderLeftWidth: '4px', minWidth: 0 }}
+            >
+              <div className="relative flex-shrink-0 mb-1">
                 <img
                   src={movie.image}
                   alt={movie.movieName}
-                  className="w-16 h-24 object-cover rounded-lg shadow-md group-hover:shadow-lg transition-shadow pointer-events-none"
+                  className="w-12 h-18 object-cover rounded-md shadow-md group-hover:shadow-lg transition-shadow pointer-events-none mx-auto"
                   draggable={false}
                 />
-                <div 
-                  className="absolute inset-0 rounded-lg opacity-20 group-hover:opacity-30 transition-opacity pointer-events-none"
+                {/* <div 
+                  className="absolute inset-0 rounded-md opacity-20 group-hover:opacity-30 transition-opacity pointer-events-none"
                   style={{ backgroundColor: movie.color }}
-                />
+                /> */}
               </div>
-              
               <div className="flex-1 min-w-0 pointer-events-none">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-white text-sm leading-tight group-hover:text-primary-400 transition-colors line-clamp-2">
-                    {movie.movieName}
-                  </h3>
-                  <Grip size={14} className="text-secondary-400 group-hover:text-secondary-300 transition-colors flex-shrink-0 ml-2 pointer-events-auto" />
-                </div>
-                
-                <p className="text-xs text-secondary-400 mb-3 truncate">{movie.movieTypes}</p>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="flex items-center text-secondary-500">
-                      <Clock size={12} className="mr-1" />
-                      {formatDuration(movie.duration)}
-                    </span>
-                  </div>
-                  
-                  <div 
-                    className="h-1 rounded-full opacity-60 group-hover:opacity-80 transition-opacity"
-                    style={{ backgroundColor: movie.color }}
-                  />
+                <h3 className="font-semibold text-white text-xs leading-tight group-hover:text-primary-400 transition-colors truncate text-center">
+                  {movie.movieName}
+                </h3>
+                <div className="flex items-center justify-center text-[10px] text-secondary-400 mt-1">
+                  <Clock size={10} className="mr-1" />
+                  {formatDuration(movie.duration)}
                 </div>
               </div>
-            </div>
-            
-            {/* Drag indicator overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary-500/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            
-            {/* Drag hint */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <div className="bg-primary-500/20 text-primary-400 text-xs px-2 py-1 rounded-full font-medium">
-                Drag me
-              </div>
-            </div>
-          </motion.div>
-        ))}
+              <div 
+                className="h-1 rounded-full opacity-60 group-hover:opacity-80 transition-opacity mt-1"
+                style={{ backgroundColor: movie.color }}
+              />
+              
+              {/* Drag indicator overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-500/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            </motion.div>
+          ))}
+        </div>
       </div>
       
       {/* Footer */}

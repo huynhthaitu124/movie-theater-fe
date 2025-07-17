@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Clock, DollarSign } from 'lucide-react';
 import { CalendarEvent } from '../../types/showtime';
 import { timeToMinutes, minutesToTime } from '../../utils/timeUtils';
+import { useMoviesWithColor } from '../../utils/moviesWithColor';
 
 interface CalendarCellProps {
   roomId: string;
@@ -17,6 +18,23 @@ interface CalendarCellProps {
   pixelsPerMinute: number;
   startHour: number;
   snapInterval: number;
+}
+
+// Add this helper function at the top (outside the component)
+function isColorLight(hex: string): boolean {
+  // Remove hash if present
+  hex = hex.replace('#', '');
+  // Convert 3-digit hex to 6-digit
+  if (hex.length === 3) {
+    hex = hex.split('').map(x => x + x).join('');
+  }
+  // Parse r, g, b
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  // Perceived brightness formula
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 220; // You can adjust this threshold
 }
 
 const CalendarCell: React.FC<CalendarCellProps> = ({
@@ -36,6 +54,7 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
   const [isDragOver, setIsDragOver] = React.useState(false);
   const [dragPosition, setDragPosition] = React.useState<number | null>(null);
   const [snappedPosition, setSnappedPosition] = React.useState<number | null>(null);
+  const moviesWithColor = useMoviesWithColor(movies);
 
   const snapToGrid = (minutes: number): number => {
     return Math.round(minutes / snapInterval) * snapInterval;
@@ -153,16 +172,19 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
         const position = getEventPosition(event);
         const isSmall = position.height < 60;
         // Find the movie info for this event
-        const movie = movies.find(
+        const movie = moviesWithColor.find(
           m => m.movieId === event.movieId || m.movieID === event.movieId
         );
+
+        const eventColor = movie?.color || '#3B82F6';
+        const textColor = isColorLight(eventColor) ? 'text-blue-700' : 'text-white';
 
         return (
           <motion.div
             key={event.id}
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.02, zIndex: 50 }}
+            whileHover={{ scale: 1.03, zIndex: 50 }}
             className="absolute left-1 right-1 group cursor-pointer z-10"
             style={{
               top: position.top,
@@ -171,52 +193,58 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
             onClick={() => onEventClick(event)}
           >
             <div
-              className="h-full w-full rounded-md text-white text-xs p-2 flex flex-col justify-between shadow-lg border border-white/20 overflow-hidden backdrop-blur-sm"
-              style={{ 
-                backgroundColor: event.color,
-                background: `linear-gradient(135deg, ${event.color} 0%, ${event.color}dd 100%)`
+              className={`relative h-full w-full rounded-lg flex flex-col justify-between shadow-xl border border-white/20 overflow-hidden backdrop-blur-sm transition-all duration-200 ${textColor}`}
+              style={{
+                background: `linear-gradient(135deg, ${eventColor} 70%, #fff0 100%)`,
+                borderLeft: `6px solid ${eventColor}`,
               }}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h4 className={`font-semibold leading-tight mb-1 ${isSmall ? 'text-xs truncate' : 'text-sm'}`}>
-                    {event.title}
-                  </h4>
-                  {/* Movie image */}
-                  {movie?.image && !isSmall && (
-                    <img
-                      src={movie.image}
-                      alt={event.title}
-                      className="w-12 h-12 object-cover rounded mb-1"
-                    />
-                  )}
-                  {!isSmall && (
-                    <div className="flex items-center text-xs opacity-90">
-                      <Clock size={10} className="mr-1" />
-                      <span>
-                        {event.startTime} - {event.endTime}
-                      </span>
-                    </div>
-                  )}
+              {/* Overlay for better text contrast on light backgrounds */}
+              {isColorLight(eventColor) && (
+                <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+              )}
+
+              <div className="flex flex-col gap-2 z-10 p-3 pb-0">
+                {/* Movie image - one line, bigger */}
+                {movie?.image && (
+                  <img
+                    src={movie.image}
+                    alt={event.title}
+                    className="w-16 h-16 object-cover rounded shadow border-2 border-black mx-auto mb-2"
+                    style={{ display: 'block' }}
+                  />
+                )}
+                {/* Movie name - one line, bigger */}
+                <h4 className="font-bold leading-tight text-lg truncate text-center mb-1">
+                  {event.title}
+                </h4>
+                {/* Time - one line, bigger */}
+                <div className="flex items-center justify-center gap-2 text-base opacity-90 font-semibold mb-1">
+                  <Clock size={18} className="mr-1" />
+                  <span>
+                    {event.startTime} - {event.endTime}
+                  </span>
                 </div>
+                {/* Duration and extra info */}
+                {position.height > 60 && (
+                  <div className="flex items-center justify-center text-base opacity-80 mt-1 pb-2 z-10">
+                    <span>
+                      {Math.round(timeToMinutes(event.endTime) - timeToMinutes(event.startTime))} min
+                    </span>
+                  </div>
+                )}
+                {/* Delete button */}
                 <button
-                  onClick={(e) => {
+                  onClick={e => {
                     e.stopPropagation();
                     onEventDelete(event.id);
                   }}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/20 rounded-sm flex-shrink-0 ml-1"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/20 rounded-sm flex-shrink-0 z-20"
+                  title="Delete"
                 >
-                  <X size={12} />
+                  <X size={18} />
                 </button>
               </div>
-              
-              {!isSmall && position.height > 80 && (
-                <div className="flex items-center justify-between text-xs opacity-90 mt-1 pt-1 border-t border-white/20">
-                  <span className="text-xs opacity-75">
-                    {Math.round((timeToMinutes(event.endTime) - timeToMinutes(event.startTime)))}min
-                  </span>
-                </div>
-              )}
             </div>
           </motion.div>
         );

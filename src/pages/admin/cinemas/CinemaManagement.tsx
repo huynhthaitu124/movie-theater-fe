@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Plus, Settings, MapPin, Edit, Trash, Grid as GridIcon, ChevronDown, ChevronRight, Settings2, Trash2, Calendar } from 'lucide-react';
+import { Building2, Layout, Plus, Settings, MapPin, Edit, Trash, Grid as GridIcon, ChevronDown, ChevronRight, Settings2, Trash2, Calendar } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 
 import {Cinema, Room, Location } from '../../../types/cinema';
@@ -17,6 +17,7 @@ import { roomTypeService } from '../../../services/modules/roomtype.service';
 import { CinemaCreateDto, CinemaResponse, RoomCreateDto, RoomResponse, RoomTypeResponse } from '../../../services/types/request.types';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom'; // Already imported
+import MovieCinemaManangement from '@/components/cinema/movieCinemaManangement';
 
 interface RoomManagementModalProps {
   cinema: Cinema;
@@ -498,7 +499,8 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({
                         <Trash2 className="w-5 h-5 text-error-500" />
                       </motion.button>
                       {/* Add this button for movie management */}
-                      <motion.button
+
+                      {/* <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => onAddMovie(cinema)}
@@ -506,7 +508,7 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({
                         title="Manage Movies"
                       >
                         🎬
-                      </motion.button>
+                      </motion.button> */}
                       {/* === Add Showtime Management Button Here === */}
                       <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -730,12 +732,12 @@ const CinemaManagement: React.FC = () => {
         city: cinema.city,
         phone: cinema.phone,
         email: cinema.email || '',
-        rooms: [], // You'll need to fetch rooms separately or handle this differently
-        facilities: [], // Add if you have facilities data in the API
+        rooms: [],
+        facilities: [],
         status: cinema.status.toUpperCase() as 'ACTIVE' | 'MAINTENANCE' | 'CLOSED',
-        manager: '', // Add if you have manager data in the API
-        rating: 0, // Add if you have rating data in the API
-        image: '', // Add if you have image data in the API
+        manager: '',
+        rating: 0,
+        image: '',
         totalroom: cinema.totalroom || 0,
         opentime: cinema.opentime || '08:00:00',
         closetime: cinema.closetime || '23:00:00',
@@ -744,13 +746,15 @@ const CinemaManagement: React.FC = () => {
       return acc;
     }, {} as Record<string, Cinema[]>);
 
-    // Convert to Location array
-    return Object.entries(groupedCinemas).map(([city, cinemas]) => ({
-      id: `loc-${city.toLowerCase().replace(/\s+/g, '-')}`,
-      name: city,
-      region: '', // Add if you have region data
-      cinemas: cinemas
-    }));
+    // Convert to Location array and sort by location (city) name
+    return Object.entries(groupedCinemas)
+      .sort(([cityA], [cityB]) => cityA.localeCompare(cityB))
+      .map(([city, cinemas]) => ({
+        id: `loc-${city.toLowerCase().replace(/\s+/g, '-')}`,
+        name: city,
+        region: '',
+        cinemas: cinemas
+      }));
   };
 
   return (
@@ -770,7 +774,10 @@ const CinemaManagement: React.FC = () => {
           ) : (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-white">Cinema Management</h1>
+                <div className="flex items-center gap-4">
+                  <Layout className="w-8 h-8 text-primary-500" />
+                  <h1 className="text-2xl font-bold text-white">Cinema Management</h1>
+                </div>
                 <div className="flex gap-4">
                   <button
                     onClick={() => {
@@ -785,7 +792,13 @@ const CinemaManagement: React.FC = () => {
                     onClick={() => navigate('/admin/seat-types')}
                     className="px-4 py-2 bg-secondary-700 text-white rounded-lg hover:bg-secondary-600 flex items-center"
                   >
-                    Seat Type Management
+                    💺Seat Type Management
+                  </button>
+                  <button
+                    onClick={() => navigate('/admin/moviesCinema')}
+                    className="px-4 py-2 bg-secondary-700 text-white rounded-lg hover:bg-secondary-600 flex items-center"
+                  >
+                    🎬 Movies Management
                   </button>
                 </div>
               </div>

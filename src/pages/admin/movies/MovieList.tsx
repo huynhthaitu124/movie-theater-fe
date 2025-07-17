@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Edit2, Trash2, AlertCircle, Calendar, Loader2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, AlertCircle, Calendar, Loader2, Film } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
 import { Movie } from '../../../types/movie';
@@ -60,7 +60,11 @@ const MovieList: React.FC = () => {
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">Movie Management</h1>
+          <div className="flex items-center space-x-2">
+            <Film className="h-6 w-6 text-primary-400" />
+            <h1 className="text-2xl font-bold text-white">Movie Management</h1>
+          </div>
+          
           <Button
             onClick={() => navigate('/admin/movies/add')}
             className="flex items-center"

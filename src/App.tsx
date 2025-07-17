@@ -32,6 +32,7 @@ import SeatManagement from '../src/components/seatManagement/SeatManagement';
 import PromotionManagement from './pages/admin/promotions/PromotionManagement';
 import MembershipManagement from './pages/admin/memberships/MembershipManagement';
 import ProductManagement  from './pages/admin/products/ProductManagement';
+import MovieCinemaManangement from './components/cinema/movieCinemaManangement';
 
 //Staff Dashboard imports
 import StaffDashboard from './components/staff/StaffDashboard';
@@ -225,6 +226,16 @@ const App: React.FC = () => {
                 }
               />
 
+              {/* Movies cinema Management Route */}
+              <Route
+                path="/admin/moviesCinema"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <MovieCinemaManangement />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Seat Type Management Route */}
               <Route
                 path="/admin/seats/:roomId"
@@ -235,7 +246,7 @@ const App: React.FC = () => {
                 }
               />
 
-              {/* Staff Routes */}
+              {/*========== Staff Routes ============*/}
               <Route
                 path="/staff/dashboard"
                 element={
