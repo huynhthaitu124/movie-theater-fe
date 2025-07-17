@@ -14,6 +14,7 @@ import { showtimeService } from '../../../services/modules/showtime.service';
 import { movieCinemaService } from '../../../services/modules/movieCinema.service';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { roomService } from '../../../services/modules/room.service';
+import { useMoviesWithColor } from '../../../utils/moviesWithColor';
 
 const ShowtimeManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ const ShowtimeManagement: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
   const [pendingShowtime, setPendingShowtime] = useState<Omit<CalendarEvent, 'id'> | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const moviesWithColor = useMoviesWithColor(movies);
 
   // Fetch movies and cinemas from API
   useEffect(() => {
@@ -159,8 +161,8 @@ const ShowtimeManagement: React.FC = () => {
       ? prev.filter(id => id !== roomId)
       : [...prev, roomId]
   );
-  console.log(`Room ${roomId} toggled. Selected rooms:`, selectedRooms);
-  console.log(`Selected rooms count: ${selectedRooms.length}`);
+  // console.log(`Room ${roomId} toggled. Selected rooms:`, selectedRooms);
+  // console.log(`Selected rooms count: ${selectedRooms.length}`);
 };
 
   // Select all rooms
@@ -242,7 +244,7 @@ const ShowtimeManagement: React.FC = () => {
       <div className="px-6 pt-4">
         <button
           onClick={() => navigate('/admin/cinemas')}
-          className="flex items-center gap-2 text-sm text-primary-400 hover:underline"
+          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center mb-4 space-x-2"
         >
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M15 18l-6-6 6-6" />
@@ -256,7 +258,7 @@ const ShowtimeManagement: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-white">Showtime Management</h1>
-            <p className="text-secondary-300 text-sm mt-1">
+            <p className="text-secondary-300 text-lg mt-1">
               {cinemaName && (
                 <span className="font-semibold text-primary-400">{cinemaName}</span>
               )}
@@ -269,7 +271,7 @@ const ShowtimeManagement: React.FC = () => {
           {/* Quick Stats */}
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-2">
-              <div className="p-1.5 bg-blue-500/20 rounded">
+              <div className="p-4 bg-blue-500/20 rounded">
                 <Film className="h-4 w-4 text-blue-400" />
               </div>
               <div>
@@ -279,17 +281,17 @@ const ShowtimeManagement: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-2">
-              <div className="p-1.5 bg-green-500/20 rounded">
+              <div className="p-4 bg-green-500/20 rounded">
                 <Monitor className="h-4 w-4 text-green-400" />
               </div>
               <div>
-                <p className="text-xs text-secondary-400">Theaters</p>
+                <p className="text-xs text-secondary-400">Rooms</p>
                 <p className="text-sm font-semibold text-white">{rooms.length}</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-2">
-              <div className="p-1.5 bg-purple-500/20 rounded">
+              <div className="p-4 bg-purple-500/20 rounded">
                 <Calendar className="h-4 w-4 text-purple-400" />
               </div>
               <div>
@@ -307,7 +309,7 @@ const ShowtimeManagement: React.FC = () => {
         <MovieSidebar movies={movies} />
         <CalendarGrid
           rooms={rooms}
-          movies={movies}
+          movies={moviesWithColor}
           events={events}
           onEventCreate={handleEventCreate}
           onEventDelete={handleEventDelete}

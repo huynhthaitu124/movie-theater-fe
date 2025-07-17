@@ -10,8 +10,11 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Modal from '../../../components/ui/Modal';
 import { promotionService } from '../../../services/modules/promotion.Service';
+import { promotionTypeService } from '../../../services/modules/promotionType.service';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../../components/layout/AdminLayout';
+import { cloudinaryService } from '../../../services/modules/cloudinary.service';
+
 
 const PromotionManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -25,22 +28,19 @@ const PromotionManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+
   useEffect(() => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch promotions from API
+      // Fetch promotions
       const res = await promotionService.getAll();
       setPromotions(res.data || []);
-      // TODO: Replace this with your real API if you have one for promotion types
-      setPromotionTypes([
-        { id: '1', name: 'Discount', description: 'Price reduction promotions' },
-        { id: '2', name: 'BOGO', description: 'Buy one get one promotions' },
-        { id: '3', name: 'Seasonal', description: 'Holiday and seasonal promotions' },
-        { id: '4', name: 'Membership', description: 'Member exclusive promotions' }
-      ]);
+      // Fetch promotion types from API
+      const typeRes = await promotionTypeService.getAll();
+      setPromotionTypes(typeRes.data || []);
     } catch (error) {
-      console.error('Error fetching promotions:', error);
+      console.error('Error fetching promotions or types:', error);
     } finally {
       setLoading(false);
     }
@@ -51,20 +51,22 @@ const PromotionManagement: React.FC = () => {
 
 const handleCreatePromotionAPI = async (promotionData: PromotionFormData) => {
   setLoading(true);
+  console.log('Creating promotion with data:', promotionData);
   try {
     // Prepare payload to match API (snake_case keys)
     const payload = {
-      promotiontypeid: promotionData.promotionTypeId,
+      promotiontypeid: promotionData.promotiontypeid, // camelCase
       title: promotionData.title,
       detail: promotionData.detail,
-      starttime: promotionData.startTime,
-      endtime: promotionData.endTime,
+      starttime: promotionData.starttime,
+      endtime: promotionData.endtime,
       image: promotionData.image,
       status: promotionData.status,
       code: promotionData.code
     };
     const res = await promotionService.create(payload as any);
     setPromotions(prev => [res.data, ...prev]);
+
   } catch (error) {
     console.error('Error creating promotion:', error);
   } finally {
@@ -146,6 +148,17 @@ const handleDeletePromotion = async (promotionId: string) => {
     const end = new Date(promotion.endTime);
     return now >= start && now <= end && promotion.isActive;
   };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+};
+
 
   const filteredPromotions = promotions.filter(promotion => {
     if (searchTerm && !promotion.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -341,7 +354,13 @@ const handleDeletePromotion = async (promotionId: string) => {
                 >
                   <div className="relative">
                     <div className="h-40 bg-gradient-to-tr from-primary-900/30 to-secondary-900 flex items-center justify-center">
-                      <Image className="h-16 w-16 text-secondary-500 opacity-60" />
+                      {promotion.image ? (
+                        <img src={promotion.image} alt={promotion.title} className="object-cover w-full h-full" />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full text-secondary-500 opacity-60">
+                          <Image className="h-16 w-16" />
+                        </div>
+                      )}
                     </div>
                     <span className={`
                       absolute top-4 left-4 px-3 py-1 text-xs font-bold rounded-full shadow
@@ -359,7 +378,7 @@ const handleDeletePromotion = async (promotionId: string) => {
                     <div className="flex flex-col gap-1 text-xs text-secondary-400 mb-4">
                       <div>
                         <span className="font-medium text-secondary-200">Valid Until: </span>
-                        <span className="text-white">{formatDate(promotion.endTime)}</span>
+                        <span className="text-white">{formatDate(promotion.endtime)}</span>
                       </div>
                       <div>
                         <span className="font-medium text-secondary-200">Type: </span>
@@ -499,53 +518,73 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
   onSave
 }) => {
   const [formData, setFormData] = useState<PromotionFormData>({
-    promotionTypeId: '',
+    promotiontypeid: '',
     title: '',
     detail: '',
-    startTime: '',
-    endTime: '',
+    starttime: '',
+    endtime: '',
     image: '',
     status: 'ACTIVE',
-    code: '',
-    isActive: true
+    code: ''
+    // isActive: true
   });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>(formData.image || ''); 
 
   useEffect(() => {
     if (promotion) {
       setFormData({
-        promotionTypeId: promotion.promotionTypeId,
+        promotiontypeid: promotion.promotionTypeId,
         title: promotion.title,
         detail: promotion.detail,
-        startTime: promotion.startTime.split('T')[0],
-        endTime: promotion.endTime.split('T')[0],
+        starttime: promotion.startTime.split('T')[0],
+        endtime: promotion.endTime.split('T')[0],
         image: promotion.image,
         status: promotion.status,
         code: promotion.code,
-        isActive: promotion.isActive
+        // isActive: promotion.isActive
       });
     } else {
       setFormData({
-        promotionTypeId: '',
+        promotiontypeid: '',
         title: '',
         detail: '',
-        startTime: '',
-        endTime: '',
+        starttime: '',
+        endtime: '',
         image: '',
         status: 'ACTIVE',
         code: '',
-        isActive: true
+        // isActive: true
       });
     }
   }, [promotion]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      ...formData,
-      startTime: formData.startTime + 'T00:00:00',
-      endTime: formData.endTime + 'T23:59:59'
-    });
-  };
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+};
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  let imageUrl = formData.image;
+  if (imageFile) {
+    const uploadRes = await cloudinaryService.upload(imageFile);
+    imageUrl = uploadRes.url;
+  }
+  onSave({
+    ...formData,
+    image: imageUrl,
+    starttime: formData.starttime + 'T00:00:00',
+    endtime: formData.endtime + 'T23:59:59'
+  });
+  onClose();
+};
 
   const generateCode = () => {
     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -564,14 +603,14 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium text-white">Promotion Type</label>
             <select
-              value={formData.promotionTypeId}
-              onChange={(e) => setFormData(prev => ({ ...prev, promotionTypeId: e.target.value }))}
+              value={formData.promotiontypeid}
+              onChange={(e) => setFormData(prev => ({ ...prev, promotiontypeid: e.target.value }))}
               className="w-full px-4 py-3 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500"
               required
             >
               <option value="">Select type...</option>
               {promotionTypes.map(type => (
-                <option key={type.id} value={type.id}>{type.name}</option>
+                <option key={type.promotiontypeid} value={type.promotiontypeid}>{type.name}</option>
               ))}
             </select>
           </div>
@@ -584,8 +623,8 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
               className="w-full px-4 py-3 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500"
             >
               <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="PENDING">Pending</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
         </div>
@@ -603,7 +642,7 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-white">Description</label>
+          <label className="text-sm font-medium text-white">Detail</label>
           <textarea
             value={formData.detail}
             onChange={(e) => setFormData(prev => ({ ...prev, detail: e.target.value }))}
@@ -636,8 +675,8 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
             <label className="text-sm font-medium text-white">Start Date</label>
             <input
               type="date"
-              value={formData.startTime}
-              onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+              value={formData.starttime}
+              onChange={(e) => setFormData(prev => ({ ...prev, starttime: e.target.value }))}
               className="w-full px-4 py-3 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500"
               required
             />
@@ -647,8 +686,8 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
             <label className="text-sm font-medium text-white">End Date</label>
             <input
               type="date"
-              value={formData.endTime}
-              onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+              value={formData.endtime}
+              onChange={(e) => setFormData(prev => ({ ...prev, endtime: e.target.value }))}
               className="w-full px-4 py-3 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500"
               required
             />
@@ -656,17 +695,27 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-white">Image</label>
+          <label className="text-sm font-medium text-white">Promotion Image</label>
+          <div className="aspect-[2/1] rounded-lg overflow-hidden bg-secondary-700 border-2 border-dashed border-secondary-600 mb-2 flex items-center justify-center">
+            {imagePreview ? (
+      <img
+        src={imagePreview}
+        alt="Promotion preview"
+        className="w-full h-full object-cover"
+      />
+    ) : (
+      <span className="text-secondary-400 text-sm">No image selected</span>
+    )}
+          </div>
           <input
-            type="text"
-            value={formData.image}
-            onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
-            className="w-full px-4 py-3 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500"
-            placeholder="image.jpg or image URL..."
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="block w-full text-sm text-secondary-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-600 file:text-white hover:file:bg-primary-700"
           />
         </div>
 
-        <div className="flex items-center space-x-2">
+        {/* <div className="hidden flex items-center space-x-2">
           <input
             type="checkbox"
             id="isActive"
@@ -677,7 +726,7 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
           <label htmlFor="isActive" className="text-sm text-white">
             Active promotion
           </label>
-        </div>
+        </div> */}
 
         <div className="flex justify-end space-x-3 pt-6 border-t border-secondary-700">
           <Button type="button" variant="ghost" onClick={onClose}>

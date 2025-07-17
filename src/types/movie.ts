@@ -17,6 +17,7 @@ export interface Movie {
   // Remove: subtitleId, categories, imageUrl, trailerUrl
   createdAt?: string;
   updatedAt?: string;
+  color?: string; // Optional field for the average color
 }
 
 export interface MovieCategory {

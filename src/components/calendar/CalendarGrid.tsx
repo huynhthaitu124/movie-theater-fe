@@ -9,6 +9,7 @@ import CalendarCell from './CalendarCell';
 import SettingsModal from './SettingModal';
 import Button from '../ui/Button';
 import { toast } from 'react-hot-toast';
+import { useMoviesWithColor } from '../../utils/moviesWithColor';
 
 interface CalendarGridProps {
   rooms: CinemaRoom[];
@@ -65,6 +66,8 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
   const snapInterval = 5;
 
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+
+  const moviesWithColor = useMoviesWithColor(movies);
 
   const showToast = (message: string) => {
     setToast({ message, visible: true });
@@ -553,7 +556,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
                                   event.roomId === room.id && 
                                   event.date === format(day, 'yyyy-MM-dd')
                               )}
-                              movies={movies}
+                              movies={moviesWithColor}
                               onDrop={handleDrop}
                               onEventDelete={onEventDelete}
                               onEventClick={onEventClick}
