@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { SeatResponse, SeatType, SeatCreateRequest, Seat } from '../../types/seat';
 
-const API_BASE_URL = 'https://movietheater-api.calmbeach-b063071e.eastasia.azurecontainerapps.io';
+const API_BASE_URL = 'https://movietheater-api.calmbeach-b063071e.eastasia.azurecontainerapps.io/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
