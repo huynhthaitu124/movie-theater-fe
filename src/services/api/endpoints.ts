@@ -146,7 +146,7 @@ export const API_ENDPOINTS = {
 
     // Movie Schedule endpoints
     MOVIE_SCHEDULE: {
-        GET_ALL: '/api/MovieSchedule',
+        GET_ALL: '/api/MovieSchedule/GetAllMovieSchedules',
         GET_BY_MOVIE: (movieId: string) => `/api/MovieSchedule/movie/${movieId}`,
         GET_FOR_BOOKING: '/api/MovieSchedule/GetMovieScheduleForBooking',
         CREATE: '/api/MovieSchedule',
