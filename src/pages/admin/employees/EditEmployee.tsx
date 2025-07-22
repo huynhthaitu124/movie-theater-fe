@@ -13,7 +13,8 @@ import type { StaffRequest } from '../../../services/types/request.types';
 
 interface EmployeeFormData {
   // Account fields
-  // accountId: string;
+  accountId: string;
+  displayName: string;
   // username: string;
   // email: string;
   // password: string;
@@ -40,6 +41,8 @@ const EditEmployee: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<EmployeeFormData>({
+    accountId: '',
+    displayName: '',
     position: '',
     salary: 0,
     hiredate: new Date().toISOString().split('T')[0]
@@ -54,6 +57,8 @@ const EditEmployee: React.FC = () => {
         const staff = staffResponse.data.find((s: any) => s.staffid === id);
         if (staff) {
           setFormData({
+            accountId: staff.accountId || '',
+            displayName: staff.displayName || '',
             position: staff.position || '',
             salary: staff.salary || 0,
             hiredate: staff.hireDate ? staff.hiredate.split('T')[0] : (staff.hiredate ? staff.hiredate.split('T')[0] : ''),
@@ -103,13 +108,14 @@ const EditEmployee: React.FC = () => {
     setIsLoading(true);
     try {
       const staffData = {
+        accountId: formData.accountId,
         staffId: id,
+        displayName: formData.displayName, 
         position: formData.position,
         hireDate: formData.hiredate,
         salary: Number(formData.salary),
         isActive: true,
         status: "ACTIVE",
-        updateAt: new Date().toISOString()
       };
 
       console.log('Submitting staff data:', staffData); 
@@ -151,6 +157,14 @@ const EditEmployee: React.FC = () => {
           <input type="hidden" name="staffId" value={id} />
 
           <div className="bg-secondary-800 rounded-lg p-6 space-y-6">
+            <Input
+              label="Full Name"
+              name="displayName"
+              value={formData.displayName}
+              onChange={handleChange}
+              readOnly
+            />
+
             <Input
               label="Position"
               name="position"

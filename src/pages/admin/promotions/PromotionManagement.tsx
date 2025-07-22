@@ -27,6 +27,8 @@ const PromotionManagement: React.FC = () => {
   const [filters, setFilters] = useState<PromotionFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [promotionToDelete, setPromotionToDelete] = useState<Promotion | null>(null);
 
 
   useEffect(() => {
@@ -89,16 +91,15 @@ const handleUpdatePromotionAPI = async (promotionData: PromotionFormData, promot
 };
 
 const handleDeletePromotion = async (promotionId: string) => {
-  if (window.confirm('Are you sure you want to delete this promotion?')) {
-    setLoading(true);
-    try {
-      await promotionService.delete(promotionId);
-      setPromotions(prev => prev.filter(p => p.promotionId !== promotionId));
-    } catch (error) {
-      console.error('Error deleting promotion:', error);
-    } finally {
-      setLoading(false);
-    }
+  console.log('Deleting promotion with ID:', promotionId);
+  setLoading(true);
+  try {
+    await promotionService.delete(promotionId);
+    setPromotions(prev => prev.filter(p => p.promotionid !== promotionId));
+  } catch (error) {
+    console.error('Error deleting promotion:', error);
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -168,7 +169,7 @@ const handleDeletePromotion = async (promotionId: string) => {
     if (filters.status && promotion.status !== filters.status) {
       return false;
     }
-    if (filters.promotionType && promotion.promotionTypeId !== filters.promotionType) {
+    if (filters.promotionType && promotion.promotiontypeid !== filters.promotionType) {
       return false;
     }
     return true;
@@ -181,6 +182,7 @@ const handleDeletePromotion = async (promotionId: string) => {
 
   const handleEditPromotion = (promotion: Promotion) => {
     setSelectedPromotion(promotion);
+    console.log('Editing promotion:', promotion);
     setIsEditModalOpen(true);
   };
 
@@ -296,8 +298,7 @@ const handleDeletePromotion = async (promotionId: string) => {
             >
               <option value="">All Status</option>
               <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="PENDING">Pending</option>
+              <option value="CANCELLED">Cancel</option>
               <option value="EXPIRED">Expired</option>
             </select>
             
@@ -308,7 +309,7 @@ const handleDeletePromotion = async (promotionId: string) => {
             >
               <option value="">All Types</option>
               {promotionTypes.map(type => (
-                <option key={type.id} value={type.id}>{type.name}</option>
+                <option key={type.promotiontypeid} value={type.promotiontypeid}>{type.name}</option>
               ))}
             </select>
           </div>
@@ -331,7 +332,7 @@ const handleDeletePromotion = async (promotionId: string) => {
         <AnimatePresence>
           {filteredPromotions.map((promotion, index) => (
             <motion.div
-              key={promotion.promotionId}
+              key={promotion.promotionId || promotion.promotionid || index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -382,7 +383,7 @@ const handleDeletePromotion = async (promotionId: string) => {
                       </div>
                       <div>
                         <span className="font-medium text-secondary-200">Type: </span>
-                        <span className="text-primary-400">{promotionTypes.find(t => t.id === promotion.promotionTypeId)?.name || 'Unknown'}</span>
+                        <span className="text-primary-400">{promotionTypes.find(t => t.promotiontypeid === promotion.promotiontypeid)?.name || 'Unknown'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-auto pt-3 border-t border-secondary-700">
@@ -398,17 +399,20 @@ const handleDeletePromotion = async (promotionId: string) => {
                         size="sm"
                         variant="ghost"
                         className="text-red-400 hover:bg-red-900/30"
-                        onClick={() => handleDeletePromotion(promotion.promotionId)}
+                        onClick={() => {
+                          setPromotionToDelete(promotion);
+                          setDeleteConfirmOpen(true);
+                        }}
                       >
                         <Trash2 size={14} className="mr-1" /> Delete
                       </Button>
-                      <Button
+                      {/* <Button
                         size="sm"
                         variant="ghost"
                         className="text-secondary-300 hover:bg-secondary-700"
                       >
                         <Eye size={14} className="mr-1" /> View
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 </Card>
@@ -444,7 +448,7 @@ const handleDeletePromotion = async (promotionId: string) => {
                           <Button size="sm" variant="ghost" onClick={() => handleEditPromotion(promotion)}>
                             <Edit size={14} />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDeletePromotion(promotion.promotionId)}>
+                          <Button size="sm" variant="ghost" onClick={() => handleDeletePromotion(promotion.promotionid)}>
                             <Trash2 size={14} />
                           </Button>
                         </div>
@@ -496,6 +500,36 @@ const handleDeletePromotion = async (promotionId: string) => {
           setSelectedPromotion(null);
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Delete Promotion"
+      >
+        <div className="space-y-4">
+          <p className="text-white">
+            Are you sure you want to delete <span className="font-bold">{promotionToDelete?.title}</span>?
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                if (promotionToDelete) {
+                  await handleDeletePromotion(promotionToDelete.promotionid);
+                  setDeleteConfirmOpen(false);
+                  setPromotionToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
     </AdminLayout>
   );
@@ -518,6 +552,7 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
   onSave
 }) => {
   const [formData, setFormData] = useState<PromotionFormData>({
+    id: promotion ? promotion.promotionid : '',
     promotiontypeid: '',
     title: '',
     detail: '',
@@ -535,11 +570,12 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
   useEffect(() => {
     if (promotion) {
       setFormData({
-        promotiontypeid: promotion.promotionTypeId,
+        id: promotion ? promotion.promotionid : '',
+        promotiontypeid: promotion.promotionTypeId || promotion.promotionTypeid,
         title: promotion.title,
         detail: promotion.detail,
-        starttime: promotion.startTime.split('T')[0],
-        endtime: promotion.endTime.split('T')[0],
+        starttime: promotion.starttime.split('T')[0],
+        endtime: promotion.endtime.split('T')[0],
         image: promotion.image,
         status: promotion.status,
         code: promotion.code,
@@ -547,6 +583,7 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
       });
     } else {
       setFormData({
+        id: promotion ? promotion.promotionid : '',
         promotiontypeid: '',
         title: '',
         detail: '',
@@ -583,6 +620,7 @@ const PromotionModal: React.FC<PromotionModalProps> = ({
     starttime: formData.starttime + 'T00:00:00',
     endtime: formData.endtime + 'T23:59:59'
   });
+  console.log('Form submitted with data:', { ...formData, image: imageUrl });
   onClose();
 };
 
