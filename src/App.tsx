@@ -33,6 +33,8 @@ import PromotionManagement from './pages/admin/promotions/PromotionManagement';
 import MembershipManagement from './pages/admin/memberships/MembershipManagement';
 import ProductManagement  from './pages/admin/products/ProductManagement';
 import MovieCinemaManangement from './components/cinema/movieCinemaManangement';
+import InvoiceManagement from './pages/admin/invoices/InvoiceManagement';
+import InvoiceSectionAdmin from './pages/admin/invoices/InvoiceSection';
 
 //Staff Dashboard imports
 import StaffDashboard from './components/staff/StaffDashboard';
@@ -206,6 +208,21 @@ const App: React.FC = () => {
                 }
               />
 
+              {/* Invoice Management Route */}
+              <Route
+                path="/admin/invoices"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <InvoiceManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+               path="/invoiceAdmin/:invoiceid" 
+               element={<InvoiceSectionAdmin />} 
+               />
+
               {/* Product Management Route */}
               <Route
                 path="/admin/products"
@@ -314,7 +331,8 @@ const App: React.FC = () => {
               
               <Route
                path="/invoice/:invoiceid" 
-               element={<InvoiceSection />} />
+               element={<InvoiceSection />} 
+               />
               
               {/* Not Found Route - must be last */}
               <Route path="*" element={<NotFound />} />

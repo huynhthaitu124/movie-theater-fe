@@ -29,7 +29,8 @@ export interface PromotionType {
 }
 
 export interface PromotionFormData {
-  promotionTypeId: string;
+  promotionId?: string;
+  promotionTypeid: string;
   title: string;
   detail: string;
   startTime: string;

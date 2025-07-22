@@ -30,6 +30,8 @@ const MembershipManagement: React.FC = () => {
     totalMembers: 0,
   });
   const navigate = useNavigate();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [membershipToDelete, setMembershipToDelete] = useState<Membership | null>(null);
 
   // Mock data - replace with actual API calls
   useEffect(() => {
@@ -148,32 +150,24 @@ const MembershipManagement: React.FC = () => {
   };
 
   const handleDeleteMembership = async (membershipId: string) => {
-    if (window.confirm('Are you sure you want to delete this membership? This action cannot be undone.')) {
-      try {
-        setLoading(true);
-        await membershipService.delete(membershipId);
-        // Refresh list
-        const res = await membershipService.getAll();
-        setMemberships(res.data || []);
-      } catch (error) {
-        console.error('Error deleting membership:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
+    const membership = memberships.find(m => m.membershipid === membershipId);
+    setMembershipToDelete(membership || null);
+    setDeleteConfirmOpen(true);
   };
 
   const handleToggleStatus = async (membershipId: string) => {
     try {
       setLoading(true);
       // Find the membership
-      const membership = memberships.find(m => m.membershipId === membershipId);
+      const membership = memberships.find(m => m.membershipid === membershipId);
+
       if (!membership) return;
       if (membership.isActive) {
         // Deactivate (update status)
         await membershipService.update({ ...membership, isActive: false, status: 'INACTIVE' });
       } else {
         // Reactivate
+        console.log('Reactivating membership:', membershipId);
         await membershipService.reactivate(membershipId);
       }
       // Refresh list
@@ -280,8 +274,7 @@ const MembershipManagement: React.FC = () => {
             >
               <option value="">All Status</option>
               <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="PENDING">Pending</option>
+              <option value="EXPIRED">Expired</option>
               <option value="SUSPENDED">Suspended</option>
             </select>
             <select
@@ -315,7 +308,7 @@ const MembershipManagement: React.FC = () => {
         <AnimatePresence>
           {filteredMemberships.map((membership, index) => (
             <motion.div
-              key={membership.membershipId}
+              key={membership.membershipId || membership.membershipid || index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -369,7 +362,7 @@ const MembershipManagement: React.FC = () => {
                       </div>
                       <div>
                         <span className="font-medium text-secondary-200">Created: </span>
-                        <span className="text-white">{formatDate(membership.createdAt)}</span>
+                        <span className="text-white">{formatDate(membership.createdat)}</span>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-auto pt-3 border-t border-secondary-700">
@@ -381,21 +374,28 @@ const MembershipManagement: React.FC = () => {
                       >
                         <Edit size={14} className="mr-1" /> Edit
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-400 hover:bg-red-900/30"
-                        onClick={() => handleDeleteMembership(membership.membershipId)}
+                      {membership.status == 'ACTIVE' && (
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          className="text-red-400 hover:bg-red-900/30"
+                          onClick={() => {
+                          setMembershipToDelete(membership);
+                          setDeleteConfirmOpen(true);
+                        }}
                       >
-                        <Trash2 size={14} className="mr-1" /> Delete
+                        <Trash2 size={14} className="mr-1" /> Deactivate
                       </Button>
-                      <Button
-                        size="sm"
-                        variant={membership.isActive ? "danger" : "primary"}
-                        onClick={() => handleToggleStatus(membership.membershipId)}
-                      >
+                      )}
+                      {membership.status == 'SUSPENDED' && (
+                        <Button
+                          size="sm"
+                          variant={membership.isActive ? "danger" : "primary"}
+                          onClick={() => handleToggleStatus(membership.membershipid)}
+                        >
                         {membership.isActive ? 'Deactivate' : 'Activate'}
                       </Button>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -432,13 +432,16 @@ const MembershipManagement: React.FC = () => {
                           <Button size="sm" variant="ghost" onClick={() => handleEditMembership(membership)}>
                             <Edit size={14} />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDeleteMembership(membership.membershipId)}>
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            setMembershipToDelete(membership);
+                            setDeleteConfirmOpen(true);
+                          }}>
                             <Trash2 size={14} />
                           </Button>
                           <Button 
                             size="sm" 
                             variant={membership.isActive ? "danger" : "primary"}
-                            onClick={() => handleToggleStatus(membership.membershipId)}
+                            onClick={() => handleToggleStatus(membership.membershipid)}
                           >
                             {membership.isActive ? 'Deactivate' : 'Activate'}
                           </Button>
@@ -517,6 +520,41 @@ const MembershipManagement: React.FC = () => {
           setSelectedMembership(null);
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Deactivate Membership"
+      >
+        <div className="space-y-4">
+          <p className="text-white">
+            Are you sure you want to deactivate <span className="font-bold">{membershipToDelete?.membershipname}</span>?
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                if (membershipToDelete) {
+                  setLoading(true);
+                  await membershipService.delete(membershipToDelete.membershipid);
+                  // Refresh list
+                  const res = await membershipService.getAll();
+                  setMemberships(res.data || []);
+                  setDeleteConfirmOpen(false);
+                  setMembershipToDelete(null);
+                  setLoading(false);
+                }
+              }}
+            >
+              deactivate
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
     </AdminLayout>
   );
@@ -639,8 +677,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({
               className="w-full px-4 py-3 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500"
             >
               <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="PENDING">Pending</option>
+              <option value="EXPIRED">Eexpired</option>
               <option value="SUSPENDED">Suspended</option>
             </select>
           </div>
@@ -675,7 +712,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        {/* <div className="flex items-center space-x-2">
           <input
             type="checkbox"
             id="isActive"
@@ -686,7 +723,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({
           <label htmlFor="isActive" className="text-sm text-white">
             Active membership (available for new subscriptions)
           </label>
-        </div>
+        </div> */}
 
         <div className="bg-secondary-700/50 rounded-lg p-4 border border-secondary-600">
           <h4 className="text-sm font-medium text-white mb-2 flex items-center">

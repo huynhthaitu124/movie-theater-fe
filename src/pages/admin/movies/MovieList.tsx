@@ -109,7 +109,7 @@ const MovieList: React.FC = () => {
             <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-4">
             {filteredMovies.map((movie) => (
               <div key={movie.movieID} className="bg-secondary-800 rounded-lg overflow-hidden shadow-md">
                 <div className="aspect-[2/3] relative">

@@ -35,7 +35,7 @@ class MembershipService {
 
   // Reactivate a membership (usually needs an ID in body or params, adjust if needed)
   async reactivate(id: string): Promise<ApiResponse<Membership>> {
-    const response = await axiosClient.post<ApiResponse<Membership>>('/api/Membership/ReActiveMembership', { id });
+    const response = await axiosClient.post<ApiResponse<Membership>>('/api/Membership/ReActiveMembership', {}, { params: { id } });
     return response.data;
   }
 }
