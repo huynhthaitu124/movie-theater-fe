@@ -183,7 +183,7 @@ const Login: React.FC = () => {
 
                   <div className="text-sm">
                     <Link 
-                      to="/forgot-password" 
+                      to="/forget-password" 
                       className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 hover:underline transition-all"
                     >
                       Forgot password?

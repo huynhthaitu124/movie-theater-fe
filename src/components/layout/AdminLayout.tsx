@@ -165,9 +165,9 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       label: 'Cinemas',
     },
     {
-      to: '/admin/tickets',
+      to: '/admin/invoices',
       icon: <TicketIcon size={20} />,
-      label: 'Tickets',
+      label: 'Invoices',
     },
     {
       to: '/admin/promotions',
@@ -235,7 +235,11 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <div className="p-4 rounded-lg bg-secondary-700/30 backdrop-blur">
                 <div className="flex items-center space-x-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-primary-500/10 flex items-center justify-center">
+                  {currentUser?.avatar ? (
+                    <img src={currentUser.avatar} alt="User Avatar" className="w-10 h-10 rounded-full" />
+                  ) : (
                     <User2 size={20} className="text-primary-500" />
+                  )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">
@@ -278,17 +282,17 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </button>
               <div className="hidden md:flex items-center space-x-2">
                 <h1 className="text-lg font-medium">
-                  {navItems.find(item => isActive(item.to))?.label || 'Dashboard'}
+                  {/* {navItems.find(item => isActive(item.to))?.label || 'Dashboard'} */}
                 </h1>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 ">
               <Link 
                 to="/" 
-                className="text-sm px-4 py-2 rounded-lg text-primary-400 hover:text-primary-300 hover:bg-primary-500/10 transition-colors"
+                className="bg-primary-600 text-sm px-4 py-2 rounded-lg text-primary-100 hover:text-primary-300 hover:bg-primary-500/10 transition-colors"
               >
-                View Site
+                Back to Home
               </Link>
             </div>
           </div>

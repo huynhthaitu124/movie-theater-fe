@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Receipt, Download, Building, Film, MapPin, Home, Calendar, Clock, ArrowLeft, Ticket, CreditCard, User, Star, Phone, Users } from 'lucide-react';
-import { invoiceService } from '../../services/modules/invoice.service';
-import { transactionService } from '../../services/modules/transaction.service';
-import { invoiceDetailService } from '../../services/modules/invoiceDetail.service';
-import { scheduleService } from '../../services/modules/schedule.service';
-import { seatService } from '../../services/modules/seat.service';
-import { useAuth } from '../../contexts/AuthContext';
+import { invoiceService } from '../../../services/modules/invoice.service';
+import { transactionService } from '../../../services/modules/transaction.service';
+import { invoiceDetailService } from '../../../services/modules/invoiceDetail.service';
+import { scheduleService } from '../../../services/modules/schedule.service';
+import { seatService } from '../../../services/modules/seat.service';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { movieService } from '../../services/modules/movie.service';
-import { cinemaService } from '../../services/modules/cinema.service';
+import { movieService } from '../../../services/modules/movie.service';
+import { cinemaService } from '../../../services/modules/cinema.service';
 
 const InvoiceSection: React.FC = () => {
   const { currentUser } = useAuth();
@@ -235,11 +235,11 @@ const InvoiceSection: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/admin/invoices')}
             className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 hover:text-white rounded-lg transition-all duration-200 mb-6 backdrop-blur border border-slate-700/50"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            Back to Invoices
           </button>
           
           <div className="flex items-center gap-4 mb-4">

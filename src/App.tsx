@@ -7,6 +7,9 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyOtp from './pages/auth/VerifyOtp';
 import CompleteRegister from './pages/auth/CompleteRegister';
+import ForgetPassword from './pages/auth/ForgetPassword';
+
+//==================================================
 import Home from './pages/home/Home';
 import Dashboard from './components/admin/Dashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
@@ -32,6 +35,9 @@ import SeatManagement from '../src/components/seatManagement/SeatManagement';
 import PromotionManagement from './pages/admin/promotions/PromotionManagement';
 import MembershipManagement from './pages/admin/memberships/MembershipManagement';
 import ProductManagement  from './pages/admin/products/ProductManagement';
+import MovieCinemaManangement from './components/cinema/movieCinemaManangement';
+import InvoiceManagement from './pages/admin/invoices/InvoiceManagement';
+import InvoiceSectionAdmin from './pages/admin/invoices/InvoiceSection';
 
 //Staff Dashboard imports
 import StaffDashboard from './components/staff/StaffDashboard';
@@ -71,6 +77,9 @@ const App: React.FC = () => {
               <Route path="/register" element={<Register />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/complete-register" element={<CompleteRegister />} />
+              <Route path="/forget-password" element={<ForgetPassword />} />
+              
+              {/* Protected Routes */}
               
               {/* Admin Routes */}
               <Route
@@ -205,6 +214,21 @@ const App: React.FC = () => {
                 }
               />
 
+              {/* Invoice Management Route */}
+              <Route
+                path="/admin/invoices"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <InvoiceManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+               path="/invoiceAdmin/:invoiceid" 
+               element={<InvoiceSectionAdmin />} 
+               />
+
               {/* Product Management Route */}
               <Route
                 path="/admin/products"
@@ -225,6 +249,16 @@ const App: React.FC = () => {
                 }
               />
 
+              {/* Movies cinema Management Route */}
+              <Route
+                path="/admin/moviesCinema"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <MovieCinemaManangement />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Seat Type Management Route */}
               <Route
                 path="/admin/seats/:roomId"
@@ -235,7 +269,7 @@ const App: React.FC = () => {
                 }
               />
 
-              {/* Staff Routes */}
+              {/*========== Staff Routes ============*/}
               <Route
                 path="/staff/dashboard"
                 element={
@@ -303,7 +337,8 @@ const App: React.FC = () => {
               
               <Route
                path="/invoice/:invoiceid" 
-               element={<InvoiceSection />} />
+               element={<InvoiceSection />} 
+               />
               
               {/* Not Found Route - must be last */}
               <Route path="*" element={<NotFound />} />

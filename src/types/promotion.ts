@@ -18,13 +18,19 @@ export interface Promotion {
 }
 
 export interface PromotionType {
-  id: string;
+  promotiontypeid: string;
   name: string;
-  description?: string;
+  discountlevel: number; 
+  discounttype: string; 
+  mincondition: number;
+  createdat: string;
+  updatedat: string;
+  isactive?: boolean;
 }
 
 export interface PromotionFormData {
-  promotionTypeId: string;
+  promotionId?: string;
+  promotionTypeid: string;
   title: string;
   detail: string;
   startTime: string;

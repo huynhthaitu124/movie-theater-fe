@@ -1,19 +1,15 @@
 import axios from 'axios';
+import { axiosClient } from '../api/axiosClient';
+import { API_ENDPOINTS } from '../api/endpoints';
 import { SeatResponse, SeatType, SeatCreateRequest, Seat } from '../../types/seat';
 
 const API_BASE_URL = 'https://movietheater-api.calmbeach-b063071e.eastasia.azurecontainerapps.io/api';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
 export const seatService = {
   async getAll() {
     // Call the real API
-    const response = await api.get('/Seat');
+    const response = await axiosClient.get('/api/Seat');
     // Your API returns { message, data }
     return response.data;
   },
@@ -32,7 +28,7 @@ export const seatService = {
     number: string;
     row: string;
   }) {
-    return api.post('/Seat', data);
+    return axiosClient.post('/api/Seat', data);
   },
 
   async createMultiple(seats: SeatCreateRequest[]) {
@@ -41,23 +37,23 @@ export const seatService = {
   },
 
   update: async (data: any) => {
-  return api.put('/Seat', data); // data must be { seatUpdateDto: { ... } }
+  return axiosClient.put('/api/Seat', data); // data must be { seatUpdateDto: { ... } }
 },
 
   async delete(seatId: string) {
     // Your backend expects seatId as a query param
-    return api.delete(`/Seat?seatId=${seatId}`);
+    return axiosClient.delete(`/api/Seat?seatId=${seatId}`);
   },
 
   linkSeats: async (firstSeatId: string, secondSeatId: string) => {
-    return api.put('/Seat/LinkSeat', {
+    return axiosClient.put('/api/Seat/LinkSeat', {
       firstSeatId,
       secondSeatId,
     });
   },
 
   unlinkSeats: async (firstSeatId: string, secondSeatId: string) => {
-    return api.put('/Seat/UnLinkSeat', {
+    return axiosClient.put('/api/Seat/UnLinkSeat', {
       firstSeatId,
       secondSeatId,
     });
@@ -67,23 +63,23 @@ export const seatService = {
 export const seatTypeService = {
   // Get all seat types
   getAll: async (): Promise<{ message: string; data: SeatType[] }> => {
-    const response = await api.get('/SeatType');
+    const response = await axiosClient.get('api/SeatType');
     return response.data as { message: string; data: SeatType[] };
   },
 
   // Get seat type by ID
   getById: async (seatTypeId: string): Promise<{ message: string; data: SeatType }> => {
-    const response = await api.get(`/SeatType/${seatTypeId}`);
+    const response = await axiosClient.get(`api/SeatType/${seatTypeId}`);
     return response.data as { message: string; data: SeatType }
   },
 
   create: async (data: { name: string; price: number; isactive: boolean }) => {
-    return api.post('/SeatType', data);
+    return axiosClient.post('api/SeatType', data);
   },
   update: async (seattypeid: string, data: { name: string; price: number; isactive: boolean }) => {
-    return api.put(`/SeatType?seatTypeId=${seattypeid}`, data);
+    return axiosClient.put(`api/SeatType?seatTypeId=${seattypeid}`, data);
   },
   delete: async (seattypeid: string) => {
-    return api.delete(`/SeatType?seatTypeId=${seattypeid}`);
+    return axiosClient.delete(`api/SeatType?seatTypeId=${seattypeid}`);
   },
 };
