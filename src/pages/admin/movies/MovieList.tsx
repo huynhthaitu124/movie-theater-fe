@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Edit2, Trash2, AlertCircle, Calendar, Loader2, Film } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, AlertCircle, Calendar, Loader2, Film, Play, Pause, Clock } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import Button from '../../../components/common/Button';
 import { Movie } from '../../../types/movie';
@@ -53,6 +53,22 @@ const MovieList: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete movie:', error);
       setError('Failed to delete movie');
+    }
+  };
+
+  const handleChangeStatus = async (movie: Movie) => {
+    // Cycle status: UPCOMING -> ACTIVE -> INACTIVE -> UPCOMING
+    const nextStatus =
+      movie.status === 'UPCOMING'
+        ? 'ACTIVE'
+        : movie.status === 'ACTIVE'
+        ? 'INACTIVE'
+        : 'UPCOMING';
+    try {
+      await movieService.update(movie.movieID, { status: nextStatus });
+      await fetchMovies();
+    } catch (err) {
+      setError('Failed to update status');
     }
   };
 
@@ -111,7 +127,7 @@ const MovieList: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-4">
             {filteredMovies.map((movie) => (
-              <div key={movie.movieID} className="bg-secondary-800 rounded-lg overflow-hidden shadow-md">
+              <div key={movie.movieID} className="bg-secondary-800 rounded-lg overflow-hidden shadow-md flex flex-col h-full">
                 <div className="aspect-[2/3] relative">
                   <img
                     src={movie.image || '/images/placeholder.jpg'}
@@ -138,9 +154,9 @@ const MovieList: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="p-4">
+                <div className="p-4 flex-1 flex flex-col">
                   <h3 className="text-lg font-semibold text-white mb-2">{movie.movieName}</h3>
-                  <div className="space-y-2 text-sm text-secondary-300">
+                  <div className="space-y-2 text-sm text-secondary-300 flex-1">
                     <p>Duration: {movie.duration} min</p>
                     {typeof movie.minimumAge === 'number' && <p>Age Rating: {movie.minimumAge}+</p>}
                     <p>Language: {movie.movieLanguage}</p>
@@ -159,6 +175,37 @@ const MovieList: React.FC = () => {
 
                   <div className="mt-4 flex justify-end space-x-2">
                     <button
+                      onClick={() => handleChangeStatus(movie)}
+                      className={`
+                        p-2 rounded-full flex items-center justify-center transition
+                        ${
+                          movie.status === 'UPCOMING'
+                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                            : movie.status === 'ACTIVE'
+                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                        }
+                      `}
+                      title="Change Status"
+                    >
+                      {movie.status === 'UPCOMING' ? (
+                        <>
+                          <Play size={16} className="mr-1" />
+                          <span className="hidden md:inline">Active</span>
+                        </>
+                      ) : movie.status === 'ACTIVE' ? (
+                        <>
+                          <Pause size={16} className="mr-1" />
+                          <span className="hidden md:inline">Inactive</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock size={16} className="mr-1" />
+                          <span className="hidden md:inline">Upcoming</span>
+                        </>
+                      )}
+                    </button>
+                    <button
                       onClick={() => navigate(`/admin/movies/edit/${movie.movieID}`)}
                       className="p-2 text-primary-500 hover:bg-secondary-700 rounded-full"
                     >
@@ -174,7 +221,6 @@ const MovieList: React.FC = () => {
                       <Trash2 size={16} />
                     </button>
                   </div>
-
                 </div>
               </div>
             ))}

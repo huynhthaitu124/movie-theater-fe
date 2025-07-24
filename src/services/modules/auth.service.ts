@@ -90,6 +90,36 @@ class AuthService {
     return userInfo;
 }
 
+    // Send OTP for password reset
+    async sendResetPasswordOtp(email: string): Promise<ApiResponse<string>> {
+        const response = await axiosClient.post<ApiResponse<string>>(
+            '/api/Authentication/SentResetPasswordOTP',
+            { email },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            }
+        );
+        return response.data;
+    }
+
+    // Change password using OTP
+    async changePassword(data: { email: string; password: string; confirmPassword: string }): Promise<ApiResponse<string>> {
+        const response = await axiosClient.post<ApiResponse<string>>(
+            '/api/Authentication/ChangePassword',
+            data,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            }
+        );
+        return response.data;
+    }
+
     // async refreshToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
     //     const response = await axiosClient.post<ApiResponse<{ token: string; refreshToken: string }>>(
     //         API_ENDPOINTS.ACCOUNT.REFRESH_TOKEN,

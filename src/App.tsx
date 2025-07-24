@@ -7,6 +7,9 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyOtp from './pages/auth/VerifyOtp';
 import CompleteRegister from './pages/auth/CompleteRegister';
+import ForgetPassword from './pages/auth/ForgetPassword';
+
+//==================================================
 import Home from './pages/home/Home';
 import Dashboard from './components/admin/Dashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
@@ -74,6 +77,9 @@ const App: React.FC = () => {
               <Route path="/register" element={<Register />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/complete-register" element={<CompleteRegister />} />
+              <Route path="/forget-password" element={<ForgetPassword />} />
+              
+              {/* Protected Routes */}
               
               {/* Admin Routes */}
               <Route
