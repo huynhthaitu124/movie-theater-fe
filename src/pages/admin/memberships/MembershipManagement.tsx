@@ -11,12 +11,14 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Modal from '../../../components/ui/Modal';
 import { membershipService } from '../../../services/modules/membership.service';
+import { accountMemberShipService } from '../../../services/modules/accountMemberShip.service';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import AdminLayout from '../../../components/layout/AdminLayout';
 
 const MembershipManagement: React.FC = () => {
   const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [accountMemberships, setAccountMemberships] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -38,17 +40,26 @@ const MembershipManagement: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch memberships
       const res = await membershipService.getAll();
       const apiMemberships = res.data || [];
-
       setMemberships(apiMemberships);
 
+      // Fetch all account memberships
+      const accRes = await accountMemberShipService.getAll();
+      const allAccountMemberships = accRes.data || [];
+      setAccountMemberships(allAccountMemberships);
+
       // Calculate stats from API data
-      const totalMembers = apiMemberships.reduce((sum, m) => sum + (m.accountmemberships?.length || 0), 0);
+      const totalMembers = apiMemberships.reduce((sum, m) => {
+        // Count members by matching membershipid
+        const membersForThis = allAccountMemberships.filter(acc => acc.membershipid === m.membershipid);
+        return sum + membersForThis.length;
+      }, 0);
 
       setStats({
         totalMemberships: apiMemberships.length,
-        activeMemberships: apiMemberships.filter(m => m.isActive).length,
+        activeMemberships: apiMemberships.filter(m => m.status === 'ACTIVE').length,
         totalMembers
       });
     } catch (error) {
@@ -187,6 +198,11 @@ const MembershipManagement: React.FC = () => {
       </div>
     );
   }
+
+  // Replace membership.accountmemberships.length with count from accountMemberships
+  const getMemberCount = (membershipId: string) => {
+    return accountMemberships.filter(acc => acc.membershipid === membershipId).length;
+  };
 
   return (
     <AdminLayout>
@@ -354,11 +370,11 @@ const MembershipManagement: React.FC = () => {
                     <div className="flex flex-col gap-1 text-xs text-secondary-400 mb-4">
                       <div>
                         <span className="font-medium text-secondary-200">Points: </span>
-                        <span className="text-primary-400 font-bold">{(membership.points)}</span>
+                        <span className="text-primary-400 font-bold">{membership.points}</span>
                       </div>
                       <div>
                         <span className="font-medium text-secondary-200">Members: </span>
-                        <span className="text-white">{membership.accountmemberships.length}</span>
+                        <span className="text-white">{getMemberCount(membership.membershipid)}</span>
                       </div>
                       <div>
                         <span className="font-medium text-secondary-200">Created: </span>
@@ -412,10 +428,10 @@ const MembershipManagement: React.FC = () => {
                           <p className="text-secondary-400 text-sm">{membership.description}</p>
                           <div className="flex items-center space-x-4 mt-2">
                             <span className="text-lg font-bold text-primary-400">
-                              {(membership.points)}
+                              {membership.points}
                             </span>
                             <span className="text-xs text-secondary-500">
-                              {membership.accountmemberships.length} members
+                              {getMemberCount(membership.membershipid)} members
                             </span>
                             <span className="text-xs text-secondary-500">
                               Created {formatDate(membership.createdAt)}

@@ -7,6 +7,15 @@ import AdminLayout from '@/components/layout/AdminLayout';
 import { memberService } from '@/services/modules/member.service';
 import type { Member } from '@/types/member';
 
+const membershipTiers = [
+  { name: 'Bronze', icon: '🥉', bg: 'bg-orange-400' },
+  { name: 'Silver', icon: '🥈', bg: 'bg-gray-400' },
+  { name: 'Gold', icon: '🥇', bg: 'bg-yellow-400' },
+  { name: 'Platinum', icon: '💎', bg: 'bg-purple-400' },
+  { name: 'Diamond', icon: '💠', bg: 'bg-blue-400' },
+  { name: 'VIP', icon: '👑', bg: 'bg-red-400' }
+];
+
 const MemberList: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +27,8 @@ const MemberList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<keyof Member>('displayName');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [filterMembership, setFilterMembership] = useState<string>('All');
+  const [filterGender, setFilterGender] = useState<string>('All');
 
   useEffect(() => {
     fetchMembers();
@@ -86,24 +97,26 @@ const MemberList: React.FC = () => {
 
   const filteredAndSortedMembers = useMemo(() => {
     return [...members]
-      .filter(mem => 
+      .filter(mem =>
         mem.isActive &&
+        (filterMembership === 'All' || mem.memberShipLevel === filterMembership) &&
+        (filterGender === 'All' || mem.gender === filterGender) &&
         Object.entries(mem)
           .filter(([key]) => ['memberId', 'displayName', 'email', 'phoneNumber', 'address'].includes(key))
-          .some(([_, value]) => 
+          .some(([_, value]) =>
             value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
           )
       )
       .sort((a, b) => {
         const aValue = a[sortField]?.toString().toLowerCase();
         const bValue = b[sortField]?.toString().toLowerCase();
-        
+
         if (!aValue || !bValue) return 0;
-        
+
         const compareResult = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
         return sortDirection === 'asc' ? compareResult : -compareResult;
       });
-  }, [members, searchQuery, sortField, sortDirection]);
+  }, [members, searchQuery, sortField, sortDirection, filterMembership, filterGender]);
 
   const TableHeader: React.FC<{ field: keyof Member; label: string }> = ({ field, label }) => (
     <th 
@@ -174,6 +187,36 @@ const MemberList: React.FC = () => {
           </div>
         </div>
 
+        {/* Filter Section */}
+        <div className="flex flex-wrap gap-4 items-center mb-4">
+          <div>
+            <label className="text-secondary-400 mr-2">Membership:</label>
+            <select
+              value={filterMembership}
+              onChange={e => setFilterMembership(e.target.value)}
+              className="bg-secondary-800 text-white rounded px-2 py-1 border border-secondary-700"
+            >
+              <option value="All">All</option>
+              {membershipTiers.map(tier => (
+                <option key={tier.name} value={tier.name}>{tier.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-secondary-400 mr-2">Gender:</label>
+            <select
+              value={filterGender}
+              onChange={e => setFilterGender(e.target.value)}
+              className="bg-secondary-800 text-white rounded px-2 py-1 border border-secondary-700"
+            >
+              <option value="All">All</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
         <div className="flex items-center bg-secondary-800 rounded-lg px-4 py-2 w-full md:w-96">
           <Search size={20} className="text-secondary-400 flex-shrink-0" />
           <input
@@ -219,9 +262,22 @@ const MemberList: React.FC = () => {
                       {member.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      <span className="px-2 py-1 rounded-full text-xs bg-primary-100 text-primary-800">
-                        {member.memberShipLevel}
-                      </span>
+                      {(() => {
+                        const tier = membershipTiers.find(t => t.name.toLowerCase() === member.memberShipLevel?.toLowerCase());
+                        if (tier) {
+                          return (
+                            <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${tier.bg} bg-opacity-30`}>
+                              <span>{tier.icon}</span>
+                              <span>{tier.name}</span>
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="px-2 py-1 rounded-full text-xs bg-secondary-700 text-secondary-300">
+                            {member.memberShipLevel || 'Unknown'}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                       {member.gender}
