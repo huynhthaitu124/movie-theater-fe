@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Film, Plus, Trash2 } from 'lucide-react';
+import { Search, MapPin, Building2, ArrowLeft, Loader2, Film, Plus, Trash2 } from 'lucide-react';
 import { cinemaService } from '../../services/modules/cinema.service';
 import { movieService } from '../../services/modules/movie.service';
 import { movieCinemaService } from '../../services/modules/movieCinema.service';
@@ -21,6 +21,7 @@ const MovieCinemaManangement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [addingId, setAddingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string>('');
 
   // Fetch all cinemas and all movies on mount
   useEffect(() => {
@@ -33,6 +34,7 @@ const MovieCinemaManangement: React.FC = () => {
         ]);
         setCinemas(Array.isArray(cinemaRes.data) ? cinemaRes.data : []);
         setAllMovies(Array.isArray(moviesRes.data) ? moviesRes.data : []);
+        console.log('Cinemas:', cinemaRes.data);
       } catch (err) {
         setCinemas([]);
         setAllMovies([]);
@@ -111,6 +113,14 @@ const MovieCinemaManangement: React.FC = () => {
     (m.movieName || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  // Extract unique cities from cinemas
+  const cityOptions = Array.from(new Set(cinemas.map(c => c.city))).filter(Boolean);
+
+  // Filter cinemas by selected city
+  const filteredCinemas = selectedCity
+    ? cinemas.filter(c => c.city === selectedCity)
+    : cinemas;
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -120,204 +130,284 @@ const MovieCinemaManangement: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-secondary-900">
-      {/* Back Button */}
-      <div className="px-6 pt-4 flex items-center gap-4 mb-4">
-        <button
-          onClick={() => navigate('/admin/cinemas')}
-          className="group flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white rounded-xl transition-all duration-200 backdrop-blur-sm border border-slate-600/30 hover:border-slate-500/50"
-        >
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          Back to Cinema Management
-        </button>
-        {/* Cinema Selector */}
-        <div className="flex items-center gap-2 ml-4">
-          <span className="text-white text-sm font-medium">Cinema:</span>
-          <div className="relative group">
-            <select
-              value={selectedCinemaId}
-              onChange={e => setSelectedCinemaId(e.target.value)}
-              className="appearance-none px-4 py-2 pr-10 rounded-lg bg-secondary-700 text-white border border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition font-semibold shadow hover:border-primary-400"
-            >
-              <option value="" disabled>
-                Select Cinema
-              </option>
-              {cinemas.map(c => (
-                <option key={c.cinemaid} value={c.cinemaid}>
-                  {c.cinemaname}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary-400 group-hover:text-primary-300 transition">
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </span>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Header with Navigation */}
+      <div className="bg-slate-800/50 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-10">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => navigate('/admin/cinemas')}
+                className="group flex items-center gap-3 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-sm border border-slate-600/30 hover:border-slate-500/50 hover:shadow-lg"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                Back to Cinema Management
+              </button>
+              
+              <div className="flex items-center gap-4">
+                {/* City Selector */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <MapPin className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-medium">City</span>
+                  </div>
+                  <select
+                    value={selectedCity}
+                    onChange={e => {
+                      setSelectedCity(e.target.value);
+                      setSelectedCinemaId(''); // Reset cinema when city changes
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-slate-700/70 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 font-medium shadow-lg backdrop-blur-sm hover:bg-slate-700/90 min-w-[160px]"
+                  >
+                    <option value="">Select City</option>
+                    {cityOptions.map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
 
-      {/* Header */}
-      <div className="bg-secondary-800 border-b border-secondary-700 px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-white">Movie Management</h1>
-            <p className="text-secondary-300 text-sm mt-1">
-              {cinema && (
-                <span className="font-semibold text-primary-400">{cinema.cinemaname}</span>
-              )}
-            </p>
-            <p className="text-secondary-300 text-sm mt-1">
-              Add or remove movies for this cinema
-            </p>
+                {/* Cinema Selector */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <Building2 className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm font-medium">Cinema</span>
+                  </div>
+                  <select
+                    value={selectedCinemaId}
+                    onChange={e => setSelectedCinemaId(e.target.value)}
+                    disabled={!selectedCity}
+                    className="px-4 py-2.5 rounded-xl bg-slate-700/70 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 font-medium shadow-lg backdrop-blur-sm hover:bg-slate-700/90 min-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {selectedCity ? 'Select Cinema' : 'Choose city first'}
+                    </option>
+                    {filteredCinemas.map(c => (
+                      <option key={c.cinemaid} value={c.cinemaid}>
+                        {c.cinemaname}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <Film className="w-4 h-4 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-medium">Total Movies</p>
+                  <p className="text-lg font-bold text-white">{allMovies.length}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2 bg-green-500/10 rounded-xl border border-green-500/20">
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <Film className="w-4 h-4 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-medium">In Cinema</p>
+                  <p className="text-lg font-bold text-white">{cinemaMovies.length}</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-2">
-              <div className="p-1.5 bg-blue-500/20 rounded">
-                <Film className="h-4 w-4 text-blue-400" />
+
+          {/* Title Section */}
+          <div className="mt-4">
+            <h1 className="text-2xl font-bold text-white">Movie Management</h1>
+            {cinema && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-slate-400">Managing movies for</span>
+                <span className="font-semibold text-purple-400">{cinema.cinemaname}</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-slate-400">{cinema.city}</span>
               </div>
-              <div>
-                <p className="text-xs text-secondary-400">Total Movies</p>
-                <p className="text-sm font-semibold text-white">{allMovies.length}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="p-1.5 bg-green-500/20 rounded">
-                <Film className="h-4 w-4 text-green-400" />
-              </div>
-              <div>
-                <p className="text-xs text-secondary-400">In Cinema</p>
-                <p className="text-sm font-semibold text-white">{cinemaMovies.length}</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex h-[calc(100vh-180px)]">
         {/* Sidebar: Available Movies */}
-        <div className="w-80 bg-secondary-800 border-r border-secondary-600 h-full overflow-y-auto flex-shrink-0 shadow-xl">
-          <div className="p-4 border-b border-secondary-600 bg-gradient-to-r from-secondary-800 to-secondary-750">
-            <h2 className="text-lg font-bold text-white mb-2">Available Movies</h2>
-            <input
-              type="text"
-              placeholder="Search movies..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full px-3 py-2 rounded bg-secondary-700 text-white border border-secondary-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-            <div className="text-xs text-secondary-500 mt-2">
-              {filteredAvailableMovies.length} available
+        <div className="w-1/3 bg-slate-800/40 backdrop-blur-xl border-r border-slate-700/50 flex flex-col">
+          <div className="p-6 border-b border-slate-700/50">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-green-400" />
+              Available Movies
+            </h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search movies..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-700/50 text-white border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 placeholder-slate-400"
+              />
+            </div>
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-sm text-slate-400">
+                {filteredAvailableMovies.length} movies available
+              </span>
+              {!selectedCinemaId && (
+                <span className="text-xs text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full">
+                  Select cinema to add movies
+                </span>
+              )}
             </div>
           </div>
-          <div className="p-4 grid grid-cols-3 gap-2">
-            {filteredAvailableMovies.map(movie => (
-              <div
-                key={movie.movieID}
-                className="bg-secondary-700/60 border border-secondary-600 rounded-lg p-2 flex flex-col items-center"
-              >
-                <img
-                  src={movie.image}
-                  alt={movie.movieName}
-                  className="w-10 h-14 object-cover rounded shadow mb-1"
-                  draggable={false}
-                />
-                <div className="w-full min-w-0 text-center">
-                  <div className="font-semibold text-white text-xs truncate">{movie.movieName}</div>
-                  <div className="text-[10px] text-secondary-400 truncate">{movie.movieTypes}</div>
-                  <div className="text-[10px] text-secondary-500">{movie.duration} min</div>
-                </div>
-                <button
-                  onClick={() => handleAddMovie(movie.movieID)}
-                  disabled={addingId === movie.movieID || !selectedCinemaId}
-                  className={`mt-1 p-1 rounded bg-primary-600 text-white hover:bg-primary-500 transition text-xs ${
-                    addingId === movie.movieID || !selectedCinemaId ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                  title="Add to Cinema"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Main: Movies in Cinema */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <h3 className="text-lg font-bold text-white mb-4">Movies in this Cinema</h3>
-          {!selectedCinemaId ? (
-            <div className="text-center py-16 text-secondary-400">
-              <div className="text-4xl mb-2">🏢</div>
-              <p>Please select a cinema to manage its movies.</p>
-            </div>
-          ) : cinemaMovies.length === 0 ? (
-            <div className="text-center py-16 text-secondary-400">
-              <div className="text-4xl mb-2">🎬</div>
-              <p>No movies currently assigned to this cinema.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {cinemaMovies.map(movie => (
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-4 gap-4">
+              {filteredAvailableMovies.map(movie => (
                 <div
                   key={movie.movieID}
-                  className="bg-secondary-800 border border-secondary-700 rounded-lg shadow hover:shadow-lg transition flex flex-col items-center p-2"
-                  style={{ minWidth: 0 }}
+                  className="group bg-slate-700/30 hover:bg-slate-700/50 border border-slate-600/30 hover:border-slate-500/50 rounded-xl p-3 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col h-full min-h-[210px]"
                 >
-                  <div className="w-24 h-36 bg-secondary-700 rounded-md overflow-hidden flex items-center justify-center mb-2">
-                    {movie.image ? (
-                      <img
-                        src={movie.image}
-                        alt={movie.movieName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-secondary-500 text-3xl">🎬</div>
-                    )}
+                  <div className="relative mb-3">
+                    <img
+                      src={movie.image}
+                      alt={movie.movieName}
+                      className="w-full h-24 object-cover rounded-lg shadow-md"
+                      draggable={false}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg" />
                   </div>
-                  <div className="w-full flex-1 flex flex-col items-center">
-                    <h4
-                      className="font-semibold text-white text-xs text-center mb-1 truncate w-full"
-                      title={movie.movieName}
-                    >
+                  
+                  <div className="space-y-2 flex-1">
+                    <h3 className="font-semibold text-white text-sm leading-tight line-clamp-2">
                       {movie.movieName}
-                    </h4>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium mb-1 ${
-                      movie.status === 'ACTIVE'
-                        ? 'bg-green-900 text-green-300'
-                        : movie.status === 'UPCOMING'
-                        ? 'bg-yellow-900 text-yellow-300'
-                        : 'bg-blue-900 text-blue-300'
-                    }`}>
-                      {movie.status === 'ACTIVE'
-                        ? 'Now Showing'
-                        : movie.status === 'UPCOMING'
-                        ? 'Upcoming'
-                        : 'Complete'}
-                    </span>
-                    <span className="text-[10px] text-secondary-400 mb-2">{movie.duration} min</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 line-clamp-1">{movie.movieTypes}</p>
+                    <p className="text-xs text-slate-500">{movie.duration} min</p>
                   </div>
+                  
                   <button
-                    onClick={() => handleRemoveMovie(movie.movieID)}
-                    disabled={removingId === movie.movieID}
-                    className={`w-full py-1 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
-                      removingId === movie.movieID
-                        ? 'bg-red-900 text-red-400 cursor-not-allowed'
-                        : 'bg-red-800 text-red-200 hover:bg-red-700'
+                    onClick={() => handleAddMovie(movie.movieID)}
+                    disabled={addingId === movie.movieID || !selectedCinemaId}
+                    className={`w-full mt-3 py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                      addingId === movie.movieID || !selectedCinemaId
+                        ? 'bg-slate-600/50 text-slate-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-500 text-white shadow-lg hover:shadow-green-500/25 group-hover:scale-105'
                     }`}
                   >
-                    {removingId === movie.movieID ? 'Removing...' : (
+                    {addingId === movie.movieID ? (
                       <>
-                        <Trash2 size={14} /> Remove
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Add to Cinema
                       </>
                     )}
                   </button>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+        </div>
+
+        {/* Main: Movies in Cinema */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <Film className="w-5 h-5 text-purple-400" />
+              Movies in Cinema
+            </h3>
+            
+            {!selectedCinemaId ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 bg-slate-700/50 rounded-full flex items-center justify-center mb-6">
+                  <Building2 className="w-10 h-10 text-slate-400" />
+                </div>
+                <h4 className="text-xl font-semibold text-white mb-2">Select a Cinema</h4>
+                <p className="text-slate-400 max-w-md">
+                  Choose a city and cinema from the dropdowns above to view and manage its movie collection.
+                </p>
+              </div>
+            ) : cinemaMovies.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 bg-slate-700/50 rounded-full flex items-center justify-center mb-6">
+                  <Film className="w-10 h-10 text-slate-400" />
+                </div>
+                <h4 className="text-xl font-semibold text-white mb-2">No Movies Yet</h4>
+                <p className="text-slate-400 max-w-md">
+                  This cinema doesn't have any movies assigned. Add movies from the available collection on the left.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                {cinemaMovies.map(movie => (
+                  <div
+                    key={movie.movieID}
+                    className="group bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/50 hover:border-slate-600/50 rounded-xl p-4 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] backdrop-blur-sm flex flex-col h-full min-h-[260px]"
+                  >
+                    <div className="relative mb-4">
+                      <div className="aspect-[3/4] bg-slate-700/50 rounded-lg overflow-hidden">
+                        {movie.image ? (
+                          <img
+                            src={movie.image}
+                            alt={movie.movieName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Film className="w-8 h-8 text-slate-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium ${
+                        movie.status === 'ACTIVE'
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                          : movie.status === 'UPCOMING'
+                          ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                          : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      }`}>
+                        {movie.status === 'ACTIVE'
+                          ? 'Active'
+                          : movie.status === 'UPCOMING'
+                          ? 'Soon'
+                          : 'Complete'}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4 flex-1">
+                      <h4 className="font-semibold text-white text-sm leading-tight line-clamp-2" title={movie.movieName}>
+                        {movie.movieName}
+                      </h4>
+                      <p className="text-xs text-slate-400">{movie.duration} min</p>
+                    </div>
+                    
+                    <button
+                      onClick={() => handleRemoveMovie(movie.movieID)}
+                      disabled={removingId === movie.movieID}
+                      className={`w-full py-2.5 px-3 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                        removingId === movie.movieID
+                          ? 'bg-red-900/50 text-red-400 cursor-not-allowed'
+                          : 'bg-red-600/80 hover:bg-red-600 text-white shadow-lg hover:shadow-red-500/25 group-hover:scale-105'
+                      }`}
+                    >
+                      {removingId === movie.movieID ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Removing...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4" />
+                          Remove
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

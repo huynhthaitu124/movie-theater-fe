@@ -49,7 +49,7 @@ const AddEditMovie: React.FC = () => {
     movieTypes: '',
     subtitleID: '',
     movieLanguage: '',
-    status: 'INACTIVE'
+    status: 'UPCOMING', // Always UPCOMING by default
   });
 
   const commonGenres = [
@@ -203,13 +203,11 @@ const AddEditMovie: React.FC = () => {
 
     try {
       let imageUrl = imagePreview || '';
-      // If a new image file is selected, upload to Cloudinary
       if (formData.image instanceof File && formData.image) {
         const uploadRes = await cloudinaryService.upload(formData.image);
         imageUrl = uploadRes.url;
       }
 
-      // Build payload and omit subtitleID if empty/null
       const payload: any = {
         movieName: formData.movieName,
         description: formData.description,
@@ -223,18 +221,20 @@ const AddEditMovie: React.FC = () => {
         dubbing: Boolean(formData.dubbing),
         movieTypes: formData.movieTypes,
         movieLanguage: formData.movieLanguage,
-        status: formData.status,
+        // status: ... handled below
       };
       if (formData.subtitleID && formData.subtitleID.trim() !== '') {
         payload.subtitleID = formData.subtitleID;
       }
 
-      console.log(payload); // Debug: check the payload before sending
-
       if (isEditMode && id) {
+        // Keep status unchanged on edit
+        payload.status = formData.status;
         await movieService.update(id, payload);
         setSuccess('Movie updated successfully!');
       } else {
+        // Always UPCOMING on create
+        payload.status = 'UPCOMING';
         await movieService.create(payload);
         setSuccess('Movie created successfully!');
       }
@@ -580,21 +580,6 @@ const AddEditMovie: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, subtitleID: e.target.value })}
                     placeholder="Auto-generated if empty"
                   />
-                  
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-secondary-300">
-                      Status
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-4 py-2 bg-secondary-700 border border-secondary-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                    >
-                      <option value="INACTIVE">Inactive</option>
-                      <option value="ACTIVE">Now Showing</option>
-                      <option value="UPCOMING">Upcoming</option>
-                    </select>
-                  </div>
                   
                   <div className="flex items-center space-x-3">
                     <input
