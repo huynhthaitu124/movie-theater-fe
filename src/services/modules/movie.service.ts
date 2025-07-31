@@ -26,6 +26,13 @@ class MovieService {
         );
         return response.data;
     }
+
+    async delete(id: string): Promise<ApiResponse<Movie>> {
+        const response = await axiosClient.delete<ApiResponse<Movie>>(
+            API_ENDPOINTS.MOVIE.DELETE(id)
+        );
+        return response.data;
+    }
 }
 
 export const movieService = new MovieService();

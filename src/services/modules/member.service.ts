@@ -21,7 +21,9 @@ class MemberService {
     }
 
     async getById(id: string): Promise<ApiResponse<Member>> {
-        const response = await axiosClient.get<ApiResponse<Member>>(API_ENDPOINTS.MEMBER.GET_BY_ID(id));
+        const response = await axiosClient.get<ApiResponse<Member>>('/api/Member/GetMemberById', {
+            params: { id }
+        });
         return response.data;
     }
 

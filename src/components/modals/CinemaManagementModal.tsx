@@ -235,7 +235,7 @@ const CinemaManagementModal: React.FC<CinemaManagementModalProps> = ({
                       required
                     />
                   </div>
-
+{/* 
                   <div className="col-span-2">
                     <label className="flex items-center text-sm text-secondary-300 mb-2">
                       <input
@@ -248,7 +248,7 @@ const CinemaManagementModal: React.FC<CinemaManagementModalProps> = ({
                       />
                       <span className="ml-2">Is Active</span>
                     </label>
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="flex justify-end gap-4">

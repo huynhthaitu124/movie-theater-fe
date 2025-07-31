@@ -203,9 +203,10 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         >
           <div className="flex items-center justify-between h-16 px-6 border-b border-secondary-700/50">
             <Link to="/admin/dashboard" className="flex items-center space-x-3">
-              <Film className="h-8 w-8 text-primary-500" />
+              {/* <Film className="h-8 w-8 text-primary-500" /> */}
+              <img src="/Cinema.png" alt="Logo" className="h-8 w-8" />
               <div>
-                <span className="text-lg font-bold text-white">Cinema Admin</span>
+                <span className="text-lg font-bold text-white">Admin Dashboard</span>
                 <p className="text-xs text-secondary-400">Management System</p>
               </div>
             </Link>

@@ -703,7 +703,7 @@ const CinemaManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error deleting cinema:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete cinema');
+      toast.error(error.response?.data?.message || 'Cinema deletion failed due to an existing room');
     }
   };
 
