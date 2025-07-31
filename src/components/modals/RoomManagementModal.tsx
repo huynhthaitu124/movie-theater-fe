@@ -86,8 +86,11 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
       toast.error('Capacity must be greater than 0');
       return;
     }
-    if (formData.rows <= 0 || formData.columns <= 0) {
-      toast.error('Rows and Columns must be greater than 0');
+    if (
+      formData.rows <= 0 || formData.rows > 22 ||
+      formData.columns <= 0 || formData.columns > 22
+    ) {
+      toast.error('Rows and Columns must be between 1 and 22');
       return;
     }
     onSave(formData);
@@ -192,6 +195,7 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
                 className="w-full bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white"
                 required
                 min={1}
+                max={22}
               />
             </div>
             <div>
@@ -208,6 +212,7 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = React.memo(({
                 className="w-full bg-secondary-800 border border-secondary-700 rounded-lg px-4 py-2 text-white"
                 required
                 min={1}
+                max={22}
               />
             </div>
 

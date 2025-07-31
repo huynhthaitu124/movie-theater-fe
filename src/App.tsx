@@ -26,6 +26,7 @@ import MovieList from './pages/admin/movies/MovieList';
 import AddEditMovie from './pages/admin/movies/AddEditMovie';
 import MemberList from './pages/admin/members/MemberList';
 import AddMember from './pages/admin/members/AddMember';
+import EditMember from './pages/admin/members/EditMember';
 import InactiveMembers from './pages/admin/members/InactiveMembers';
 import MovieDetails from './pages/movies/MovieDetails';
 import CinemaManagement from './pages/admin/cinemas/CinemaManagement';
@@ -170,6 +171,15 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <InactiveMembers />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/members/edit/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <EditMember />
                   </ProtectedRoute>
                 }
               />

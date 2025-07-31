@@ -44,6 +44,8 @@ export const API_ENDPOINTS = {
         GET_ALL: '/api/Movie',
         CREATE: '/api/Movie',
         UPDATE: '/api/Movie',
+        DELETE: (id: string) => `/api/Movie/${id}`,
+        GET_BY_ID: (id: string) => `/api/Movie/${id}`,
     },
 
     // MovieCategory endpoints
