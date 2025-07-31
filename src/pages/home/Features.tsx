@@ -58,7 +58,7 @@ const Features: React.FC = () => {
       <div className="container-custom">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-secondary-900 dark:text-white mb-2">
-            Why Choose CinemaPlus
+            Why Choose BlueCinema
           </h2>
           <p className="text-secondary-600 dark:text-secondary-400 max-w-2xl mx-auto">
             We're dedicated to providing the ultimate movie-going experience with premium amenities and services

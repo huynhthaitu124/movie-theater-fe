@@ -311,7 +311,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
                     <div className="flex items-center gap-3 mb-6">
                         <span className="text-slate-300 font-medium">Seat Type:</span>
                         <div className="flex gap-2">
-                            {seatTypes.map(type => (
+                            {seatTypes.filter(type => type.name !== 'Ghế Đôi').map(type => (
                                 <button
                                     key={type.seattypeid}
                                     className={`px-4 py-2 rounded-lg border font-medium transition-all duration-200

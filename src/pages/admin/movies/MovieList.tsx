@@ -46,6 +46,9 @@ const MovieList: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       // TODO: Implement delete API call when the endpoint is ready
+      await movieService.delete(id);
+      console.log('Movie deleted:', id);
+      setError(null);
       setShowDeleteModal(false);
       setSelectedMovie(null);
       // After successful deletion, refresh the movie list
@@ -61,8 +64,6 @@ const MovieList: React.FC = () => {
     const nextStatus =
       movie.status === 'UPCOMING'
         ? 'ACTIVE'
-        : movie.status === 'ACTIVE'
-        ? 'INACTIVE'
         : 'UPCOMING';
     try {
       await movieService.update(movie.movieID, { status: nextStatus });
@@ -181,8 +182,6 @@ const MovieList: React.FC = () => {
                         ${
                           movie.status === 'UPCOMING'
                             ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : movie.status === 'ACTIVE'
-                            ? 'bg-red-600 hover:bg-red-700 text-white'
                             : 'bg-yellow-500 hover:bg-yellow-600 text-white'
                         }
                       `}
@@ -192,11 +191,6 @@ const MovieList: React.FC = () => {
                         <>
                           <Play size={16} className="mr-1" />
                           <span className="hidden md:inline">Active</span>
-                        </>
-                      ) : movie.status === 'ACTIVE' ? (
-                        <>
-                          <Pause size={16} className="mr-1" />
-                          <span className="hidden md:inline">Inactive</span>
                         </>
                       ) : (
                         <>

@@ -10,8 +10,9 @@ const Footer: React.FC = () => {
           {/* Brand */}
           <div className="col-span-1">
             <Link to="/" className="flex items-center text-xl font-bold text-white mb-4">
-              <Film className="h-8 w-8 mr-2 text-primary-400" />
-              <span>CinemaPlus</span>
+              {/* <Film className="h-8 w-8 mr-2 text-primary-400" /> */}
+              <img src="/Cinema.png" alt="Logo" className="h-8 w-8 mr-2" />
+              <span>BlueCinema</span>
             </Link>
             <p className="text-sm mb-4">
               Experience movies like never before with state-of-the-art technology and ultimate comfort.
@@ -97,7 +98,7 @@ const Footer: React.FC = () => {
               </li>
               <li className="flex items-center">
                 <Mail size={18} className="mr-2 text-primary-400" />
-                <span>info@cinemaplus.com</span>
+                <span>info@BlueCinema.com</span>
               </li>
             </ul>
           </div>
@@ -105,7 +106,7 @@ const Footer: React.FC = () => {
 
         <div className="border-t border-secondary-700 mt-8 pt-8 text-center">
           <p className="text-sm">
-            &copy; {new Date().getFullYear()} CinemaPlus. All rights reserved.
+            &copy; {new Date().getFullYear()} BlueCinema. All rights reserved.
           </p>
         </div>
       </div>

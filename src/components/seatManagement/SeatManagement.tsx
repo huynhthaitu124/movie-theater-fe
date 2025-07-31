@@ -94,16 +94,11 @@ const SeatManagement: React.FC = () => {
                 number: seatData.number,
                 row: seatData.row
             });
+            
             fetchSeats();
             setIsModalOpen(false);
             showToast('Seat created successfully!', 'success');
         } catch (error) {
-            console.log({
-  seattypeid: seatData.seattypeid,
-  roomid: selectedRoom!.id,
-  number: seatData.number,
-  row: seatData.row
-});
             showToast('Failed to create seat', 'error');
         }
         setLoading(false);
