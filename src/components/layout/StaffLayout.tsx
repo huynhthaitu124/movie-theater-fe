@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Film, Calendar, LogOut, Menu, X, Home } from 'lucide-react';
+import { Film, Calendar, LogOut, Menu, X, Home, User2, CalendarRange } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNProgress } from '@tanem/react-nprogress';
@@ -84,14 +84,24 @@ const StaffLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const navItems = [
     {
+      to: '/staff/dashboard',
+      icon: <Home size={20} />,
+      label: 'Dashboard',
+    },
+    {
       to: '/staff/movies',
       icon: <Film size={20} />,
       label: 'Movies',
     },
     {
       to: '/staff/showtimes',
-      icon: <Calendar size={20} />,
+      icon: <CalendarRange size={20} />,
       label: 'Showtimes',
+    },
+    {
+      to: '/staff/workSchedule',
+      icon: <Calendar size={20} />,
+      label: 'Work Schedule',
     },
   ];
 
@@ -149,14 +159,18 @@ const StaffLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <div className="p-4 rounded-lg bg-secondary-700/30 backdrop-blur">
                 <div className="flex items-center space-x-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-primary-500/10 flex items-center justify-center">
-                    <Film size={20} className="text-primary-500" />
+                  {currentUser?.avatar ? (
+                    <img src={currentUser.avatar} alt="User Avatar" className="w-10 h-10 rounded-full" />
+                  ) : (
+                    <User2 size={20} className="text-primary-500" />
+                  )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">
-                      {currentUser?.displayname || 'Staff User'}
+                      {currentUser?.displayname || 'Admin User'}
                     </p>
                     <p className="text-xs text-secondary-400">
-                      {currentUser?.role || 'Staff'}
+                      {currentUser?.role || 'Administrator'}
                     </p>
                   </div>
                 </div>

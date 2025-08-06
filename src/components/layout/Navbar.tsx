@@ -47,7 +47,7 @@ const Navbar: React.FC = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center text-xl font-bold text-primary-600 dark:text-primary-400">
               {/* <Film className="h-8 w-8 mr-2" /> */}
-              <img src="/Cinema.png" alt="Logo" className="h-8 w-8 mr-2" />
+              <img src="../../src/assets/images/Cinemasvg.svg" alt="Logo" className="h-8 w-8 mr-2" />
               <span>BlueCinema</span>
             </Link>
           </div>

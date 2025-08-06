@@ -36,7 +36,7 @@ const Hero: React.FC = () => {
 
   const handleBooking = () => {
     const currentMovie = heroContent[currentIndex];
-    navigate(`/movies/${currentMovie.id}`);
+    navigate(`/movies`);
   };
 
   const handleTrailer = () => {

@@ -28,14 +28,15 @@ class ProductService {
   }
 
   // Delete a product
-  async delete(id: string): Promise<ApiResponse<void>> {
-    const response = await axiosClient.delete<ApiResponse<void>>('/api/Product/DeleteProduct', { params: { id } });
+  async delete(productId: string): Promise<ApiResponse<void>> {
+    const response = await axiosClient.delete<ApiResponse<void>>('/api/Product/DeleteProduct', { params: { productId } });
     return response.data;
   }
 
   // Reactivate a product (if needed)
-  async reactivate(id: string): Promise<ApiResponse<Product>> {
-    const response = await axiosClient.post<ApiResponse<Product>>('/api/Product/ReActiveMember', { id });
+  async reactivate(productId: string): Promise<ApiResponse<Product>> {
+    console.log('Reactivating product:', productId);
+    const response = await axiosClient.post<ApiResponse<Product>>('/api/Product/ReActiveProduct',null, { params: { productId } });
     return response.data;
   }
 }

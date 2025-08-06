@@ -11,9 +11,10 @@ interface ProductListProps {
   onEdit: (product: Product) => void;
   onDelete: (productId: string) => void;
   onAdd: () => void;
+  onReactivate?: () => void; // Add this line
 }
 
-export const ProductList: React.FC<ProductListProps> = ({ products, onEdit, onDelete, onAdd }) => {
+export const ProductList: React.FC<ProductListProps> = ({ products, onEdit, onDelete, onAdd, onReactivate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'stock' | 'createdAt'>('name');
@@ -154,10 +155,11 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onEdit, onDe
       }`}>
         {sortedProducts.map((product) => (
           <ProductCard
-            key={product.productId}
+            key={product.productid}
             product={product}
             onEdit={onEdit}
             onDelete={onDelete}
+            onReactivate={onReactivate} // Pass down
           />
         ))}
       </div>

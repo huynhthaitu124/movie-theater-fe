@@ -30,3 +30,15 @@ export interface Member {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface Staff {
+    id: string;
+    accountId: string;
+    displayName: string;
+    email: string;
+    phone: string;
+    role: string;
+    department: string;
+    createdAt: Date;
+    updatedAt: Date;
+}

@@ -5,7 +5,11 @@ import { AlertCircle, Plus, Search, Edit, Trash, User2 } from 'lucide-react';
 import Button from '@/components/common/Button';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { memberService } from '@/services/modules/member.service';
+import { userService } from "@/services/modules/user.service"; // Adjust path as needed
+import { roleService } from '@/services/modules/role.service';
 import type { Member } from '@/types/member';
+import CreateStaffModal from "@/components/modals/CreateStaffModal";
+import { staffService } from "@/services/modules/staff.service";
 
 const membershipTiers = [
   { name: 'Bronze', icon: '🥉', bg: 'bg-orange-400' },
@@ -22,6 +26,8 @@ const MemberList: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,34 +35,35 @@ const MemberList: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filterMembership, setFilterMembership] = useState<string>('All');
   const [filterGender, setFilterGender] = useState<string>('All');
+  const [showCreateStaffModal, setShowCreateStaffModal] = useState(false);
+  const [staffMember, setStaffMember] = useState<Member | null>(null);  
 
   useEffect(() => {
-    fetchMembers();
+    fetchMembersAndAccounts();
   }, []);
 
-  const fetchMembers = async () => {
+  const fetchMembersAndAccounts = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await memberService.getAll();
-      console.log('Fetched members:', response);
 
-      console.log('Response data:', response?.data);
+      const [memberRes, accountRes, roleRes] = await Promise.all([
+        memberService.getAll(),
+        userService.getAll(),
+        roleService.getAll()
+      ]);
 
-      if (!response?.data) {
-        throw new Error('Failed to fetch members');
+      if (!memberRes?.data || !accountRes?.data || !roleRes?.data) {
+        throw new Error('Failed to fetch data');
       }
 
-      let memberData: Member[] = [];
-      if (Array.isArray(response.data)) {
-        memberData = response.data;
-      } else {
-        throw new Error('Invalid member data format');
-      }
-
-      setMembers(memberData);
+      setMembers(Array.isArray(memberRes.data) ? memberRes.data : []);
+      setAccounts(Array.isArray(accountRes.data) ? accountRes.data : []);
+      setRoles(Array.isArray(roleRes.data) ? roleRes.data : []);
+      console.log(roleRes.data);
+      
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch members';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch data';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -72,7 +79,7 @@ const MemberList: React.FC = () => {
       const response = await memberService.deleteSoft(id);
       if (response.data.isActive === false) {
         toast.success('Member deleted successfully');
-        await fetchMembers();
+        await fetchMembersAndAccounts();
       } else {
         toast.error(response.message);
       }
@@ -96,17 +103,22 @@ const MemberList: React.FC = () => {
   };
 
   const filteredAndSortedMembers = useMemo(() => {
+    // Find account for each member and check roleName
     return [...members]
-      .filter(mem =>
-        mem.isActive &&
-        (filterMembership === 'All' || mem.memberShipLevel === filterMembership) &&
-        (filterGender === 'All' || mem.gender === filterGender) &&
-        Object.entries(mem)
-          .filter(([key]) => ['memberId', 'displayName', 'email', 'phoneNumber', 'address'].includes(key))
-          .some(([_, value]) =>
-            value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
-          )
-      )
+      .filter(mem => {
+        const account = accounts.find(acc => acc.accountId === mem.accountId);
+        return (
+          mem.isActive &&
+          account?.roleName === "Member" &&
+          (filterMembership === 'All' || mem.memberShipLevel === filterMembership) &&
+          (filterGender === 'All' || mem.gender === filterGender) &&
+          Object.entries(mem)
+            .filter(([key]) => ['memberId', 'displayName', 'email', 'phoneNumber', 'address'].includes(key))
+            .some(([_, value]) =>
+              value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
+            )
+        );
+      })
       .sort((a, b) => {
         const aValue = a[sortField]?.toString().toLowerCase();
         const bValue = b[sortField]?.toString().toLowerCase();
@@ -116,7 +128,7 @@ const MemberList: React.FC = () => {
         const compareResult = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
         return sortDirection === 'asc' ? compareResult : -compareResult;
       });
-  }, [members, searchQuery, sortField, sortDirection, filterMembership, filterGender]);
+  }, [members, accounts, searchQuery, sortField, sortDirection, filterMembership, filterGender]);
 
   const TableHeader: React.FC<{ field: keyof Member; label: string }> = ({ field, label }) => (
     <th 
@@ -153,7 +165,7 @@ const MemberList: React.FC = () => {
           <AlertCircle size={48} className="text-accent-500 mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">Error Loading Members</h2>
           <p className="text-secondary-400 text-center mb-6">{error}</p>
-          <Button onClick={fetchMembers}>
+          <Button onClick={fetchMembersAndAccounts}>
             Try Again
           </Button>
         </div>
@@ -306,6 +318,17 @@ const MemberList: React.FC = () => {
                           <Trash size={16} className="mr-1" />
                           Delete
                         </Button>
+                        <Button
+                          variant="ghost"
+                          className="hover:text-green-500"
+                          onClick={() => {
+                            setStaffMember(member);
+                            setShowCreateStaffModal(true);
+                          }}
+                        >
+                          <Plus size={16} className="mr-1" />
+                          Hire
+                      </Button>
                       </div>
                     </td>
                   </tr>
@@ -360,6 +383,90 @@ const MemberList: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showCreateStaffModal && staffMember && (
+        <CreateStaffModal
+          isOpen={showCreateStaffModal}
+          onClose={() => setShowCreateStaffModal(false)}
+          memberName={staffMember.displayName}
+          onSubmit={async ({ position, hiredate, salary }) => {
+            try {
+              setIsProcessing(true);
+              
+              // Get the staff role ID
+              const staffRole = roles.find(role => 
+                role.rolename?.toLowerCase() === 'staff' || 
+                role.rolename?.toLowerCase() === 'employee'
+              );
+              
+              if (!staffRole) {
+                toast.error("Staff role not found. Please check role configuration.");
+                setIsProcessing(false);
+                return;
+              }
+              
+              // Step 1: Create staff record
+              const staffData = {
+                accountid: staffMember.accountId,
+                position,
+                hiredate,
+                salary,
+              };
+              console.log('Creating staff with data:', staffData);
+              const staffResponse = await staffService.create(staffData);
+              
+              if (staffResponse && staffResponse.data) {
+                // Step 2: Fetch current account data
+                console.log('Fetching account data for:', staffMember.accountId);
+                const accountResponse = await userService.getById(staffMember.accountId);
+                
+                if (accountResponse && accountResponse.data) {
+                  const accountData = accountResponse.data;
+                  console.log('Current account data:', accountData);
+                  
+                  // Step 3: Update account's role while preserving existing data
+                  const accountUpdateData = {
+                    accountId: accountData.accountId,
+                    roleId: staffRole.roleid,
+                    image: accountData.image || "",
+                    fullName: accountData.fullName || staffMember.displayName || "",
+                    dateOfBirth: accountData.dateOfBirth || staffMember.dateOfBirth || "",
+                    sex: accountData.sex || staffMember.gender || "",
+                    email: accountData.email || staffMember.email || "",
+                    identityCard: accountData.identityCard || staffMember.identityCard || "",
+                    phoneNumber: accountData.phoneNumber || staffMember.phoneNumber || "",
+                    address: accountData.address || staffMember.address || ""
+                  };
+                  
+
+
+                  console.log('Updating account role with data:', accountUpdateData);
+                  console.log('Using Staff Role ID:', staffRole.roleid);
+                  
+                  const updateResponse = await userService.update(staffMember.accountId, accountUpdateData);
+                  
+                  if (updateResponse && updateResponse.data) {
+                    toast.success("Staff created and account role updated successfully!");
+                    await fetchMembersAndAccounts();
+                  } else {
+                    toast.warning("Staff created but failed to update account role.");
+                  }
+                } else {
+                  toast.warning("Staff created but couldn't fetch account data for role update.");
+                }
+                setShowCreateStaffModal(false);
+              } else {
+                toast.error("Failed to create staff.");
+              }
+            } catch (err) {
+              console.error("Error in staff creation process:", err);
+              toast.error("Error creating staff or updating account.");
+            } finally {
+              setIsProcessing(false);
+            }
+          }}
+        />
       )}
     </AdminLayout>
   );
