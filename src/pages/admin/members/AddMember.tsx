@@ -44,6 +44,7 @@ const AddMember: React.FC = () => {
     fetchRoles();
   }, []);
 
+  // Update the validateField function to include identity card validation
   const validateField = (name: string, value: string) => {
     const errors: Record<string, string> = {};
     
@@ -70,6 +71,12 @@ const AddMember: React.FC = () => {
           errors.username = 'Username must be at least 3 characters long';
         }
         break;
+      case 'identitycard':
+        const idCardRegex = /^\d{12}$/;
+        if (value && !idCardRegex.test(value)) {
+          errors.identitycard = 'Identity card must be exactly 12 digits';
+        }
+        break;
     }
     
     setValidationErrors(prev => ({
@@ -84,7 +91,7 @@ const AddMember: React.FC = () => {
     if (isSubmitting) return;
 
     // Validate all fields before submission
-    const requiredFields = [ 'displayname', 'email', 'password', 'address', 'dateofbirth', 'gender'];
+    const requiredFields = [ 'displayname', 'email', 'password', 'address', 'dateofbirth', 'gender', 'identitycard'];
     const errors: Record<string, string> = {}; 
     requiredFields.forEach(field => {
       if (!formData[field as keyof typeof formData]) {
@@ -103,7 +110,7 @@ const AddMember: React.FC = () => {
       const formDataToSend = {
         ...formData,
         username: formData.email, // Use email as username if not provided
-        roleid: roles[0]?.roleid || '' // Use selected role or default
+        roleid: roles.find(r => r.rolename === "Member")?.roleid || '' // Use selected role or default
       };
       console.log('Sending data to userService.create:', formDataToSend);
       const response = await userService.create(formDataToSend);
@@ -435,9 +442,10 @@ const AddMember: React.FC = () => {
             </div>
           </div>
 
+          {/* Update the identity card field in the form */}
           <div className="relative">
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Identity Card
+              Identity Card <span className="text-red-400">*</span>
             </label>
             <div className="relative">
               <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -445,10 +453,19 @@ const AddMember: React.FC = () => {
                 name="identitycard"
                 value={formData.identitycard}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
-                placeholder="Enter identity card number"
+                className={`w-full pl-10 pr-4 py-3 bg-slate-800/50 border ${
+                  validationErrors.identitycard ? 'border-red-500' : 'border-slate-600/50'
+                } rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all`}
+                placeholder="Enter 12-digit identity card number"
+                required
               />
             </div>
+            {validationErrors.identitycard && (
+              <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {validationErrors.identitycard}
+              </p>
+            )}
           </div>
         </div>
 
