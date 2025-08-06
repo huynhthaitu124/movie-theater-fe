@@ -710,7 +710,7 @@ const BookTicket: React.FC = () => {
       console.log('Transaction data being sent:', JSON.stringify(transactionData));
       
       // Call the transaction API
-      const transactionResponse = await transactionService.createTransaction(transactionData);
+      // const transactionResponse = await transactionService.createTransaction(transactionData);
       console.log('Transaction created:', transactionResponse.data);
       
       // Extract the transactionId from the response

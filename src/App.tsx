@@ -39,6 +39,7 @@ import SeatManagement from '../src/components/seatManagement/SeatManagement';
 import PromotionManagement from './pages/admin/promotions/PromotionManagement';
 import MembershipManagement from './pages/admin/memberships/MembershipManagement';
 import ProductManagement  from './pages/admin/products/ProductManagement';
+import ComboProductManagement from './pages/admin/products/ComboProductManagement';
 import MovieCinemaManangement from './components/cinema/movieCinemaManangement';
 import InvoiceManagement from './pages/admin/invoices/InvoiceManagement';
 import InvoiceSectionAdmin from './pages/admin/invoices/InvoiceSection';
@@ -269,6 +270,15 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <ProductManagement />
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route
+                path="/admin/products/combo"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <ComboProductManagement />
                   </ProtectedRoute>
                 }
               />
