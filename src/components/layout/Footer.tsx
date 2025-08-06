@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
           <div className="col-span-1">
             <Link to="/" className="flex items-center text-xl font-bold text-white mb-4">
               {/* <Film className="h-8 w-8 mr-2 text-primary-400" /> */}
-              <img src="/Cinema.png" alt="Logo" className="h-8 w-8 mr-2" />
+              <img src="../../src/assets/images/Cinemasvg.svg" alt="Logo" className="h-8 w-8 mr-2" />
               <span>BlueCinema</span>
             </Link>
             <p className="text-sm mb-4">

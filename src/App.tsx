@@ -16,6 +16,9 @@ import EmployeeList from './pages/admin/employees/EmployeeList';
 import AddEmployee from './pages/admin/employees/AddEmployee';
 import EditEmployee from './pages/admin/employees/EditEmployee';
 import InactiveEmployees from './pages/admin/employees/InactiveEmployees';
+import WorkScheduleManagement from './pages/admin/workSchedule/WorkScheduleManagement';
+import StaffWorkScheduleManagement from './pages/admin/workSchedule/StaffScheduleManagement';
+//==================================================
 import BookTicket from './pages/booking/BookTicket';
 import PaymentReturn from './pages/booking/PaymentReturn';
 import Movies from './pages/movies/Movies';
@@ -40,10 +43,12 @@ import MovieCinemaManangement from './components/cinema/movieCinemaManangement';
 import InvoiceManagement from './pages/admin/invoices/InvoiceManagement';
 import InvoiceSectionAdmin from './pages/admin/invoices/InvoiceSection';
 
+
 //Staff Dashboard imports
 import StaffDashboard from './components/staff/StaffDashboard';
 import StaffMovieList from './pages/staff/movies/StaffMovieList';
 import StaffShowtimeList from './pages/staff/showtime/StaffShowtimeList';
+import WorkSchedule from './pages/staff/workSchedule/WorkSchedule';
 
 //User Dashboard 
 import UserDashboard from './components/userDashboard/Dashboard';
@@ -120,6 +125,25 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <EditEmployee />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Work Schedule Management Route */}
+              <Route
+                path="/admin/workSchedule"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <WorkScheduleManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/staffSchedule"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                    <StaffWorkScheduleManagement />
                   </ProtectedRoute>
                 }
               />
@@ -303,6 +327,15 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['Staff']}>
                     <StaffShowtimeList />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/workSchedule"
+                element={
+                  <ProtectedRoute allowedRoles={['Staff']}>
+                    <WorkSchedule />
                   </ProtectedRoute>
                 }
               />

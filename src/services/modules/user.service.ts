@@ -16,6 +16,7 @@ class UserService {
     }
 
     async update(id: string, userData: Partial<User>): Promise<ApiResponse<User>> {
+        console.log('Updating user with ID:', id, 'and data:', userData);
         const response = await axiosClient.put<ApiResponse<User>>(API_ENDPOINTS.ACCOUNT.UPDATE(id), userData);
         return response.data;
     }

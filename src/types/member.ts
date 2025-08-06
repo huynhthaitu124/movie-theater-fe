@@ -1,5 +1,6 @@
 export interface Member {
     memberId: string;
+    accountId: string;
     displayName: string;
     email: string;
     phoneNumber: string;

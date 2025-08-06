@@ -8,6 +8,7 @@ import { productService } from '../../../services/modules/product.service';
 import Button from '../../../components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../../components/layout/AdminLayout';
+import toast from 'react-hot-toast';
 
 const ProductManagement: React.FC = () => {
     const navigate = useNavigate();
@@ -15,6 +16,8 @@ const ProductManagement: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
     const [loading, setLoading] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);    
 
   // Fetch products from API
   const fetchProducts = async () => {
@@ -53,15 +56,9 @@ const ProductManagement: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleDeleteProduct = async (productId: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await productService.delete(productId);
-        setProducts(prev => prev.filter(p => p.productId !== productId));
-      } catch (err) {
-        // handle error
-      }
-    }
+  const handleDeleteProduct = (productId: string) => {
+    setDeletingProductId(productId);
+    setShowDeleteModal(true);
   };
 
   const handleSaveProduct = async (data: ProductFormData) => {
@@ -161,6 +158,7 @@ const ProductManagement: React.FC = () => {
             onEdit={handleEditProduct}
             onDelete={handleDeleteProduct}
             onAdd={handleAddProduct}
+            onReactivate={fetchProducts} // Pass refresh function
           />
         )}
       </div>
@@ -173,6 +171,39 @@ const ProductManagement: React.FC = () => {
           onCancel={handleCancelForm}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingProductId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-white mb-4">Delete Product</h3>
+            <p className="text-gray-300 mb-6">Are you sure you want to delete this product?</p>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-red-600 text-white"
+                onClick={async () => {
+                  try {
+                    console.log("Deleting product with ID:", deletingProductId);
+                    await productService.delete(deletingProductId);
+                    toast.success("Product deleted successfully!");
+                    await fetchProducts();
+                  } catch (err) {
+                    toast.error("Failed to delete product.");
+                  } finally {
+                    setShowDeleteModal(false);
+                    setDeletingProductId(null);
+                  }
+                }}
+              >
+                Inactive
+              </Button>
+            </div>
+          </div>
+        </div>
+)}
     </div>
     </AdminLayout>
   );

@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
 import { Edit, Trash2, Package, DollarSign, AlertTriangle } from 'lucide-react';
 import { Product } from '../../types/product';
+import { productService } from '../../services/modules/product.service';
+import toast from 'react-hot-toast';
 
 interface ProductCardProps {
   product: Product;
   onEdit: (product: Product) => void;
   onDelete: (productId: string) => void;
+  onReactivate?: () => void; // Add this line
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete, onReactivate }) => {
   const [reactivating, setReactivating] = useState(false);
 
   const handleReactivate = async () => {
     setReactivating(true);
     try {
-      // Call the reactivate API
-      await import('../../services/modules/product.service').then(({ productService }) =>
-        productService.reactivate(product.productId)
-      );
-      // Optionally, you can trigger a refresh via a callback or window.location.reload()
-      window.location.reload(); // Or call a passed-in fetchProducts if you have it
+      await productService.reactivate(product.productid);
+      toast.success('Product reactivated successfully!');
+      if (onReactivate) onReactivate(); // Call refresh
     } catch (err) {
       alert('Failed to reactivate product');
     } finally {
@@ -80,7 +80,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDel
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onDelete(product.productId)}
+            onClick={() => onDelete(product.productid)}
             className="p-2 text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded-lg transition-all duration-200"
           >
             <Trash2 className="w-4 h-4" />
