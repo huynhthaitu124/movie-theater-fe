@@ -661,11 +661,6 @@ const BookTicket: React.FC = () => {
   };
 
   const handleConfirmPayment = async () => {
-    // console.log('Confirming payment with selected seats:', selectedSeats);
-    // console.log('Selected schedule:', selectedSchedule);
-    // console.log('Selected products:', selectedProducts);
-    // console.log('Current user:', currentUser);
-    //==================================================================
     if (!movie) return;
     
     // Check if payment was already successful
@@ -689,7 +684,6 @@ const BookTicket: React.FC = () => {
       console.log('Selected seats count:', selectedSeats.length);
       console.log('Selected seats:', selectedSeats);
       
-      // Create transaction with the booking details
       // Ensure accountId is not undefined
       if (!accountId) {
         alert('Your account information is missing. Please log in again.');
@@ -697,13 +691,21 @@ const BookTicket: React.FC = () => {
         return;
       }
       
+      // Format products array with productId and quantity
+      const formattedProducts = selectedProducts.map(p => ({
+        productId: p.productid,
+        quantity: p.quantity
+      }));
+
+      // Create transaction data according to Swagger API structure
       const transactionData = {
-        accountId: accountId, // This ensures it's a string, not possibly undefined
+        accountId: accountId,
         seatIds: selectedSeats,
-        productIds: selectedProducts.map(p => p.productid),
-        code: appliedPromotion ? appliedPromotion.code : undefined
-        // comboIds: selectedCombos.map(c => c.comboid), // if you have combos
-        // code: discountCode, // if you have a code
+        products: formattedProducts,
+        comboIds: [], // Include empty array for combos if not using them
+        combos: [],   // Include empty array for formatted combos if not using them
+        code: appliedPromotion ? appliedPromotion.code : null,
+        promotionCode: appliedPromotion ? appliedPromotion.code : null
       };
       
       // Debug: Log transaction data
@@ -723,7 +725,6 @@ const BookTicket: React.FC = () => {
       
       // Use the transactionId to create a VNPay payment URL
       const paymentUrl = await vnpayService.createPaymentUrl(transactionId);
-
       
       // Redirect to the VNPay payment URL
       window.location.href = paymentUrl;
