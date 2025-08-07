@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Film, Users, Calendar, TicketIcon, Tag, Layout as LayoutIcon, 
-  LogOut, Menu, X, Home, UserRoundCheck, Crown, GlassWater,
-  User2, Settings, Bell, Search  // You can also remove Settings and Bell from here
+  LogOut, Menu, X, Home, Crown, GlassWater,
+  User2, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNProgress } from '@tanem/react-nprogress';
+import ChatBadge from '../chat/ChatBadge';
 
 const sidebarVariants = {
   open: {
@@ -63,10 +64,11 @@ interface SidebarItemProps {
   label: string;
   active: boolean;
   onClick?: () => void;
+  showBadge?: boolean;
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ 
-  to, icon, label, active, onClick 
+  to, icon, label, active, onClick, showBadge 
 }) => {
   return (
     <motion.div
@@ -90,6 +92,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
           {icon}
         </motion.span>
         <span className="flex-1">{label}</span>
+        {showBadge && <ChatBadge />}
       </Link>
     </motion.div>
   );
@@ -184,6 +187,11 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       icon: <GlassWater size={20} />,
       label: 'Products',
     },
+    {
+      to: '/admin/chat',
+      icon: <MessageCircle size={20} />,
+      label: 'Chat Support',
+    },
   ];
 
   return (
@@ -233,6 +241,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   label={item.label}
                   active={isActive(item.to)}
                   onClick={() => setSidebarOpen(false)}
+                  showBadge={item.to === '/admin/chat'}
                 />
               ))}
             </div>

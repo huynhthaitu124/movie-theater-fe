@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignalR Chat Test</title>
+    <script src="https://unpkg.com/@microsoft/signalr@7.0.0/dist/browser/signalr.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin: 10px 0; }
+        .input-group { display: flex; gap: 10px; margin: 10px 0; }
+        input, button { padding: 8px; }
+        input[type="text"] { flex: 1; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SignalR Chat Test</h1>
+        
+        <div id="status" class="status disconnected">Disconnected</div>
+        
+        <div class="input-group">
+            <input type="text" id="userIdInput" placeholder="Your User ID" value="e7a7c177-752a-4208-8b38-f107238cf715">
+            <button onclick="connect()">Connect</button>
+            <button onclick="disconnect()">Disconnect</button>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="receiverIdInput" placeholder="Receiver User ID" value="7e5b2214-d280-418b-8677-ff1b2a416ecf">
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+        
+        <div id="messages" class="messages"></div>
+        
+        <button onclick="clearMessages()">Clear Messages</button>
+    </div>
+
+    <script>
+        let connection = null;
+        let userId = null;
+
+        function updateStatus(message, isConnected) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${isConnected ? 'connected' : 'disconnected'}`;
+        }
+
+        function addMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function connect() {
+            userId = document.getElementById('userIdInput').value;
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+
+            try {
+                // Create connection
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("http://localhost:5250/chathub")
+                    .withAutomaticReconnect()
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
+
+                // Set up event handlers
+                connection.on("ReceiveMessage", (message) => {
+                    console.log('ReceiveMessage:', message);
+                    addMessage(`📨 ReceiveMessage: ${JSON.stringify(message)}`);
+                });
+
+                connection.on("MessageReceived", (message) => {
+                    console.log('MessageReceived:', message);
+                    addMessage(`📨 MessageReceived: ${JSON.stringify(message)}`);
+                });
+
+                connection.on("NewMessage", (message) => {
+                    console.log('NewMessage:', message);
+                    addMessage(`📨 NewMessage: ${JSON.stringify(message)}`);
+                });
+
+                connection.on("OnMessageReceived", (senderId, receiverId, message, timestamp) => {
+                    console.log('OnMessageReceived:', { senderId, receiverId, message, timestamp });
+                    addMessage(`📨 OnMessageReceived: ${senderId} → ${receiverId}: ${message}`);
+                });
+
+                // Connection state handlers
+                connection.onclose((error) => {
+                    updateStatus('Connection closed', false);
+                    if (error) {
+                        addMessage(`❌ Connection error: ${error}`);
+                    }
+                });
+
+                connection.onreconnecting((error) => {
+                    updateStatus('Reconnecting...', false);
+                    addMessage(`🔄 Reconnecting: ${error}`);
+                });
+
+                connection.onreconnected((connectionId) => {
+                    updateStatus(`Reconnected (${connectionId})`, true);
+                    addMessage(`✅ Reconnected: ${connectionId}`);
+                });
+
+                // Start connection
+                updateStatus('Connecting...', false);
+                await connection.start();
+                updateStatus(`Connected as ${userId}`, true);
+                addMessage(`✅ Connected to SignalR hub as ${userId}`);
+
+            } catch (error) {
+                updateStatus('Connection failed', false);
+                addMessage(`❌ Connection failed: ${error}`);
+                console.error('Connection failed:', error);
+            }
+        }
+
+        async function disconnect() {
+            if (connection) {
+                try {
+                    await connection.stop();
+                    updateStatus('Disconnected', false);
+                    addMessage('🔌 Disconnected');
+                } catch (error) {
+                    addMessage(`❌ Disconnect error: ${error}`);
+                }
+            }
+        }
+
+        async function sendMessage() {
+            const receiverId = document.getElementById('receiverIdInput').value;
+            const message = document.getElementById('messageInput').value;
+            
+            if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+                alert('Not connected to SignalR hub');
+                return;
+            }
+            
+            if (!receiverId || !message) {
+                alert('Please enter receiver ID and message');
+                return;
+            }
+
+            try {
+                // Try different method names
+                let success = false;
+                const methods = ['SendMessage', 'SendMessageToUser', 'SendChatMessage'];
+                
+                for (const method of methods) {
+                    try {
+                        addMessage(`📤 Trying ${method}(${receiverId}, "${message}")`);
+                        await connection.invoke(method, receiverId, message);
+                        addMessage(`✅ Message sent via ${method}`);
+                        success = true;
+                        break;
+                    } catch (error) {
+                        addMessage(`❌ ${method} failed: ${error.message}`);
+                    }
+                }
+                
+                if (!success) {
+                    addMessage('❌ All send methods failed');
+                }
+                
+                // Clear input
+                document.getElementById('messageInput').value = '';
+                
+            } catch (error) {
+                addMessage(`❌ Send error: ${error}`);
+                console.error('Send error:', error);
+            }
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        // Handle Enter key in message input
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
