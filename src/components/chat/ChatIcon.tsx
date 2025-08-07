@@ -59,7 +59,7 @@ const ChatIcon: React.FC = () => {
       setIsMinimized(false);
       // Load conversation when opening chat
       if (currentUser?.accountid) {
-        const supportAdminId = 'ad47c780-2611-45d9-a9d8-d980ba2ff5a3'; // Tu_TEST_2 (Admin)
+        const supportAdminId = import.meta.env.VITE_ADMIN_USER_ID || 'da025367-64ba-44e7-8886-faabe74a1a6b';
         console.log('🔄 Loading conversation between member and admin:', currentUser.accountid, '<=>', supportAdminId);
         loadConversationMessages(currentUser.accountid, supportAdminId);
       }
