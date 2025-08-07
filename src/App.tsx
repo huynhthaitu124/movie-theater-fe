@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ChatProvider } from './contexts/ChatContext';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyOtp from './pages/auth/VerifyOtp';
@@ -42,7 +43,7 @@ import ProductManagement  from './pages/admin/products/ProductManagement';
 import MovieCinemaManangement from './components/cinema/movieCinemaManangement';
 import InvoiceManagement from './pages/admin/invoices/InvoiceManagement';
 import InvoiceSectionAdmin from './pages/admin/invoices/InvoiceSection';
-
+import ChatPage from './pages/admin/ChatPage';
 
 //Staff Dashboard imports
 import StaffDashboard from './components/staff/StaffDashboard';
@@ -53,6 +54,9 @@ import WorkSchedule from './pages/staff/workSchedule/WorkSchedule';
 //User Dashboard 
 import UserDashboard from './components/userDashboard/Dashboard';
 import InvoiceSection from '../src/components/userDashboard/InvoiceSection';
+
+// Chat Components
+import ChatIcon from './components/chat/ChatIcon';
 
 import { Toaster } from 'react-hot-toast';
 
@@ -75,8 +79,9 @@ const App: React.FC = () => {
       <Router>
         <ThemeProvider>
           <AuthProvider>
-            <Toaster />
-            <Routes>
+            <ChatProvider>
+              <Toaster />
+              <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
@@ -283,6 +288,16 @@ const App: React.FC = () => {
                 }
               />
 
+              {/* Chat Management Route */}
+              <Route
+                path="/admin/chat"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                    <ChatPage />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Movies cinema Management Route */}
               <Route
                 path="/admin/moviesCinema"
@@ -386,11 +401,15 @@ const App: React.FC = () => {
               {/* Not Found Route - must be last */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </AuthProvider>
-        </ThemeProvider>
-      </Router>
-    </GoogleOAuthProvider>
-  );
+            
+            {/* Chat Icon for Members */}
+            <ChatIcon />
+          </ChatProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </Router>
+  </GoogleOAuthProvider>
+);
 };
 
 export default App;
