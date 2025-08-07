@@ -76,13 +76,13 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
+                      {/* <button
                         onClick={() => handleEditSchedule(schedule)}
                         className="text-blue-400 hover:text-blue-300 mr-3"
                         disabled={saving}
                       >
                         <Edit2 className="w-4 h-4" />
-                      </button>
+                      </button> */}
                       <button
                         onClick={() => handleDeleteSchedule(schedule.workscheduleid)}
                         className="text-red-400 hover:text-red-300"
