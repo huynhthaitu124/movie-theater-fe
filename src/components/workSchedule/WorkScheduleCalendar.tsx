@@ -147,13 +147,13 @@ const WorkScheduleCalendar: React.FC<CalendarProps> = ({
                     <div className="flex items-center justify-between mb-1">
                       <Clock className="w-3 h-3 text-blue-400" />
                       <div className="flex space-x-1">
-                        <button
+                        {/* <button
                           onClick={() => handleEditSchedule(schedule)}
                           className="text-blue-400 hover:text-blue-300"
                           disabled={saving}
                         >
                           <Edit2 className="w-3 h-3" />
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => handleDeleteSchedule(schedule.workscheduleid)}
                           className="text-red-400 hover:text-red-300"

@@ -309,14 +309,14 @@ const MembershipManagement: React.FC = () => {
             </select>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm">
+            {/* <Button variant="ghost" size="sm">
               <Download size={16} className="mr-2" />
               Export
             </Button>
             <Button variant="ghost" size="sm">
               <Upload size={16} className="mr-2" />
               Import
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>
