@@ -110,7 +110,7 @@ export const ProductSelection: React.FC<ProductSelectionProps> = ({
         </div>
 
         {/* Combos Section */}
-        {combos.length > 0 && (
+        {/* {combos.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-white mb-4">Popular Combos</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -141,7 +141,7 @@ export const ProductSelection: React.FC<ProductSelectionProps> = ({
               ))}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Individual Products Section */}
         <h3 className="text-lg font-semibold text-white mb-4">Individual Items</h3>
