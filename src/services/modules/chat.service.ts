@@ -13,25 +13,79 @@ export class ChatService {
     throw new Error('User not authenticated');
   }
 
+  // Helper method để validate authentication state
+  private validateAuthentication(): { isValid: boolean; userId: string; token: string } {
+    const token = localStorage.getItem('access_token');
+    const userStr = localStorage.getItem('user');
+    
+    if (!token) {
+      throw new Error('No authentication token found. Please login again.');
+    }
+    
+    if (!userStr) {
+      throw new Error('No user data found. Please login again.');
+    }
+    
+    let user;
+    try {
+      user = JSON.parse(userStr);
+    } catch (error) {
+      throw new Error('Invalid user data format. Please login again.');
+    }
+    
+    if (!user.accountid) {
+      throw new Error('Invalid user account data. Please login again.');
+    }
+    
+    return {
+      isValid: true,
+      userId: user.accountid,
+      token: token
+    };
+  }
+
   async sendMessage(message: string, receiverId?: string): Promise<ChatMessage> {
     try {
+      // Validate authentication trước khi gửi
+      console.log('🔐 Validating authentication...');
+      const authInfo = this.validateAuthentication();
+      console.log('✅ Authentication validated:', {
+        userId: authInfo.userId,
+        hasToken: !!authInfo.token,
+        tokenLength: authInfo.token.length
+      });
+
+      // Lấy thông tin authentication
+      const token = localStorage.getItem('access_token');
+      const userStr = localStorage.getItem('user');
+      
+      console.log('🔐 Authentication Debug Info:');
+      console.log('- Token exists:', !!token);
+      console.log('- Token preview:', token ? token.substring(0, 20) + '...' : 'null');
+      console.log('- User data exists:', !!userStr);
+      console.log('- API Base URL:', import.meta.env.VITE_API_URL || 'http://localhost:5250');
+      
       // Tạo SendMessageDto theo format backend yêu cầu
-      const currentUserId = this.getCurrentUserId();
       const sendMessageDto: SendMessageDto = {
-        senderId: currentUserId,
+        senderId: authInfo.userId,
         receiverId: receiverId, // undefined thay vì null
         message: message.trim()
       };
 
-      console.log('🔍 ChatService.sendMessage Debug Info:');
-      console.log('- Current User ID:', currentUserId);
-      console.log('- Receiver ID:', receiverId);
-      console.log('- Message:', message?.substring(0, 50) + '...');
-      console.log('- Send DTO:', sendMessageDto);
-      
-      console.log('📤 Sending message with DTO to API...');
+      console.log('📤 Sending message with DTO:', sendMessageDto);
+      console.log('📤 Request details:', {
+        url: '/api/Chat/send',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token.substring(0, 20)}...` : 'No token'
+        }
+      });
+
       const response = await axiosClient.post('/api/Chat/send', sendMessageDto);
-      console.log('✅ Send message API response:', response);
+      console.log('✅ Send message response:', response);
+      console.log('✅ Response status:', response.status);
+      console.log('✅ Response headers:', response.headers);
       
       // API trả về format: {status: 200, message: "Save data success", data: ChatMessage}
       const apiResponse = response.data;
@@ -40,23 +94,44 @@ export class ChatService {
         console.log('Message sent successfully:', apiResponse.data);
         return apiResponse.data; // Return the actual message data
       } else {
-        console.error('Invalid send message response:', apiResponse);
+        console.error('❌ Invalid send message response:', apiResponse);
+        console.error('❌ Expected format: {status: number, message: string, data: ChatMessage}');
+        console.error('❌ Actual response:', JSON.stringify(apiResponse, null, 2));
         throw new Error('Invalid response format from server');
       }
     } catch (error: any) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error sending message:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+          headers: error.config?.headers
+        }
+      });
       
       // Xử lý các loại lỗi cụ thể
       if (error.response?.status === 400) {
-        throw new Error('Invalid message format. Please check your input.');
+        throw new Error(`Invalid message format: ${error.response?.data?.message || 'Please check your input'}`);
       } else if (error.response?.status === 401) {
+        console.error('🔐 Authentication failed - token may be expired or invalid');
         throw new Error('Authentication required. Please login again.');
       } else if (error.response?.status === 403) {
+        console.error('🚫 Authorization failed - insufficient permissions');
         throw new Error('You do not have permission to send messages.');
       } else if (error.response?.status >= 500) {
-        throw new Error('Server error. Please try again later.');
+        console.error('🔧 Server error occurred');
+        throw new Error(`Server error (${error.response?.status}): ${error.response?.data?.message || 'Please try again later'}`);
+      } else if (error.code === 'NETWORK_ERROR' || error.code === 'ERR_NETWORK') {
+        console.error('🌐 Network connection error');
+        throw new Error('Network error. Please check your internet connection.');
       } else {
-        throw new Error('Failed to send message. Please check your connection.');
+        console.error('❓ Unknown error occurred');
+        throw new Error(`Failed to send message: ${error.message || 'Unknown error'}`);
       }
     }
   }
@@ -209,6 +284,44 @@ export class ChatService {
       console.error('Error fetching chat history between users:', error);
       console.error('Error response:', error.response?.data);
       throw new Error('Failed to load chat history');
+    }
+  }
+
+  // Test function để kiểm tra API connection và authentication
+  async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
+    try {
+      console.log('🧪 Testing API connection and authentication...');
+      
+      // Validate authentication
+      const authInfo = this.validateAuthentication();
+      console.log('✅ Authentication validation passed');
+      
+      // Test basic API call - get conversations
+      const response = await axiosClient.get('/api/Chat/admin/conversations');
+      console.log('✅ API connection test passed');
+      
+      return {
+        success: true,
+        message: 'API connection and authentication working correctly',
+        details: {
+          userId: authInfo.userId,
+          apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:5250',
+          responseStatus: response.status
+        }
+      };
+    } catch (error: any) {
+      console.error('❌ API connection test failed:', error);
+      
+      return {
+        success: false,
+        message: `API connection test failed: ${error.message}`,
+        details: {
+          error: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data
+        }
+      };
     }
   }
 }

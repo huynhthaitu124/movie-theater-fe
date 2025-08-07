@@ -1,67 +1,105 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, X, Minimize2, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { MessageCircle, X, Send, Minimize2, AlertCircle } from 'lucide-react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import { ChatMessage } from '../../types/chat';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ChatIcon: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messageInput, setMessageInput] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { 
-    messages, 
-    sendMessage, 
-    loadConversationMessages,
-    unreadCount, 
-    error, 
-    clearError,
-    isConnected 
-  } = useChat();
   const { currentUser } = useAuth();
+  const { messages, sendMessage, unreadCount, refreshMessages, error, clearError } = useChat();
 
   // Chỉ hiển thị cho member
   if (currentUser?.role !== 'Member') {
     return null;
   }
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageInput.trim() || isSending) return;
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
 
-    setIsSending(true);
-    clearError(); // Clear any previous errors
+    console.log('🚀 ChatIcon handleSendMessage called');
+    console.log('📝 Message content:', newMessage);
+    console.log('🎯 Target admin ID:', adminUserId);
+    console.log('👤 Current member ID:', currentUserId);
+    console.log('🔗 SignalR connection status:', connection?.state);
+
+    const messageText = newMessage.trim();
+    setNewMessage('');
+
+    // Hiển thị message ngay lập tức (optimistic update)
+    const tempMessage: ChatMessage = {
+      id: Date.now().toString(),
+      senderId: currentUserId!,
+      receiverId: adminUserId,
+      message: messageText,
+      timestamp: new Date().toISOString(),
+      isRead: false
+    };
+
+    setMessages(prev => [...prev, tempMessage]);
 
     try {
-      // Sử dụng admin ID mới nhất để nhắn với support team
-      const supportAdminId = import.meta.env.VITE_ADMIN_USER_ID || 'da025367-64ba-44e7-8886-faabe74a1a6b';
+      console.log('📞 Calling chat service sendMessage...');
       
-      console.log('🔍 ChatIcon Debug Info:');
-      console.log('- Current Member ID:', currentUser?.accountid);
-      console.log('- Current Member Name:', currentUser?.name || currentUser?.username);
-      console.log('- Support Admin ID:', supportAdminId);
-      console.log('- Message Content:', messageInput);
-      console.log('- SignalR Connected:', isConnected);
-      
-      console.log('📤 Sending message from member to admin:', supportAdminId);
-      const res = await sendMessage(messageInput, supportAdminId);
-      console.log('✅ Message sent successfully, response:', res);
-      setMessageInput('');
+      // Gửi qua REST API trước
+      const savedMessage = await chatService.sendMessage(messageText, adminUserId);
+      console.log('✅ Message saved to database:', savedMessage);
+
+      // Cập nhật message với ID thực từ database
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempMessage.id ? savedMessage : msg
+        )
+      );
+
+      console.log('📡 Sending message via SignalR...');
+      if (connection && connection.state === 'Connected') {
+        console.log('🔗 SignalR connection is active, sending message...');
+        await connection.invoke('SendMessage', {
+          senderId: currentUserId,
+          receiverId: adminUserId,
+          message: messageText
+        });
+        console.log('✅ Message sent via SignalR successfully');
+      } else {
+        console.warn('⚠️ SignalR not connected, message sent via REST API only');
+        console.log('SignalR state:', connection?.state);
+      }
+
     } catch (error: any) {
-      console.error('❌ Error sending message from member to admin:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+      console.error('❌ Error in handleSendMessage:', error);
+      
+      // Xóa message tạm nếu có lỗi
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      
+      // Hiển thị thông báo lỗi chi tiết
+      let errorMessage = 'Failed to send message';
+      if (error.message.includes('authentication') || error.message.includes('login')) {
+        errorMessage = 'Please login again to send messages';
+      } else if (error.message.includes('permission')) {
+        errorMessage = 'You do not have permission to send messages';
+      } else if (error.message.includes('network') || error.message.includes('connection')) {
+        errorMessage = 'Network error. Please check your connection';
+      } else if (error.message.includes('server')) {
+        errorMessage = 'Server error. Please try again later';
+      }
+      
+      alert(errorMessage + ': ' + error.message);
+      
+      // Log chi tiết để debug
+      console.error('💭 Error details for debugging:', {
+        originalError: error,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        currentUserId,
+        adminUserId,
+        messageText,
+        connectionState: connection?.state
       });
-      // Error đã được xử lý trong context
-    } finally {
-      setIsSending(false);
     }
   };
 
@@ -69,30 +107,9 @@ const ChatIcon: React.FC = () => {
     setIsOpen(!isOpen);
     if (!isOpen) {
       setIsMinimized(false);
-      // Load conversation when opening chat
-      if (currentUser?.accountid) {
-        const supportAdminId = import.meta.env.VITE_ADMIN_USER_ID || 'da025367-64ba-44e7-8886-faabe74a1a6b';
-        console.log('🔄 Loading conversation between member and admin:', currentUser.accountid, '<=>', supportAdminId);
-        loadConversationMessages(currentUser.accountid, supportAdminId);
-      }
+      refreshMessages();
     }
   };
-
-  // Load conversation when user changes
-  useEffect(() => {
-    if (currentUser?.accountid && isOpen) {
-      const supportAdminId = import.meta.env.VITE_ADMIN_USER_ID || 'da025367-64ba-44e7-8886-faabe74a1a6b';
-      console.log('👤 User changed, loading conversation:', currentUser.accountid, '<=>', supportAdminId);
-      loadConversationMessages(currentUser.accountid, supportAdminId);
-    }
-  }, [currentUser?.accountid, isOpen]);
-
-  // Auto scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messagesEndRef.current && messages.length > 0) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
 
   const toggleMinimize = () => {
     setIsMinimized(!isMinimized);
@@ -189,7 +206,7 @@ const ChatIcon: React.FC = () => {
                     <div className="space-y-3">
                       {messages.map((message) => (
                         <motion.div
-                          key={message.messageId || `${message.senderId}-${message.timestamp}`}
+                          key={message.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className={`flex ${
@@ -214,8 +231,6 @@ const ChatIcon: React.FC = () => {
                           </div>
                         </motion.div>
                       ))}
-                      {/* Auto scroll anchor */}
-                      <div ref={messagesEndRef} />
                     </div>
                   )}
                 </div>
