@@ -39,7 +39,7 @@ const ChatIcon: React.FC = () => {
 
     try {
       // Sử dụng admin ID mới nhất để nhắn với support team
-      const supportAdminId = 'ad47c780-2611-45d9-a9d8-d980ba2ff5a3'; // Tu_TEST_2 (Admin)
+      const supportAdminId = 'da025367-64ba-44e7-8886-faabe74a1a6b'; // Tu_TEST_2 (Admin)
       
       console.log('Sending message to support admin:', supportAdminId);
       const res = await sendMessage(messageInput, supportAdminId);
