@@ -18,88 +18,44 @@ const ChatIcon: React.FC = () => {
     return null;
   }
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!messageInput.trim() || isSending) return;
 
     console.log('🚀 ChatIcon handleSendMessage called');
-    console.log('📝 Message content:', newMessage);
-    console.log('🎯 Target admin ID:', adminUserId);
-    console.log('👤 Current member ID:', currentUserId);
-    console.log('🔗 SignalR connection status:', connection?.state);
+    console.log('📝 Message content:', messageInput);
+    console.log('👤 Current user:', currentUser);
 
-    const messageText = newMessage.trim();
-    setNewMessage('');
-
-    // Hiển thị message ngay lập tức (optimistic update)
-    const tempMessage: ChatMessage = {
-      id: Date.now().toString(),
-      senderId: currentUserId!,
-      receiverId: adminUserId,
-      message: messageText,
-      timestamp: new Date().toISOString(),
-      isRead: false
-    };
-
-    setMessages(prev => [...prev, tempMessage]);
-
+    const messageText = messageInput.trim();
+    setIsSending(true);
+    
     try {
-      console.log('📞 Calling chat service sendMessage...');
+      // Use sendMessage from ChatContext which handles all the logic
+      console.log('� Calling ChatContext sendMessage...');
+      await sendMessage(messageText);
+      console.log('✅ Message sent successfully');
       
-      // Gửi qua REST API trước
-      const savedMessage = await chatService.sendMessage(messageText, adminUserId);
-      console.log('✅ Message saved to database:', savedMessage);
-
-      // Cập nhật message với ID thực từ database
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempMessage.id ? savedMessage : msg
-        )
-      );
-
-      console.log('📡 Sending message via SignalR...');
-      if (connection && connection.state === 'Connected') {
-        console.log('🔗 SignalR connection is active, sending message...');
-        await connection.invoke('SendMessage', {
-          senderId: currentUserId,
-          receiverId: adminUserId,
-          message: messageText
-        });
-        console.log('✅ Message sent via SignalR successfully');
-      } else {
-        console.warn('⚠️ SignalR not connected, message sent via REST API only');
-        console.log('SignalR state:', connection?.state);
-      }
-
+      // Clear input after successful send
+      setMessageInput('');
+      
     } catch (error: any) {
-      console.error('❌ Error in handleSendMessage:', error);
+      console.error('❌ Error sending message:', error);
       
-      // Xóa message tạm nếu có lỗi
-      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-      
-      // Hiển thị thông báo lỗi chi tiết
+      // Show user-friendly error message
       let errorMessage = 'Failed to send message';
-      if (error.message.includes('authentication') || error.message.includes('login')) {
+      if (error.message?.includes('authentication') || error.message?.includes('login')) {
         errorMessage = 'Please login again to send messages';
-      } else if (error.message.includes('permission')) {
+      } else if (error.message?.includes('permission')) {
         errorMessage = 'You do not have permission to send messages';
-      } else if (error.message.includes('network') || error.message.includes('connection')) {
+      } else if (error.message?.includes('network') || error.message?.includes('connection')) {
         errorMessage = 'Network error. Please check your connection';
-      } else if (error.message.includes('server')) {
+      } else if (error.message?.includes('server')) {
         errorMessage = 'Server error. Please try again later';
       }
       
-      alert(errorMessage + ': ' + error.message);
-      
-      // Log chi tiết để debug
-      console.error('💭 Error details for debugging:', {
-        originalError: error,
-        errorMessage: error.message,
-        errorStack: error.stack,
-        currentUserId,
-        adminUserId,
-        messageText,
-        connectionState: connection?.state
-      });
+      alert(errorMessage);
+    } finally {
+      setIsSending(false);
     }
   };
 
