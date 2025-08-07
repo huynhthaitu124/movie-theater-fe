@@ -78,7 +78,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setError(null);
   }, []);
 
-  // SignalR callbacks
+  // SignalR callbacks - stable references to prevent re-renders
   const signalRCallbacks = {
     onMessageReceived: (message: ChatMessage) => {
       console.log('📨 New message received via SignalR:', message);
@@ -104,7 +104,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         
         // Save updated messages to localStorage
         if (currentConversation) {
-          saveMessagesToStorage(newMessages, currentConversation);
+          try {
+            const chatData = {
+              messages: newMessages,
+              conversationKey: currentConversation,
+              timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(`${CHAT_STORAGE_KEY}_${currentConversation}`, JSON.stringify(chatData));
+            console.log('💾 Chat history saved to localStorage for conversation:', currentConversation);
+          } catch (error) {
+            console.warn('Failed to save chat history to localStorage:', error);
+          }
         }
         
         return newMessages;
@@ -139,7 +149,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         setIsConnected(false);
       }
     }
-  }, [currentUser, isConnected]);
+  }, [currentUser?.accountid, isConnected]);
 
   // Load conversation messages between two users
   const loadConversationMessages = useCallback(async (user1Id: string, user2Id: string) => {
@@ -248,7 +258,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser?.accountid]);
 
   // Send message
   const sendMessage = useCallback(async (message: string, receiverId?: string) => {
@@ -312,9 +322,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       setMessages(prev => {
         const updatedMessages = [...prev, newMessage];
         
-        // Save to localStorage
+        // Save to localStorage directly without dependencies
         if (currentConversation) {
-          saveMessagesToStorage(updatedMessages, currentConversation);
+          try {
+            const chatData = {
+              messages: updatedMessages,
+              conversationKey: currentConversation,
+              timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(`${CHAT_STORAGE_KEY}_${currentConversation}`, JSON.stringify(chatData));
+            console.log('💾 Chat history saved to localStorage for conversation:', currentConversation);
+          } catch (error) {
+            console.warn('Failed to save chat history to localStorage:', error);
+          }
         }
         
         return updatedMessages;
@@ -328,13 +348,28 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       });
       throw error; // Re-throw to let components handle it
     }
-  }, [currentUser, isConnected]);
+  }, [currentUser?.accountid, isConnected, currentConversation, CHAT_STORAGE_KEY]);
 
   // Initialize SignalR when user changes
   useEffect(() => {
     if (currentUser?.accountid) {
-      connectSignalR();
       console.log('SignalR enabled for real-time chat');
+      
+      // Connect to SignalR directly without dependency loop
+      const initializeConnection = async () => {
+        if (!isConnected) {
+          try {
+            console.log('Initializing SignalR connection for user:', currentUser.accountid);
+            await signalRService.initialize(currentUser.accountid, signalRCallbacks);
+            setIsConnected(true);
+          } catch (error) {
+            console.error('Failed to connect to SignalR:', error);
+            setIsConnected(false);
+          }
+        }
+      };
+      
+      initializeConnection();
     }
     
     return () => {
@@ -343,7 +378,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         setIsConnected(false);
       }
     };
-  }, [currentUser, connectSignalR]);
+  }, [currentUser?.accountid]);
 
   const value: ChatContextType = {
     messages,

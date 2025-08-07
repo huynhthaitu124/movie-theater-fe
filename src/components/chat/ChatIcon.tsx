@@ -73,7 +73,7 @@ const ChatIcon: React.FC = () => {
       console.log('👤 User changed, loading conversation:', currentUser.accountid, '<=>', supportAdminId);
       loadConversationMessages(currentUser.accountid, supportAdminId);
     }
-  }, [currentUser?.accountid, isOpen, loadConversationMessages]);
+  }, [currentUser?.accountid, isOpen]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
