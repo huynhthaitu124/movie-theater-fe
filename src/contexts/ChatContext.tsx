@@ -321,9 +321,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           // Create stable callbacks inline to avoid dependency issues
           const callbacks = {
             onMessageReceived: (message: ChatMessage) => {
-              console.log('📨 New message received via SignalR:', message);
+              console.log('� SignalR onMessageReceived triggered!');
+              console.log('�📨 New message received via SignalR:', message);
+              console.log('📊 Message details:', {
+                messageId: message.messageId,
+                senderId: message.senderId,
+                receiverId: message.receiverId,
+                senderName: message.senderName,
+                content: message.message?.substring(0, 50) + '...'
+              });
               
               setMessages(prev => {
+                console.log('📋 Current messages count before add:', prev.length);
+                
                 const existingMessage = prev.find(m => 
                   m.messageId === message.messageId || 
                   (m.senderId === message.senderId && 
@@ -333,12 +343,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                 );
                 
                 if (existingMessage) {
-                  console.log('Message already exists, skipping duplicate');
+                  console.log('⚠️ Message already exists, skipping duplicate:', existingMessage.messageId);
                   return prev;
                 }
                 
                 console.log('✅ Adding new message to local state');
                 const newMessages = [...prev, message];
+                console.log('📋 New messages count after add:', newMessages.length);
                 
                 // Save to localStorage inline
                 try {
@@ -349,6 +360,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                     timestamp: new Date().toISOString()
                   };
                   localStorage.setItem(`${storageKey}_current`, JSON.stringify(chatData));
+                  console.log('💾 Chat history saved to localStorage');
                 } catch (error) {
                   console.warn('Failed to save chat history:', error);
                 }
@@ -358,11 +370,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
               
               // Update unread count
               if (message.senderId !== currentUser?.accountid) {
+                console.log('📬 Incrementing unread count for message from:', message.senderName);
                 setUnreadCount(prev => prev + 1);
               }
             },
             onConnectionStateChanged: (connected: boolean) => {
               console.log('🔄 SignalR connection state changed:', connected);
+              console.log('📡 Connection status updated in context');
               setIsConnected(connected);
             }
           };

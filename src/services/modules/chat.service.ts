@@ -16,15 +16,22 @@ export class ChatService {
   async sendMessage(message: string, receiverId?: string): Promise<ChatMessage> {
     try {
       // Tạo SendMessageDto theo format backend yêu cầu
+      const currentUserId = this.getCurrentUserId();
       const sendMessageDto: SendMessageDto = {
-        senderId: this.getCurrentUserId(),
+        senderId: currentUserId,
         receiverId: receiverId, // undefined thay vì null
         message: message.trim()
       };
 
-      console.log('Sending message with DTO:', sendMessageDto);
+      console.log('🔍 ChatService.sendMessage Debug Info:');
+      console.log('- Current User ID:', currentUserId);
+      console.log('- Receiver ID:', receiverId);
+      console.log('- Message:', message?.substring(0, 50) + '...');
+      console.log('- Send DTO:', sendMessageDto);
+      
+      console.log('📤 Sending message with DTO to API...');
       const response = await axiosClient.post('/api/Chat/send', sendMessageDto);
-      console.log('Send message response:', response);
+      console.log('✅ Send message API response:', response);
       
       // API trả về format: {status: 200, message: "Save data success", data: ChatMessage}
       const apiResponse = response.data;
