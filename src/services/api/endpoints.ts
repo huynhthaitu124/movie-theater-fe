@@ -172,5 +172,23 @@ export const API_ENDPOINTS = {
     // SeatSchedule endpoints
     SEAT_SCHEDULE: {
         GET_BY_SCHEDULE_ID: (scheduleId: string) => `/api/SeatSchedule/schedule/${scheduleId}`,
-    }
+    },
+
+    WORKSCHEDULE: {
+        GET_ALL: '/api/WorkSchedule/AllWorkSchedules',
+        GET_BY_ID: (id: string) => `/api/WorkSchedule/GetWorkSchedule/${id}`,
+        GET_BY_CINEMA_ID: (cinemaId: string) => `/api/WorkSchedule/GetWorkScheduleByCinemaId/${cinemaId}`,
+        CREATE: '/api/WorkSchedule/CreateWorkSchedule',
+        UPDATE: `/api/WorkSchedule/UpdateWorkSchedule`,
+        DELETE: (id: string) => `/api/WorkSchedule/DeleteWorkSchedule/${id}`,
+    },
+
+    STAFF_WORKSCHEDULE: {
+        GET_ALL: '/api/StaffWorkschedule/GetAll',
+        GET_BY_ID: (id: string) => `/api/StaffWorkschedule/GetById/${id}`,
+        GET_BY_STAFF_ID: (staffId: string) => `/api/StaffWorkschedule/GetWorkscheduleByStaffId/${staffId}`,
+        CREATE: '/api/StaffWorkschedule/Create',
+        UPDATE: `/api/StaffWorkschedule/Update`,
+        DELETE: (staffId: string, workScheduleId: string) => `/api/StaffWorkschedule/Delete?staffId=${staffId}&workscheduleid=${workScheduleId}`,
+    },
 };

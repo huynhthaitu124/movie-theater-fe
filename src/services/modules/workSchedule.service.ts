@@ -1,5 +1,6 @@
 import { axiosClient } from '../api/axiosClient';
 import { ApiResponse } from '../types/response.types';
+import { API_ENDPOINTS } from '../api/endpoints';
 import { WorkSchedule } from '@/types';
 
 export interface CreateWorkScheduleRequest {
@@ -22,7 +23,7 @@ class WorkScheduleService {
    * Get all work schedules
    */
   async getAllWorkSchedules(): Promise<ApiResponse<WorkSchedule[]>> {
-    const response = await axiosClient.get<ApiResponse<WorkSchedule[]>>('/api/Workschedule/AllWorkschedule');
+    const response = await axiosClient.get<ApiResponse<WorkSchedule[]>>(API_ENDPOINTS.WORKSCHEDULE.GET_ALL);
     return response.data;
   }
 
@@ -30,7 +31,7 @@ class WorkScheduleService {
    * Get work schedule by ID
    */
   async getWorkScheduleById(id: string): Promise<ApiResponse<WorkSchedule>> {
-    const response = await axiosClient.get<ApiResponse<WorkSchedule>>(`/api/Workschedule/GetWorkschedule/${id}`);
+    const response = await axiosClient.get<ApiResponse<WorkSchedule>>(API_ENDPOINTS.WORKSCHEDULE.GET_BY_ID(id));
     return response.data;
   }
 
@@ -38,7 +39,7 @@ class WorkScheduleService {
    * Get work schedules by cinema ID
    */
   async getWorkScheduleByCinemaId(cinemaId: string): Promise<ApiResponse<WorkSchedule[]>> {
-    const response = await axiosClient.get<ApiResponse<WorkSchedule[]>>(`/api/Workschedule/GetWorkscheduleByCinemaId/${cinemaId}`);
+    const response = await axiosClient.get<ApiResponse<WorkSchedule[]>>(API_ENDPOINTS.WORKSCHEDULE.GET_BY_CINEMA_ID(cinemaId));
     return response.data;
   }
 
@@ -46,7 +47,7 @@ class WorkScheduleService {
    * Create a new work schedule
    */
   async createWorkSchedule(data: CreateWorkScheduleRequest): Promise<ApiResponse<WorkSchedule>> {
-    const response = await axiosClient.post<ApiResponse<WorkSchedule>>('/api/Workschedule/CreateWorkschedule', data);
+    const response = await axiosClient.post<ApiResponse<WorkSchedule>>(API_ENDPOINTS.WORKSCHEDULE.CREATE, data);
     return response.data;
   }
 
@@ -54,7 +55,7 @@ class WorkScheduleService {
    * Update an existing work schedule
    */
   async updateWorkSchedule(data: UpdateWorkScheduleRequest): Promise<ApiResponse<WorkSchedule>> {
-    const response = await axiosClient.put<ApiResponse<WorkSchedule>>('/api/Workschedule/UpdateWorkschedule', data);
+    const response = await axiosClient.put<ApiResponse<WorkSchedule>>(API_ENDPOINTS.WORKSCHEDULE.UPDATE, data);
     return response.data;
   }
 
@@ -62,7 +63,7 @@ class WorkScheduleService {
    * Delete a work schedule
    */
   async deleteWorkSchedule(id: string): Promise<ApiResponse<boolean>> {
-    const response = await axiosClient.delete<ApiResponse<boolean>>(`/api/Workschedule/Workschedule/${id}`);
+    const response = await axiosClient.delete<ApiResponse<boolean>>(API_ENDPOINTS.WORKSCHEDULE.DELETE(id));
     return response.data;
   }
 }
