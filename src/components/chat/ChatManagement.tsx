@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Send, Search, Users, MoreVertical, AlertCircle, X, RefreshCw } from 'lucide-react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -47,8 +47,8 @@ const ChatManagement: React.FC = () => {
   // Real conversations from API
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  // Fetch conversations from API - memoized to prevent infinite loops
-  const fetchConversations = useCallback(async () => {
+  // Fetch conversations from API 
+  const fetchConversations = async () => {
     try {
       console.log('Fetching conversations from API...');
       
@@ -66,16 +66,12 @@ const ChatManagement: React.FC = () => {
       console.error('Error fetching conversations:', error);
       setConversations([]);
     }
-  }, []);
+  };
 
-  // Load conversations on component mount and setup auto-refresh
+  // Load conversations on component mount  
   useEffect(() => {
     fetchConversations();
-    
-    // Refresh conversations every 5 minutes (just for safety)
-    const interval = setInterval(fetchConversations, 300000);
-    return () => clearInterval(interval);
-  }, [fetchConversations]);
+  }, []);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -83,6 +79,21 @@ const ChatManagement: React.FC = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Load messages on component mount (don't call automatically)
+  useEffect(() => {
+    // Don't auto-load messages, let user select conversation first
+    // refreshMessages();
+  }, [refreshMessages]);
+
+  // Auto-refresh conversations periodically (less frequent since we have real-time updates)
+  useEffect(() => {
+    fetchConversations();
+    
+    // Refresh conversations every 5 minutes (just for safety)
+    const interval = setInterval(fetchConversations, 300000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Select first conversation by default and load its messages
   useEffect(() => {
@@ -101,65 +112,12 @@ const ChatManagement: React.FC = () => {
         console.warn('First conversation missing user IDs:', firstConv);
       }
     }
-  }, [conversations.length, selectedConversation?.id]); // Simplified dependencies
+  }, [conversations, selectedConversation, loadConversationMessages]);
 
-  // Listen for real-time messages to update conversation list
-  useEffect(() => {
-    if (messages.length === 0) return;
-    
-    // Get the latest message
-    const latestMessage = messages[messages.length - 1];
-    if (!latestMessage) return;
-    
-    console.log('📨 Real-time message detected, updating conversation list:', latestMessage);
-    
-    // Update the conversation list with the new message
-    setConversations(prevConversations => {
-      const updatedConversations = prevConversations.map(conv => {
-        // Check if this message belongs to this conversation
-        const isFromThisConversation = 
-          (conv.user1Id === latestMessage.senderId && conv.user2Id === latestMessage.receiverId) ||
-          (conv.user1Id === latestMessage.receiverId && conv.user2Id === latestMessage.senderId) ||
-          (conv.userId === latestMessage.senderId) ||
-          (conv.userId === latestMessage.receiverId);
-        
-        if (isFromThisConversation) {
-          console.log('✅ Updating conversation with new message:', conv.userName);
-          return {
-            ...conv,
-            lastMessage: latestMessage.message,
-            lastMessageTime: latestMessage.timestamp,
-            // Increment unread count if message is not from current user and not in selected conversation
-            unreadCount: (latestMessage.senderId !== currentUser?.accountid && 
-                         selectedConversation?.id !== conv.id) 
-                         ? conv.unreadCount + 1 
-                         : conv.unreadCount
-          };
-        }
-        
-        return conv;
-      });
-      
-      // Sort conversations by last message time (newest first)
-      return updatedConversations.sort((a, b) => 
-        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
-      );
-    });
-  }, [messages, currentUser?.accountid, selectedConversation?.id]);
-
-  // Handle conversation selection - memoized to prevent re-renders
-  const handleConversationSelect = useCallback(async (conversation: Conversation) => {
+  // Handle conversation selection
+  const handleConversationSelect = async (conversation: Conversation) => {
     console.log('Selecting conversation:', conversation);
     setSelectedConversation(conversation);
-    
-    // Reset unread count for selected conversation
-    setConversations(prevConversations => 
-      prevConversations.map(conv => 
-        conv.id === conversation.id 
-          ? { ...conv, unreadCount: 0 }
-          : conv
-      )
-    );
     
     // Load messages for selected conversation using user1Id and user2Id
     if (conversation.user1Id && conversation.user2Id) {
@@ -178,9 +136,9 @@ const ChatManagement: React.FC = () => {
     } else {
       console.error('Selected conversation missing user IDs:', conversation);
     }
-  }, []); // Remove all dependencies to prevent loops
+  };
 
-  const handleSendMessage = useCallback(async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim() || isSending || !selectedConversation) return;
 
@@ -208,15 +166,13 @@ const ChatManagement: React.FC = () => {
     } finally {
       setIsSending(false);
     }
-  }, [messageInput, isSending, selectedConversation?.userId, selectedConversation?.user1Id, selectedConversation?.user2Id, clearError, sendMessage, isConnected]); // Simplified dependencies
+  };
 
-  // Safe filter with null check - memoized to prevent re-computation
-  const filteredConversations = useMemo(() => 
-    conversations.filter(conversation => 
-      conversation && 
-      conversation.userName && 
-      conversation.userName.toLowerCase().includes(searchQuery.toLowerCase())
-    ), [conversations, searchQuery]
+  // Safe filter with null check
+  const filteredConversations = conversations.filter(conversation => 
+    conversation && 
+    conversation.userName && 
+    conversation.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Only show for admin/staff
@@ -237,7 +193,7 @@ const ChatManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header */}
       <div className="bg-gray-900/80 backdrop-blur-sm shadow-2xl border-b border-gray-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

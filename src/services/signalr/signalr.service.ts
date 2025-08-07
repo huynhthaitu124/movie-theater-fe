@@ -46,31 +46,22 @@ export class SignalRService {
       await this.connection.start();
       console.log('🔗 SignalR connection established');
       
-      // Join chat exactly like HTML test and backend ChatHub
+      // Join chat like HTML test - use JoinChat instead of JoinUserGroup
       try {
         // Get user info from localStorage 
         const userStr = localStorage.getItem('user');
         if (userStr) {
           const user = JSON.parse(userStr);
-          const userName = user.fullname || user.username || user.email || 'Unknown User';
-          const userRole = user.roleName || user.role || 'Member';
+          const userName = user.fullname || user.email || 'Unknown User';
+          const userRole = user.role || 'Member';
           
-          console.log('🔗 Joining chat with backend ChatHub.JoinChat method:', {
-            userId: userId,
-            username: userName, 
-            role: userRole
-          });
-          
-          // Backend ChatHub.JoinChat expects: Guid userId, string username, string role
-          await this.connection.invoke('JoinChat', userId, userName, userRole);
-          console.log('✅ Successfully joined chat via JoinChat method');
-          
+          await this.connection.invoke("JoinChat", userId, userName, userRole);
+          console.log(`✅ Successfully joined chat as ${userName} (${userRole})`);
         } else {
-          console.warn('⚠️ No user info found in localStorage, joining with basic info');
-          await this.connection.invoke('JoinChat', userId, 'Unknown User', 'Member');
+          console.warn('No user info found in localStorage');
         }
       } catch (joinError) {
-        console.warn('⚠️ JoinChat failed, but connection is still active:', joinError);
+        console.warn('JoinChat method not found, continuing without join:', joinError);
       }
 
       this.callbacks?.onConnectionStateChanged?.(true);
@@ -89,48 +80,47 @@ export class SignalRService {
   private setupEventHandlers(): void {
     if (!this.connection) return;
 
-    // Handle incoming messages exactly like HTML test - ALL possible event names
+    // Handle incoming messages exactly like HTML test
     this.connection.on("ReceiveMessage", (chatMessage) => {
       console.log('📨 SignalR message received via ReceiveMessage:', chatMessage);
-      this.processReceivedMessage(chatMessage);
-    });
-
-    this.connection.on("MessageReceived", (chatMessage) => {
-      console.log('📨 SignalR message received via MessageReceived:', chatMessage);
-      this.processReceivedMessage(chatMessage);
-    });
-
-    this.connection.on("NewMessage", (chatMessage) => {
-      console.log('📨 SignalR message received via NewMessage:', chatMessage);
-      this.processReceivedMessage(chatMessage);
-    });
-
-    // Handle different parameter signatures
-    this.connection.on("OnMessageReceived", (senderId, receiverId, message, timestamp) => {
-      console.log('📨 OnMessageReceived:', { senderId, receiverId, message, timestamp });
-      const chatMessage = {
-        messageId: Date.now().toString(),
-        senderId,
-        receiverId,
-        message,
-        timestamp: timestamp || new Date().toISOString(),
-        senderName: 'Unknown User',
-        senderRole: 'Member',
-        isRead: false
+      
+      // Map the received message to our ChatMessage format
+      const mappedMessage: ChatMessage = {
+        messageId: chatMessage.messageId || Date.now().toString(),
+        senderId: chatMessage.senderId,
+        senderName: chatMessage.senderName || 'Unknown User',
+        senderRole: chatMessage.senderRole || 'Member',
+        receiverId: chatMessage.receiverId,
+        message: chatMessage.message,
+        timestamp: chatMessage.timestamp || new Date().toISOString(),
+        isRead: chatMessage.isRead || false
       };
-      this.processReceivedMessage(chatMessage);
+      
+      this.callbacks?.onMessageReceived?.(mappedMessage);
     });
 
     // Handle user joined (like HTML test)
     this.connection.on("UserJoined", (user) => {
-      console.log(`👋 User ${user.username || user.userId} (${user.role}) joined chat`);
+      console.log(`👋 User ${user.username} (${user.role}) joined chat`);
     });
 
     // Handle message history (like HTML test)
     this.connection.on("MessageHistory", (messages) => {
       console.log('📚 Message history received:', messages);
       if (Array.isArray(messages)) {
-        messages.forEach(msg => this.processReceivedMessage(msg));
+        messages.forEach(msg => {
+          const mappedMessage: ChatMessage = {
+            messageId: msg.messageId || Date.now().toString(),
+            senderId: msg.senderId,
+            senderName: msg.senderName || 'Unknown User',
+            senderRole: msg.senderRole || 'Member', 
+            receiverId: msg.receiverId,
+            message: msg.message,
+            timestamp: msg.timestamp || new Date().toISOString(),
+            isRead: msg.isRead || false
+          };
+          this.callbacks?.onMessageReceived?.(mappedMessage);
+        });
       }
     });
 
@@ -156,22 +146,6 @@ export class SignalRService {
       this.callbacks?.onConnectionStateChanged?.(true);
       this.reconnectAttempts = 0;
     });
-  }
-
-  private processReceivedMessage(chatMessage: any): void {
-    // Map the received message to our ChatMessage format
-    const mappedMessage: ChatMessage = {
-      messageId: chatMessage.messageId || Date.now().toString(),
-      senderId: chatMessage.senderId,
-      senderName: chatMessage.senderName || 'Unknown User',
-      senderRole: chatMessage.senderRole || 'Member',
-      receiverId: chatMessage.receiverId,
-      message: chatMessage.message,
-      timestamp: chatMessage.timestamp || new Date().toISOString(),
-      isRead: chatMessage.isRead || false
-    };
-    
-    this.callbacks?.onMessageReceived?.(mappedMessage);
   }
 
   private async attemptReconnect(): Promise<void> {
@@ -203,39 +177,23 @@ export class SignalRService {
     }
 
     try {
-      console.log('📤 Sending message via SignalR using backend ChatHub.SendMessage:', { 
+      console.log('📤 Sending message via SignalR:', { 
         message, 
-        receiverId: receiverId,
-        senderId: senderId || 'Unknown'
+        receiverId, 
+        senderId: senderId || 'Unknown',
+        senderName: senderName || 'Unknown User',
+        senderRole: senderRole || 'Member'
       });
       
-      // Try Method 1: SendMessageDto object with proper GUID conversion
-      try {
-        const sendMessageDto = {
-          SenderId: senderId, // Keep as string, C# will convert to Guid
-          ReceiverId: receiverId, // Keep as string, C# will convert to Guid
-          Message: message
-        };
-        
-        console.log('📤 Trying SendMessage with SendMessageDto object:', sendMessageDto);
-        await this.connection.invoke('SendMessage', sendMessageDto);
-        console.log('✅ Message sent successfully via SendMessage(SendMessageDto)');
-        return;
-      } catch (error1) {
-        console.warn('❌ SendMessage(object) failed:', error1);
-      }
-      
-      // Try Method 2: Individual parameters (alternative approach)
-      try {
-        console.log('📤 Trying SendMessage with individual Guid parameters');
-        await this.connection.invoke('SendMessage', senderId, receiverId, message);
-        console.log('✅ Message sent successfully via SendMessage(Guid, Guid, string)');
-        return;
-      } catch (error2) {
-        console.warn('❌ SendMessage(Guid params) failed:', error2);
-      }
-      
-      throw new Error('All SendMessage methods failed');
+      // Send message exactly like HTML test - pass all parameters
+      await this.connection.invoke('SendMessage', 
+        senderId || 'Unknown', 
+        receiverId, 
+        message, 
+        senderName || 'Unknown User', 
+        senderRole || 'Member'
+      );
+      console.log('✅ Message sent successfully via SignalR');
       
     } catch (error) {
       console.error('❌ Error sending message via SignalR:', error);
