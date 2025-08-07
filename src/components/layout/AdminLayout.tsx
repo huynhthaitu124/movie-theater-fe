@@ -152,11 +152,11 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       icon: <Users size={20} />,
       label: 'Employees',
     },
-    {
-      to: '/admin/workSchedule',
-      icon: <Calendar size={20} />,
-      label: 'Work Schedule',
-    },
+    // {
+    //   to: '/admin/workSchedule',
+    //   icon: <Calendar size={20} />,
+    //   label: 'Work Schedule',
+    // },
     {
       to: '/admin/members',
       icon: <User2 size={20} />,

@@ -114,13 +114,13 @@ const ProductManagement: React.FC = () => {
               </div>
               
               {/* Add navigation button to Combo Management */}
-              <Button
+              {/* <Button
                 onClick={() => navigate('/admin/products/combo')}
                 className="flex items-center space-x-2 px-4 py-2 bg-amber-600/70 hover:bg-amber-600 text-white rounded-lg transition-colors"
               >
                 <ShoppingBag className="w-5 h-5" />
                 <span>Go to Combos</span>
-              </Button>
+              </Button> */}
             </div>
             <div className="flex items-center space-x-6">
               <div className="text-right">
