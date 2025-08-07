@@ -101,7 +101,7 @@ const ChatManagement: React.FC = () => {
         console.warn('First conversation missing user IDs:', firstConv);
       }
     }
-  }, [conversations, selectedConversation]);
+  }, [conversations.length, selectedConversation?.id]); // Simplified dependencies
 
   // Listen for real-time messages to update conversation list
   useEffect(() => {
@@ -178,7 +178,7 @@ const ChatManagement: React.FC = () => {
     } else {
       console.error('Selected conversation missing user IDs:', conversation);
     }
-  }, [loadConversationMessages]);
+  }, []); // Remove all dependencies to prevent loops
 
   const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,7 +208,7 @@ const ChatManagement: React.FC = () => {
     } finally {
       setIsSending(false);
     }
-  }, [messageInput, isSending, selectedConversation, clearError, sendMessage, isConnected, loadConversationMessages]);
+  }, [messageInput, isSending, selectedConversation?.userId, selectedConversation?.user1Id, selectedConversation?.user2Id, clearError, sendMessage, isConnected]); // Simplified dependencies
 
   // Safe filter with null check - memoized to prevent re-computation
   const filteredConversations = useMemo(() => 
