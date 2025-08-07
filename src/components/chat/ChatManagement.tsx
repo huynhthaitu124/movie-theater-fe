@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { MessageCircle, Send, Search, Users, MoreVertical, AlertCircle, X, RefreshCw } from 'lucide-react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -47,8 +47,8 @@ const ChatManagement: React.FC = () => {
   // Real conversations from API
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  // Fetch conversations from API 
-  const fetchConversations = async () => {
+  // Fetch conversations from API - memoized to prevent infinite loops
+  const fetchConversations = useCallback(async () => {
     try {
       console.log('Fetching conversations from API...');
       
@@ -66,7 +66,7 @@ const ChatManagement: React.FC = () => {
       console.error('Error fetching conversations:', error);
       setConversations([]);
     }
-  };
+  }, []);
 
   // Load conversations on component mount and setup auto-refresh
   useEffect(() => {
@@ -75,7 +75,7 @@ const ChatManagement: React.FC = () => {
     // Refresh conversations every 5 minutes (just for safety)
     const interval = setInterval(fetchConversations, 300000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchConversations]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -101,7 +101,7 @@ const ChatManagement: React.FC = () => {
         console.warn('First conversation missing user IDs:', firstConv);
       }
     }
-  }, [conversations, selectedConversation, loadConversationMessages]);
+  }, [conversations, selectedConversation]);
 
   // Listen for real-time messages to update conversation list
   useEffect(() => {
@@ -147,8 +147,8 @@ const ChatManagement: React.FC = () => {
     });
   }, [messages, currentUser?.accountid, selectedConversation?.id]);
 
-  // Handle conversation selection
-  const handleConversationSelect = async (conversation: Conversation) => {
+  // Handle conversation selection - memoized to prevent re-renders
+  const handleConversationSelect = useCallback(async (conversation: Conversation) => {
     console.log('Selecting conversation:', conversation);
     setSelectedConversation(conversation);
     
@@ -178,9 +178,9 @@ const ChatManagement: React.FC = () => {
     } else {
       console.error('Selected conversation missing user IDs:', conversation);
     }
-  };
+  }, [loadConversationMessages]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim() || isSending || !selectedConversation) return;
 
@@ -208,13 +208,15 @@ const ChatManagement: React.FC = () => {
     } finally {
       setIsSending(false);
     }
-  };
+  }, [messageInput, isSending, selectedConversation, clearError, sendMessage, isConnected, loadConversationMessages]);
 
-  // Safe filter with null check
-  const filteredConversations = conversations.filter(conversation => 
-    conversation && 
-    conversation.userName && 
-    conversation.userName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Safe filter with null check - memoized to prevent re-computation
+  const filteredConversations = useMemo(() => 
+    conversations.filter(conversation => 
+      conversation && 
+      conversation.userName && 
+      conversation.userName.toLowerCase().includes(searchQuery.toLowerCase())
+    ), [conversations, searchQuery]
   );
 
   // Only show for admin/staff
