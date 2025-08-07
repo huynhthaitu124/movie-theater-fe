@@ -68,9 +68,13 @@ const ChatManagement: React.FC = () => {
     }
   };
 
-  // Load conversations on component mount  
+  // Load conversations on component mount and setup auto-refresh
   useEffect(() => {
     fetchConversations();
+    
+    // Refresh conversations every 5 minutes (just for safety)
+    const interval = setInterval(fetchConversations, 300000);
+    return () => clearInterval(interval);
   }, []);
 
   // Auto scroll to bottom when new messages arrive
@@ -79,21 +83,6 @@ const ChatManagement: React.FC = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
-
-  // Load messages on component mount (don't call automatically)
-  useEffect(() => {
-    // Don't auto-load messages, let user select conversation first
-    // refreshMessages();
-  }, [refreshMessages]);
-
-  // Auto-refresh conversations periodically (less frequent since we have real-time updates)
-  useEffect(() => {
-    fetchConversations();
-    
-    // Refresh conversations every 5 minutes (just for safety)
-    const interval = setInterval(fetchConversations, 300000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Select first conversation by default and load its messages
   useEffect(() => {
@@ -246,7 +235,7 @@ const ChatManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black pt-16">
       {/* Header */}
       <div className="bg-gray-900/80 backdrop-blur-sm shadow-2xl border-b border-gray-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
