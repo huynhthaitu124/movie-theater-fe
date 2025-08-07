@@ -32,7 +32,8 @@ const ChatIcon: React.FC = () => {
     try {
       // Use sendMessage from ChatContext which handles all the logic
       console.log('� Calling ChatContext sendMessage...');
-      await sendMessage(messageText);
+      const supportId = 'da025367-64ba-44e7-8886-faabe74a1a6b';
+      await sendMessage(messageText, supportId);
       console.log('✅ Message sent successfully');
       
       // Clear input after successful send
