@@ -299,15 +299,15 @@ const MemberList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                       <div className="flex items-center space-x-3">
-                        <Button
+                        {/* <Button
                           variant="ghost"
                           onClick={() => navigate(`/admin/members/edit/${member.memberId}`)}
                           className="hover:text-primary-500"
                         >
                           <Edit size={16} className="mr-1" />
                           Edit
-                        </Button>
-                        <Button
+                        </Button> */}
+                        {/* <Button
                           variant="ghost"
                           className="hover:text-red-500"
                           onClick={() => {
@@ -317,7 +317,7 @@ const MemberList: React.FC = () => {
                         >
                           <Trash size={16} className="mr-1" />
                           Delete
-                        </Button>
+                        </Button> */}
                         <Button
                           variant="ghost"
                           className="hover:text-green-500"
