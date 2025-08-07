@@ -39,14 +39,26 @@ const ChatIcon: React.FC = () => {
 
     try {
       // Sử dụng admin ID mới nhất để nhắn với support team
-      const supportAdminId = 'da025367-64ba-44e7-8886-faabe74a1a6b'; // Tu_TEST_2 (Admin)
+      const supportAdminId = import.meta.env.VITE_ADMIN_USER_ID || 'da025367-64ba-44e7-8886-faabe74a1a6b';
       
-      console.log('Sending message to support admin:', supportAdminId);
+      console.log('🔍 ChatIcon Debug Info:');
+      console.log('- Current Member ID:', currentUser?.accountid);
+      console.log('- Current Member Name:', currentUser?.name || currentUser?.username);
+      console.log('- Support Admin ID:', supportAdminId);
+      console.log('- Message Content:', messageInput);
+      console.log('- SignalR Connected:', isConnected);
+      
+      console.log('📤 Sending message from member to admin:', supportAdminId);
       const res = await sendMessage(messageInput, supportAdminId);
-      console.log('Message sent successfully to admin:', res);
+      console.log('✅ Message sent successfully, response:', res);
       setMessageInput('');
     } catch (error: any) {
-      console.error('Error sending message to admin:', error);
+      console.error('❌ Error sending message from member to admin:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       // Error đã được xử lý trong context
     } finally {
       setIsSending(false);
