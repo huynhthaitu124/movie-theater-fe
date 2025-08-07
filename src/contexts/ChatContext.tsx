@@ -17,6 +17,7 @@ interface ChatContextType {
   refreshMessages: () => Promise<void>;
   loadConversationMessages: (user1Id: string, user2Id: string) => Promise<void>;
   clearError: () => void;
+  connectSignalR: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -78,74 +79,28 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setError(null);
   }, []);
 
-  // SignalR callbacks - stable references to prevent re-renders
-  const signalRCallbacks = {
-    onMessageReceived: (message: ChatMessage) => {
-      console.log('📨 New message received via SignalR:', message);
-      
-      // Add the message to local state for real-time display
-      setMessages(prev => {
-        // Check if message already exists to avoid duplicates
-        const existingMessage = prev.find(m => 
-          m.messageId === message.messageId || 
-          (m.senderId === message.senderId && 
-           m.receiverId === message.receiverId && 
-           m.message === message.message && 
-           Math.abs(new Date(m.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
-        );
-        
-        if (existingMessage) {
-          console.log('Message already exists, skipping duplicate');
-          return prev;
-        }
-        
-        console.log('✅ Adding new message to local state');
-        const newMessages = [...prev, message];
-        
-        // Save updated messages to localStorage
-        if (currentConversation) {
-          try {
-            const chatData = {
-              messages: newMessages,
-              conversationKey: currentConversation,
-              timestamp: new Date().toISOString()
-            };
-            localStorage.setItem(`${CHAT_STORAGE_KEY}_${currentConversation}`, JSON.stringify(chatData));
-            console.log('💾 Chat history saved to localStorage for conversation:', currentConversation);
-          } catch (error) {
-            console.warn('Failed to save chat history to localStorage:', error);
-          }
-        }
-        
-        return newMessages;
-      });
-      
-      // Update unread count if the message is not from current user
-      if (message.senderId !== currentUser?.accountid) {
-        setUnreadCount(prev => prev + 1);
-      }
-    },
-    onConnectionStateChanged: (connected: boolean) => {
-      console.log('🔄 SignalR connection state changed:', connected);
-      setIsConnected(connected);
-      
-      if (connected) {
-        console.log('✅ SignalR connected - real-time chat active');
-      } else {
-        console.log('❌ SignalR disconnected - falling back to polling');
-      }
-    }
-  };
-
-  // Connect to SignalR when user is authenticated
+  // Manual connect function for external use
   const connectSignalR = useCallback(async () => {
     if (currentUser?.accountid && !isConnected) {
       try {
-        console.log('Connecting to SignalR for user:', currentUser.accountid);
-        await signalRService.initialize(currentUser.accountid, signalRCallbacks);
+        console.log('Manual SignalR connection for user:', currentUser.accountid);
+        
+        const callbacks = {
+          onMessageReceived: (message: ChatMessage) => {
+            setMessages(prev => [...prev, message]);
+            if (message.senderId !== currentUser?.accountid) {
+              setUnreadCount(prev => prev + 1);
+            }
+          },
+          onConnectionStateChanged: (connected: boolean) => {
+            setIsConnected(connected);
+          }
+        };
+        
+        await signalRService.initialize(currentUser.accountid, callbacks);
         setIsConnected(true);
       } catch (error) {
-        console.error('Failed to connect to SignalR:', error);
+        console.error('Failed to manually connect to SignalR:', error);
         setIsConnected(false);
       }
     }
@@ -348,22 +303,77 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       });
       throw error; // Re-throw to let components handle it
     }
-  }, [currentUser?.accountid, isConnected, currentConversation, CHAT_STORAGE_KEY]);
+  }, [currentUser, isConnected]); // Simplified dependencies
 
-  // Initialize SignalR when user changes
+  // Initialize SignalR when user changes - simplified to avoid loops
   useEffect(() => {
+    let mounted = true;
+    
     if (currentUser?.accountid) {
       console.log('SignalR enabled for real-time chat');
       
-      // Connect to SignalR directly without dependency loop
       const initializeConnection = async () => {
-        if (!isConnected) {
-          try {
-            console.log('Initializing SignalR connection for user:', currentUser.accountid);
-            await signalRService.initialize(currentUser.accountid, signalRCallbacks);
+        if (!mounted) return;
+        
+        try {
+          console.log('Initializing SignalR connection for user:', currentUser.accountid);
+          
+          // Create stable callbacks inline to avoid dependency issues
+          const callbacks = {
+            onMessageReceived: (message: ChatMessage) => {
+              console.log('📨 New message received via SignalR:', message);
+              
+              setMessages(prev => {
+                const existingMessage = prev.find(m => 
+                  m.messageId === message.messageId || 
+                  (m.senderId === message.senderId && 
+                   m.receiverId === message.receiverId && 
+                   m.message === message.message && 
+                   Math.abs(new Date(m.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
+                );
+                
+                if (existingMessage) {
+                  console.log('Message already exists, skipping duplicate');
+                  return prev;
+                }
+                
+                console.log('✅ Adding new message to local state');
+                const newMessages = [...prev, message];
+                
+                // Save to localStorage inline
+                try {
+                  const storageKey = `chat_history_${currentUser?.accountid || 'anonymous'}`;
+                  const chatData = {
+                    messages: newMessages,
+                    conversationKey: 'current',
+                    timestamp: new Date().toISOString()
+                  };
+                  localStorage.setItem(`${storageKey}_current`, JSON.stringify(chatData));
+                } catch (error) {
+                  console.warn('Failed to save chat history:', error);
+                }
+                
+                return newMessages;
+              });
+              
+              // Update unread count
+              if (message.senderId !== currentUser?.accountid) {
+                setUnreadCount(prev => prev + 1);
+              }
+            },
+            onConnectionStateChanged: (connected: boolean) => {
+              console.log('🔄 SignalR connection state changed:', connected);
+              setIsConnected(connected);
+            }
+          };
+          
+          await signalRService.initialize(currentUser.accountid, callbacks);
+          if (mounted) {
             setIsConnected(true);
-          } catch (error) {
-            console.error('Failed to connect to SignalR:', error);
+          }
+        } catch (error) {
+          console.error('Failed to connect to SignalR:', error);
+          if (mounted) {
             setIsConnected(false);
           }
         }
@@ -373,12 +383,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
     
     return () => {
+      mounted = false;
       if (isConnected) {
         signalRService.disconnect();
         setIsConnected(false);
       }
     };
-  }, [currentUser?.accountid]);
+  }, [currentUser?.accountid]); // Only depend on user ID
 
   const value: ChatContextType = {
     messages,
@@ -389,7 +400,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     sendMessage,
     refreshMessages,
     loadConversationMessages,
-    clearError
+    clearError,
+    connectSignalR
   };
 
   return (
